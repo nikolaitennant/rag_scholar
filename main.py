@@ -105,8 +105,8 @@ def build_vectorstore(default_docs, default_index, session_docs):
     return default_index
 
 # ─── Page config & title ─────────────────────────────────────────────────────
-st.set_page_config(page_title="Giulia's Law AI Assistant", page_icon="🤖")
-st.title("🤖 Giulia's Law AI Assistant")
+st.set_page_config(page_title="Giulia's AI Law Assistant", page_icon="🤖")
+st.title("🤖 Giulia's AI Law Assistant")
 
 # ─── Sidebar: uploader, image input & quick tips ─────────────────────────────
 st.sidebar.header("📂 File Uploads & Tools")

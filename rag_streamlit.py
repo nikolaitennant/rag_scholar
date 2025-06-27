@@ -1,7 +1,7 @@
 import streamlit as st
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_community.document_loaders import TextLoader
+from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain_core.messages import SystemMessage, HumanMessage
 from dotenv import load_dotenv
 import os
@@ -11,12 +11,14 @@ import tempfile
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
-st.set_page_config(page_title="RAG Assistant", page_icon="🤖")
-st.title("🤖 RAG Assistant")
-st.markdown("Upload your `.txt` documents below and chat with them!")
+st.set_page_config(page_title="Guilia's AI Assistant", page_icon="🤖")
+st.title("🤖 Guilia's AI Assistant")
+st.markdown("Upload your `.txt` or `.pdf` documents below and chat with them!")
 
 # Sidebar for file upload
-uploaded_files = st.sidebar.file_uploader("Upload your text files here", type="txt", accept_multiple_files=True)
+uploaded_files = st.sidebar.file_uploader(
+    "Upload your text or PDF files here", type=["txt", "pdf"], accept_multiple_files=True
+)
 
 # Chat history for nicer UI
 if "chat_history" not in st.session_state:
@@ -29,8 +31,12 @@ def load_uploaded_files(uploaded_files):
         file_path = os.path.join(temp_folder, uploaded_file.name)
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
-        loader = TextLoader(file_path)
-        all_documents.extend(loader.load())
+        if uploaded_file.name.lower().endswith(".pdf"):
+            loader = PyPDFLoader(file_path)
+            all_documents.extend(loader.load())
+        else:
+            loader = TextLoader(file_path)
+            all_documents.extend(loader.load())
     return all_documents
 
 if uploaded_files:
@@ -70,4 +76,4 @@ if uploaded_files:
         else:
             st.chat_message("assistant").write(message)
 else:
-    st.info("Upload at least one .txt file to start chatting.")
+    st.info("Upload at least one .txt or .pdf file to start chatting.")

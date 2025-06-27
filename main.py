@@ -117,14 +117,13 @@ if all_documents:
     if user_input:
         docs = retriever.invoke(user_input)
         context = "\n\n".join(d.page_content for d in docs)
-        # If no context, use the user's facts as the only context
         if not context.strip():
-            context = f"The user states: '{user_input}'"
+            # No info found: allow LLM to use just what the user said
             system_prompt = (
                 "You are a helpful assistant. "
-                "For this answer, you may use the information the user provides below as context. "
-                "Do not use any knowledge beyond what the user says or what is in the context below."
-                f"\n\nContext:\n{context}"
+                "You have ONLY the following information from the user to work with. "
+                "Use ONLY this information to answer. Do not use any outside knowledge.\n\n"
+                f"User info:\n{user_input}"
             )
         else:
             system_prompt = (
@@ -142,8 +141,7 @@ if all_documents:
         result = llm.invoke(messages)
         st.session_state.chat_history.append(("You", user_input))
         st.session_state.chat_history.append(("Assistant", result.content))
-
-    
+        
     # Display chat history
     for role, message in st.session_state.chat_history:
         if role == "You":

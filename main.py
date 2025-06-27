@@ -97,35 +97,28 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Quick Tips section
-st.markdown("## 🎯 Quick Tips")
-st.markdown("""
-| **Command**     | **What it Does**                       | **Scope**            |
-| --------------- | -------------------------------------- | -------------------- |
-| `remember:`     | Store a fact **permanently**           | Across all sessions  |
-| `memo:`         | Store a fact **for this session only** | Single session       |
-| `role:`         | Set your assistant’s **persona/role**  | N/A                  |
-
-> **How to use:**  
-> Just start your line with the prefix above—no extra formatting needed.
-"" ")
-""")
 # ─── Quick Tips (Centered) ───────────────────────────────────────────────────
-st.markdown("""
-<div style="text-align:center; margin: 24px 0;">
+st.markdown(
+    """
+<div style="text-align:center; margin:24px 0;">
   <div style="display:inline-block; text-align:left; max-width:600px; width:90%;">
-    ## 🎯 Quick Tips
-    | **Command**     | **What it Does**                       | **Scope**            |
-    | --------------- | -------------------------------------- | -------------------- |
-    | `remember:`     | Store a fact **permanently**           | Across all sessions  |
-    | `memo:`         | Store a fact **for this session only** | Single session       |
-    | `role:`         | Set your assistant’s **persona/role**  | N/A                  |
+  
+  ## 🎯 Quick Tips
 
-    > **How to use:**  
-    > Just start your line with the prefix above—no extra formatting needed.
+  | **Command**   | **What it Does**                     | **Scope**           |
+  |--------------:|--------------------------------------|---------------------|
+  | `remember:`   | Store a fact **permanently**         | Across all sessions |
+  | `memo:`       | Store a fact **for this session**    | Single session      |
+  | `role:`       | Set your assistant’s **persona/role**| N/A                 |
+
+  > **How to use:**  
+  > Just start your line with the prefix above—no extra formatting needed.
+
   </div>
 </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 # File uploader
 uploaded_files = st.sidebar.file_uploader(
     "Upload PDF or text files", type=["pdf","txt"], accept_multiple_files=True

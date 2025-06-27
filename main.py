@@ -119,10 +119,11 @@ if all_documents:
         context = "\n\n".join(d.page_content for d in docs)
         system_prompt = (
             "You are a helpful assistant. "
-            "You must answer ONLY using the provided knowledge base context. "
+            "You must answer using ONLY the provided knowledge base context and any facts the user provides about themselves in their current prompt. "
+            "You may treat any personal information stated directly by the user in their question as factual for this answer. "
             "If there is not enough information to fulfill the user's request, respond with the following:\n"
-            "'Sorry, there is not enough information in the documents to answer your request.'\n"
-            "Do not make up or invent any information or details. Only use what is present in the context below.\n\n"
+            "'Sorry, there is not enough information in the documents or user input to answer your request.'\n"
+            "Do not make up or invent any information or details beyond what is in the context or the user's current prompt.\n\n"
             f"Context:\n{context}"
         )
         messages = [

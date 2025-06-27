@@ -11,8 +11,8 @@ import tempfile
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
-st.set_page_config(page_title="Guilia's AI Assistant", page_icon="🤖")
-st.title("🤖 Guilia's AI Assistant")
+st.set_page_config(page_title="Giulia's AI Assistant", page_icon="🤖")
+st.title("🤖 Giulia's AI Assistant")
 st.markdown("""
 Upload your `.txt` or `.pdf` documents and chat with them!
 
@@ -108,4 +108,4 @@ if all_documents:
         else:
             st.chat_message("assistant").write(message)
 else:
-    st.info("Upload at least one .txt or .pdf file, or add files to the `default_context/` folder, to start chatting.")
+    st.info("Upload at least one .txt or .pdf file to start chatting.")

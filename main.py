@@ -109,19 +109,6 @@ st.markdown("""
 > **How to use:**  
 > Just start your line with the prefix above—no extra formatting needed.
 "" ")
-
-# Sidebar Controls
-st.sidebar.header("📂 Sidebar Controls")
-st.sidebar.markdown(""
-1. **Upload Files (Persistent)**  
-   • Drag & drop PDFs or TXT files (up to 200 MB each)  
-   • Or click **Browse files**
-
-2. **Add a Fact / Set Persona**  
-   • Type **`remember: ...`** or **`memo: ...`** or **`role: ...`** directly in chat
-
-3. **Ask Questions**  
-   • Enter any question below
 """)
 
 # File uploader

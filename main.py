@@ -108,32 +108,31 @@ def build_vectorstore(default_docs, default_index, session_docs):
 st.set_page_config(page_title="Giulia's AI Law Assistant", page_icon="🤖")
 st.title("🤖 Giulia's AI Law Assistant")
 
-# ─── Sidebar: uploader, image input & quick tips ─────────────────────────────
+# ─── Sidebar: uploader, mode toggles & quick tips ─────────────────────────────
 st.sidebar.header("📂 File Uploads & Tools")
 
-# Mode toggle for doc uploads
 upload_mode = st.sidebar.radio(
     "Upload scope:",
     ("Session only", "Persist across sessions"),
     index=0
 )
-
-# Document uploader
 inline_files = st.sidebar.file_uploader(
-    "Upload documents (for RAG):",
+    "Upload docs for RAG:",
     type=["pdf","txt","docx","doc","pptx","csv"],
-    accept_multiple_files=True,
-    key="inline_uploader"
+    accept_multiple_files=True
 )
 
-# Image uploader for GPT-Vision analysis
 image_file = st.sidebar.file_uploader(
     "Upload image/chart (for vision):",
-    type=["png","jpg","jpeg"],
-    key="image_uploader"
+    type=["png","jpg","jpeg"]
 )
 
-# Quick Tips expander
+mode = st.sidebar.radio(
+    "🔄 Processing mode:",
+    ("RAG (text only)", "Vision (image)"),
+    index=0
+)
+
 with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
     st.markdown("""
 | **Command** | **What it Does**               | **Scope**           |
@@ -167,7 +166,7 @@ st.markdown(
         line-height: 1.7;
       }
 
-      /* Light‐mode styles */
+      /* Light-mode styles */
       @media (prefers-color-scheme: light) {
         .info-box {
           background: #e7f3fc !important;
@@ -177,7 +176,7 @@ st.markdown(
         }
       }
 
-      /* Dark‐mode overrides */
+      /* Dark-mode overrides */
       @media (prefers-color-scheme: dark) {
         .info-box {
           background: #2b2b2b !important;
@@ -199,8 +198,7 @@ st.markdown(
       </ul>
       <b>✨ Tip:</b> Upload the docs you want to ask about.
     </div>
-    """,
-    unsafe_allow_html=True,
+    """, unsafe_allow_html=True
 )
 
 # ─── Build vector store ───────────────────────────────────────────────────────
@@ -216,8 +214,8 @@ if user_input:
     txt = user_input.strip()
     low = txt.lower()
 
-    # Image-analysis branch
-    if image_file and low.startswith(("analyze image", "analyze graph", "interpret image", "what does this chart")):
+    # Vision branch
+    if mode == "Vision (image)" and image_file:
         img_bytes = image_file.read()
         resp = openai.ChatCompletion.create(
             model="gpt-4o-mini-vision-preview",
@@ -239,7 +237,7 @@ if user_input:
         st.session_state.persona = txt.split(":",1)[1].strip()
         st.success(f"👤 Persona set: {st.session_state.persona}")
 
-    # RAG (normal) branch
+    # RAG branch
     else:
         docs = retriever.invoke(txt)
         context = "\n\n".join(d.page_content for d in docs)
@@ -257,6 +255,7 @@ if user_input:
         for f in st.session_state.session_facts:
             messages.append(SystemMessage(content=f"Session fact: {f}"))
         messages.append(HumanMessage(content=txt))
+
         if not (docs or st.session_state.memory_facts or st.session_state.session_facts):
             st.warning("⚠️ Not enough info to answer.")
         else:

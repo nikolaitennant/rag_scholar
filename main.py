@@ -70,20 +70,20 @@ inline_files = st.sidebar.file_uploader(
 )
 
 # ─── Introductory info box ────────────────────────────────────────────────────
-with st.expander("🎯 Quick Tips (commands & scope)", expanded=False):
-    st.markdown("""
-    <div style='margin-bottom:24px; padding:26px 28px; background:#e7f3fc; border-radius:14px; border-left:7px solid #2574a9; color:#184361; font-size:1.08rem; box-shadow:0 1px 8px #eef4fa; line-height:1.7;'>
-    <b style='font-size:1.13rem;'>ℹ️ This assistant ONLY uses information from your uploaded documents and <span style='color:#1c853b;'>preloaded default context</span> (e.g., your CV & course info—already included).</b>
-    <ul style='margin-left:1.1em; margin-top:12px;'>
-        <li>If the answer is <b>not present</b> in your documents or context, it will let you know.</li>
-        <li style='margin-top:8px;'><span style='color:#d97706; font-weight:600;'>It will <u>not</u> invent any information.</span></li>
-        <li style='margin-top:8px;'>You can upload multiple files at once; their content is <b>combined</b> for answering.</li>
-    </ul>
-    <b>✨ Tip:</b> Upload documents that contain the details you want to ask about.
-    </div>
-    """, unsafe_allow_html=True)
+st.markdown("""
+<div style='margin-bottom:24px; padding:26px 28px; background:#e7f3fc; border-radius:14px; border-left:7px solid #2574a9; color:#184361; font-size:1.08rem; box-shadow:0 1px 8px #eef4fa; line-height:1.7;'>
+<b style='font-size:1.13rem;'>ℹ️ This assistant ONLY uses information from your uploaded documents and <span style='color:#1c853b;'>preloaded default context</span> (e.g., your CV & course info—already included).</b>
+<ul style='margin-left:1.1em; margin-top:12px;'>
+    <li>If the answer is <b>not present</b> in your documents or context, it will let you know.</li>
+    <li style='margin-top:8px;'><span style='color:#d97706; font-weight:600;'>It will <u>not</u> invent any information.</span></li>
+    <li style='margin-top:8px;'>You can upload multiple files at once; their content is <b>combined</b> for answering.</li>
+</ul>
+<b>✨ Tip:</b> Upload documents that contain the details you want to ask about.
+</div>
+""", unsafe_allow_html=True)
 
     # ─── Quick Tips (Centered) ───────────────────────────────────────────────────
+with st.expander("🎯 Quick Tips (commands & scope)", expanded=False):
     st.markdown("""
     <div style="text-align:center; margin:24px 0;">
     <div style="display:inline-block; text-align:left; max-width:600px; width:90%;">

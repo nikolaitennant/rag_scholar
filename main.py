@@ -302,6 +302,19 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+st.info(
+    """
+    **ℹ️ This assistant uses only your uploaded docs and preloaded context.**
+
+    - **Supported formats:** PDF, TXT, DOC/DOCX, PPTX, CSV, PNG/JPG  
+    - If it’s not in your docs, you’ll be told (no inventing).  
+    - Upload multiple files and they’re combined for answering.
+
+    ✨ **Tip:** Use the sidebar toggle to keep docs session-only or persist them.
+    """
+)
+
 # ─── Build vector store ───────────────────────────────────────────────────────
 default_docs, default_index = load_and_index_defaults()
 session_docs = load_uploaded_files(inline_files)

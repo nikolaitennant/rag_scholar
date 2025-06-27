@@ -154,137 +154,181 @@
 
 
 
-# giulia_law_ai.py  – ephemeral user facts
+# giulia_law_ai.py
+"""
+Streamlit RAG assistant for exam prep
+– Default context loaded once
+– Upload additional PDFs/TXTs any time
+– memo:  = session-only fact
+– remember: = persistent fact
+– role:  = adopt persona for the session
+"""
 import os, tempfile, streamlit as st
 from dotenv import load_dotenv
+
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain.docstore.document import Document
 from langchain.memory import ConversationSummaryBufferMemory
 from langchain.chains import ConversationalRetrievalChain
-from langchain_community.docstore import InMemoryDocstore
 
 # ---------- config ----------
 load_dotenv()
-API_KEY = os.getenv("OPENAI_API_KEY")
-EMBED = OpenAIEmbeddings(api_key=API_KEY)
-INDEX_PATH = "faiss_index"              # on-disk FAISS DB
-DEFAULT_FLAG = ".defaults_loaded"       # sentinel so we add default docs only once
+API_KEY   = os.getenv("OPENAI_API_KEY")
+EMBEDDER  = OpenAIEmbeddings(api_key=API_KEY)
+INDEX_DIR = "faiss_index"          # folder that stores FAISS + metadata
+FLAG      = ".defaults_loaded"     # sentinel file so we add default docs only once
+
 st.set_page_config("Giulia Law AI", "🤖")
 st.title("🤖 Giulia's Law AI Assistant")
 
-# ---------- utilities ----------
-def make_empty_faiss(embed_model) -> FAISS:
-    """Return an empty FAISS vector store that can accept .add_documents()."""
-    dim = len(embed_model.embed_query("placeholder"))
-    index = faiss.IndexFlatL2(dim)            # empty, but dimension is set
-    docstore = InMemoryDocstore({})
-    return FAISS(
-        embedding_function=embed_model,
-        index=index,
-        docstore=docstore,
-        index_to_docstore_id=[],
-    )
-
-def load_files(uploaded):
-    folder = tempfile.mkdtemp()
+# ---------- helpers ----------
+def load_docs_from_upload(files):
+    """Return list[Document] from Streamlit uploads."""
+    tmp = tempfile.mkdtemp()
     docs = []
-    for up in uploaded:
-        path = os.path.join(folder, up.name)
+    for up in files:
+        path = os.path.join(tmp, up.name)
         with open(path, "wb") as f: f.write(up.getbuffer())
         loader = PyPDFLoader(path) if up.name.lower().endswith(".pdf") else TextLoader(path)
         docs.extend(loader.load())
     return docs
 
-def load_default(folder="default_context"):
+def load_default_context(folder="default_context"):
     docs = []
     if not os.path.exists(folder): return docs
-    for f in os.listdir(folder):
-        path = os.path.join(folder, f)
-        loader = PyPDFLoader(path) if f.lower().endswith(".pdf") else TextLoader(path)
+    for fname in os.listdir(folder):
+        path = os.path.join(folder, fname)
+        loader = PyPDFLoader(path) if fname.lower().endswith(".pdf") else TextLoader(path)
         docs.extend(loader.load())
     return docs
 
-def maybe_persist_fact(msg: str, vstore: FAISS, persist=False) -> bool:
+def ensure_vstore_exists(docs):
     """
-    'remember:'  -> save to FAISS and disk
-    'memo:'      -> add to FAISS **in-memory only** (cleared on reload)
+    Return a vector store.
+    If an on-disk index exists, load it.
+    Else, if `docs` is non-empty, create a new store from them and save.
+    Else, return None.
     """
-    for trigger, save in (("remember:", True), ("memo:", False)):
-        if msg.lower().startswith(trigger):
-            fact = msg[len(trigger):].strip()
-            if fact:
-                vstore.add_documents([Document(page_content=fact)])
-                if save and persist:
-                    vstore.save_local(INDEX_PATH)
-                return True
-    return False
+    if os.path.exists(INDEX_DIR):
+        return FAISS.load_local(INDEX_DIR, EMBEDDER)
+    elif docs:
+        vs = FAISS.from_documents(docs, EMBEDDER)
+        vs.save_local(INDEX_DIR)
+        return vs
+    return None
 
-def maybe_set_role(msg: str):
+def safe_add_documents(vs, new_docs, persist):
+    """
+    Add docs to vs. If vs is None, create it; if persist=True, save to disk.
+    """
+    if vs is None:
+        vs = FAISS.from_documents(new_docs, EMBEDDER)
+    else:
+        vs.add_documents(new_docs)
+    if persist:
+        vs.save_local(INDEX_DIR)
+    return vs
+
+def maybe_persist_fact(msg, vs):
+    """
+    memo:      → session only
+    remember:  → persist to disk
+    Returns (handled: bool, new_vs)
+    """
+    for trig, persist in (("remember:", True), ("memo:", False)):
+        if msg.lower().startswith(trig):
+            fact = msg[len(trig):].strip()
+            if fact:
+                vs = safe_add_documents(vs, [Document(page_content=fact)], persist)
+                return True, vs
+    return False, vs
+
+def maybe_set_role(msg):
     return msg[len("role:"):].strip() if msg.lower().startswith("role:") else None
 
-# ---------- FAISS setup ----------
-if os.path.exists(INDEX_PATH):
-    vstore = FAISS.load_local(INDEX_PATH, EMBED)
-else:
-    vstore = make_empty_faiss(EMBED)          
+# ---------- build / load vector store ----------
+default_docs = load_default_context()
+vstore = ensure_vstore_exists(default_docs)
 
 # add default docs exactly once
-if not os.path.exists(DEFAULT_FLAG):
-    vstore.add_documents(load_default())
-    vstore.save_local(INDEX_PATH)
-    open(DEFAULT_FLAG, "w").close()
+if default_docs and not os.path.exists(FLAG):
+    vstore = safe_add_documents(vstore, default_docs, persist=True)
+    open(FLAG, "w").close()
 
 # ---------- sidebar upload ----------
 uploaded = st.sidebar.file_uploader("Upload PDFs / TXTs", ["pdf", "txt"], True)
 if uploaded:
-    vstore.add_documents(load_files(uploaded))
-    vstore.save_local(INDEX_PATH)
+    new_docs = load_docs_from_upload(uploaded)
+    vstore = safe_add_documents(vstore, new_docs, persist=True)
     st.sidebar.success(f"Added {len(uploaded)} new file(s) to the knowledge base.")
 
-retriever = vstore.as_retriever(search_kwargs={"k": 6})
+# ---------- retriever (only if we have a vector store) ----------
+retriever = vstore.as_retriever(search_kwargs={"k": 6}) if vstore else None
 
-# ---------- memory & chain ----------
+# ---------- memory & QA chain ----------
 memory = ConversationSummaryBufferMemory(
     llm=ChatOpenAI(api_key=API_KEY, model="gpt-4o-mini", temperature=0),
-    max_token_limit=1500, return_messages=True
+    max_token_limit=1500, return_messages=True,
 )
 llm = ChatOpenAI(api_key=API_KEY, model="gpt-4o-mini", temperature=0.1)
-qa = ConversationalRetrievalChain.from_llm(llm, retriever, memory=memory)
 
-# ---------- session state ----------
+qa_chain = ConversationalRetrievalChain.from_llm(
+    llm        = llm,
+    retriever  = retriever,
+    memory     = memory,
+    combine_docs_chain_kwargs = {"prompt": None},  # we’ll overwrite per turn
+)
+
+# ---------- Streamlit session ----------
 st.session_state.setdefault("persona", None)
-st.session_state.setdefault("messages", [])
+st.session_state.setdefault("history", [])
 
-# ---------- chat ----------
+# ---------- chat input ----------
 msg = st.chat_input("Ask, or use memo:/remember:/role:")
 if msg:
-    # persona change
+    # 1. persona?
     if (role := maybe_set_role(msg)):
         st.session_state.persona = role
-        st.session_state.messages.append(("assistant", f"✅ Persona set to **{role}**."))
-    # fact insertion (memo: = in-memory, remember: = persistent)
-    elif maybe_persist_fact(msg, vstore, persist=True):   # change to False if you *never* want persistence
-        feedback = "📝 Got it — I'll remember that." if msg.lower().startswith("remember:") \
-                   else "🗒️  Okay, I'll keep that in mind for this session."
-        st.session_state.messages.append(("assistant", feedback))
-    # normal question
+        st.session_state.history.append(("assistant", f"✅ Persona set to **{role}**."))
     else:
-        system = ("You are a helpful assistant. "
-                  "Use only the retrieved context and **this conversation**. "
-                  "If you lack the info, answer exactly:\n"
-                  "`Sorry, there is not enough information in the documents or user input to answer your request.`")
-        if st.session_state.persona:
-            system = f"You are replying *as* **{st.session_state.persona}**. " + system
-        qa.combine_docs_chain.llm_chain.prompt.messages[0].content = system
-        answer = qa.invoke({"question": msg})["answer"]
-        st.session_state.messages += [("user", msg), ("assistant", answer)]
+        # 2. fact?
+        handled, vstore = maybe_persist_fact(msg, vstore)
+        if handled:
+            reply = "📝 Stored permanently." if msg.lower().startswith("remember:") \
+                    else "🗒️  Noted for this session."
+            st.session_state.history.append(("assistant", reply))
+        # 3. normal question
+        else:
+            if retriever is None and vstore:
+                retriever = vstore.as_retriever(search_kwargs={"k": 6})
+                qa_chain.retriever = retriever
+            # guard: no docs at all
+            if retriever is None:
+                st.session_state.history.append(
+                    ("assistant", "⚠️ No documents available. Upload a file first.")
+                )
+            else:
+                # build system prompt
+                system = ("Use ONLY the retrieved context and this conversation. "
+                          "If you don’t have enough info, reply exactly:\n"
+                          "`Sorry, there is not enough information in the documents or user input to answer your request.`")
+                if st.session_state.persona:
+                    system = f"You are replying *as* **{st.session_state.persona}**. " + system
+                qa_chain.combine_docs_chain.llm_chain.prompt.messages[0].content = system
 
-# ---------- render ----------
-for role, content in st.session_state.messages:
+                answer = qa_chain.invoke({"question": msg})["answer"]
+                st.session_state.history += [("user", msg), ("assistant", answer)]
+
+# ---------- render history ----------
+for role, content in st.session_state.history:
     st.chat_message(role).markdown(content)
 
-if not st.session_state.messages:
-    st.info("Upload docs or start chatting. Use **memo:** for session-only facts, **remember:** to store permanently, "
-            "**role:** to adopt a persona.")
+if not st.session_state.history:
+    st.info(
+        "Upload docs or start chatting.\n\n"
+        "* **memo:** fact for this session\n"
+        "* **remember:** fact stored forever\n"
+        "* **role:** adopt a persona"
+    )

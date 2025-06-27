@@ -14,20 +14,15 @@ api_key = os.getenv("OPENAI_API_KEY")
 st.set_page_config(page_title="Guilia's AI Assistant", page_icon="🤖")
 st.title("🤖 Guilia's AI Assistant")
 st.markdown("""
-Upload your `.txt` or `.pdf` documents below and chat with them!
+Upload your `.txt` or `.pdf` documents and chat with them!
 
-:warning: **This assistant ONLY uses the information found in your uploaded documents.**
+:information_source: **This assistant ONLY uses information from uploaded documents and any default context.**
 If the answer is not present in your documents, it will let you know.
+
+**Default context** Info such as a CV or course info included already.
 """)
 
-# Sidebar for file upload
-uploaded_files = st.sidebar.file_uploader(
-    "Upload your text or PDF files here", type=["txt", "pdf"], accept_multiple_files=True
-)
-
-# Chat history for nicer UI
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+# --- Functions to load documents ---
 
 def load_uploaded_files(uploaded_files):
     temp_folder = tempfile.mkdtemp()
@@ -44,17 +39,48 @@ def load_uploaded_files(uploaded_files):
             all_documents.extend(loader.load())
     return all_documents
 
-if uploaded_files:
-    # Load and embed docs
-    all_documents = load_uploaded_files(uploaded_files)
+def load_default_context(folder="default_context"):
+    all_documents = []
+    if not os.path.exists(folder):
+        return all_documents
+    for filename in os.listdir(folder):
+        file_path = os.path.join(folder, filename)
+        if filename.lower().endswith(".pdf"):
+            loader = PyPDFLoader(file_path)
+            all_documents.extend(loader.load())
+        elif filename.lower().endswith(".txt"):
+            loader = TextLoader(file_path)
+            all_documents.extend(loader.load())
+    return all_documents
+
+# --- File upload UI ---
+
+uploaded_files = st.sidebar.file_uploader(
+    "Upload your text or PDF files here", type=["txt", "pdf"], accept_multiple_files=True
+)
+
+# --- Chat history state ---
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+# --- Main logic ---
+default_documents = load_default_context("default_context")
+uploaded_documents = load_uploaded_files(uploaded_files) if uploaded_files else []
+all_documents = default_documents + uploaded_documents
+
+if all_documents:
     embeddings = OpenAIEmbeddings(api_key=api_key)
     vector_store = FAISS.from_documents(all_documents, embeddings)
     retriever = vector_store.as_retriever()
     llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini", temperature=0.3)
     
-    st.success("Documents uploaded and indexed! Ask your questions below:")
+    if default_documents and uploaded_documents:
+        st.success("Default and uploaded documents loaded! Ask your questions below:")
+    elif default_documents:
+        st.success("Default context loaded (CV, course info, etc)! Ask your questions below:")
+    elif uploaded_documents:
+        st.success("Uploaded documents loaded! Ask your questions below:")
 
-    # User chat input
     user_input = st.chat_input("Ask something about your docs...")
     if user_input:
         docs = retriever.invoke(user_input)
@@ -72,7 +98,6 @@ if uploaded_files:
             HumanMessage(content=user_input)
         ]
         result = llm.invoke(messages)
-        # Add to chat history
         st.session_state.chat_history.append(("You", user_input))
         st.session_state.chat_history.append(("Assistant", result.content))
     
@@ -83,4 +108,4 @@ if uploaded_files:
         else:
             st.chat_message("assistant").write(message)
 else:
-    st.info("Upload at least one .txt or .pdf file to start chatting.")
+    st.info("Upload at least one .txt or .pdf file, or add files to the `default_context/` folder, to start chatting.")

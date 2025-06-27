@@ -1,6 +1,13 @@
 streamlit
+openai
+python-dotenv
 langchain-openai
 langchain-community
+langchain
 faiss-cpu
-python-dotenv
-pypdf
+docx2txt
+unstructured
+pandas
+python-pptx
+python-docx
+Pillow

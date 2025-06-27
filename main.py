@@ -28,6 +28,8 @@ def load_and_index_defaults(folder="default_context"):
     docs = []
     if os.path.exists(folder):
         for fname in os.listdir(folder):
+            if not fname.lower().endswith((".pdf", ".txt")):
+                continue
             path = os.path.join(folder, fname)
             loader = PyPDFLoader(path) if fname.lower().endswith(".pdf") else TextLoader(path)
             docs.extend(loader.load())
@@ -74,7 +76,7 @@ st.markdown("""
     box-shadow:0 1px 8px #eef4fa;
     line-height:1.6;
 '>
-  <b style='font-size:1.13rem;'>ℹ️  This assistant uses ONLY your uploaded documents, remembered facts, and default context.</b>
+  <b style='font-size:1.13rem;'>ℹ️  This assistant uses ONLY your uploaded documents, remembered facts, session facts, and default context.</b>
   <ul style='margin-left:1.1em;margin-top:12px;'>
     <li>If the answer is <b>not</b> in your docs or remembered facts, you'll see a warning.</li>
     <li style='margin-top:8px;'><span style='color:#d97706;font-weight:600;'>No hallucination—nothing invented.</span></li>
@@ -113,7 +115,6 @@ if persona_input and persona_input.lower().startswith("role:"):
 # Build/rebuild the vector store
 default_index = load_and_index_defaults()
 uploaded_docs  = load_uploaded_files(uploaded_files)
-# Wrap permanent facts as tiny LangChain docs
 memory_docs    = [type("Doc", (), {"page_content": f})() for f in st.session_state.memory_facts]
 dynamic_docs   = uploaded_docs + memory_docs
 
@@ -121,12 +122,17 @@ vector_store = build_vectorstore(default_index, dynamic_docs)
 retriever    = vector_store.as_retriever()
 llm          = ChatOpenAI(api_key=api_key, model="gpt-4o-mini", temperature=0.0)
 
+# Determine if ANY context exists: default files on disk, uploaded docs, or remembered facts
+default_folder = "default_context"
+default_files = []
+if os.path.exists(default_folder):
+    default_files = [
+        f for f in os.listdir(default_folder)
+        if f.lower().endswith((".pdf", ".txt"))
+    ]
+has_any_context = bool(default_files) or bool(uploaded_docs) or bool(st.session_state.memory_facts)
+
 # Main chat interface
-has_any_context = (
-    default_index.docstore._len > 0
-    or uploaded_docs
-    or st.session_state.memory_facts
-)
 if not has_any_context:
     st.info("📂 Upload docs or add facts to get started.")
 else:

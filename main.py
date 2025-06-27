@@ -10,23 +10,57 @@ import tempfile
 # Load env variables
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
+
 st.set_page_config(page_title="Giulia's Law AI Assistant", page_icon="🤖")
 st.title("🤖 Giulia's Law AI Assistant")
 
-# Simple, unstyled upload instruction
+# Plain upload instruction
 st.markdown("Upload your .txt or .pdf documents and chat with them!")
 
-# Blue info box with styling
+# Spacing before info boxes
+st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
+
+# Blue info box (with better padding, spacing, and sections)
 st.markdown("""
-<div style='margin-top: 20px; padding: 16px 18px; background: #e7f3fc; border-radius: 9px; border-left: 5px solid #2574a9; color: #184361; font-size: 1.05rem;'>
-  <b>ℹ️  This assistant ONLY uses information from your uploaded documents and <span style="color:#1c853b;">preloaded default context</span> (such as your CV and course info—already included, <u>no need to upload</u>).</b>
-  <br><br>
-    If the answer is not present in your documents or the preloaded context, it will let you know.<br>
-    <span style="color:#d97706;"><b>It will <u>not</u> invent or make up any information.</b></span><br>
-    You can upload multiple files at once, and their content will be combined for answering your questions.<br>
-    <br>
-    <b>✨ Tip:</b> For the best results, upload documents that contain the details you want to ask about.
-  </div>
+<div style='
+    margin-bottom: 24px;
+    padding: 26px 28px 20px 28px;
+    background: #e7f3fc;
+    border-radius: 14px;
+    border-left: 7px solid #2574a9;
+    color: #184361;
+    font-size: 1.08rem;
+    box-shadow: 0 1px 8px #eef4fa;
+    line-height: 1.7;
+'>
+  <b style='font-size: 1.13rem;'>ℹ️  This assistant ONLY uses information from your uploaded documents and 
+  <span style="color:#1c853b;">preloaded default context</span>
+  <span style="font-weight:500; font-size: 1.01rem;'">
+    (such as your CV and course info—already included,
+    <u>no need to upload</u>).
+  </span>
+  </b>
+  <div style='height: 14px;'></div>
+  <ul style="margin-left: 1.1em; margin-bottom: 0.5em;">
+    <li>
+      If the answer is <b>not present</b> in your documents or the preloaded context, it will let you know.
+    </li>
+    <li style="margin-top: 8px;">
+      <span style="color:#d97706; font-weight:600;">It will <u>not</u> invent or make up any information.</span>
+    </li>
+    <li style="margin-top: 8px;">
+      You can upload multiple files at once, and their content will be <b>combined</b> for answering your questions.
+    </li>
+  </ul>
+  <div style='height: 7px;'></div>
+  <b>✨ Tip:</b> For best results, upload documents that contain the details you want to ask about.
+</div>
+""", unsafe_allow_html=True)
+
+# Green box, more margin from blue box
+st.markdown("""
+<div style='margin-top: 14px; margin-bottom: 22px; padding: 16px 18px; background: #e7faeb; border-radius: 11px; color: #217b36; font-size: 1.06rem; font-weight: 500; border-left: 6px solid #3bc46b;'>
+  Default context loaded (CV, course info, etc)!<br>Ask your questions below:
 </div>
 """, unsafe_allow_html=True)
 

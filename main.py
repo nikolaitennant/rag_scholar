@@ -256,6 +256,52 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+st.markdown(
+    """
+    <style>
+      .info-box {
+        margin-bottom: 24px;
+        padding: 26px 28px;
+        border-radius: 14px;
+        font-size: 1.08rem;
+        line-height: 1.7;
+      }
+
+      /* Light‐mode (Streamlit) */
+      html[data-theme="light"] .info-box {
+        background: #e7f3fc !important;
+        color: #184361 !important;
+        border-left: 7px solid #2574a9 !important;
+        box-shadow: 0 1px 8px #eef4fa !important;
+      }
+
+      /* Dark‐mode (Streamlit) */
+      html[data-theme="dark"] .info-box {
+        background: #2b2b2b !important;
+        color: #ddd !important;
+        border-left: 7px solid #bb86fc !important;
+        box-shadow: 0 1px 8px rgba(0,0,0,0.5) !important;
+      }
+      html[data-theme="dark"] .info-box b {
+        color: #fff !important;
+      }
+      html[data-theme="dark"] .info-box span {
+        color: #a0d6ff !important;
+      }
+    </style>
+
+    <div class="info-box">
+      <b style='font-size:1.13rem;'>ℹ️ This assistant uses only your uploaded docs and preloaded context.</b>
+      <ul style='margin-left:1.1em; margin-top:12px;'>
+        <li>If it’s not in your docs, you’ll be told.</li>
+        <li><span style='color:#d97706; font-weight:600;'>It will <u>not</u> invent info.</span></li>
+        <li>You can upload multiple files; they’re combined for answering.</li>
+      </ul>
+      <b>✨ Tip:</b> Upload the docs you want to ask about.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 # ─── Build vector store ───────────────────────────────────────────────────────
 default_docs, default_index = load_and_index_defaults()
 session_docs = load_uploaded_files(inline_files)

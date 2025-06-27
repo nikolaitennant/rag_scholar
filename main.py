@@ -115,41 +115,50 @@ user_input = st.chat_input("Type a question or use `remember:`, `memo:`, `role:`
 if user_input:
     txt = user_input.strip()
     low = txt.lower()
+
+    # ─── Commands ────────────────────────────────────────────────────────────
     if low.startswith("remember:"):
-        st.session_state.memory_facts.append(txt.split(":",1)[1].strip())
+        st.session_state.memory_facts.append(txt.split(":", 1)[1].strip())
         st.success("✅ Fact remembered permanently.")
-        st.experimental_rerun()
-    if low.startswith("memo:"):
-        st.session_state.session_facts.append(txt.split(":",1)[1].strip())
+    elif low.startswith("memo:"):
+        st.session_state.session_facts.append(txt.split(":", 1)[1].strip())
         st.info("ℹ️ Session-only fact added.")
-        st.experimental_rerun()
-    if low.startswith("role:"):
-        st.session_state.persona = txt.split(":",1)[1].strip()
+    elif low.startswith("role:"):
+        st.session_state.persona = txt.split(":", 1)[1].strip()
         st.success(f"👤 Persona set to: {st.session_state.persona}")
-        st.experimental_rerun()
-
-    docs = retriever.invoke(txt)
-    context = "\n\n".join(d.page_content for d in docs)
-    sys_prompt = (
-        "You are a helpful legal assistant. Answer strictly using the provided context, "
-        "remembered facts, session facts, and any facts stated inline. Do not invent info."
-    )
-    if st.session_state.persona:
-        sys_prompt += f" Adopt persona: {st.session_state.persona}."
-    messages = [SystemMessage(content=sys_prompt)]
-    if context: messages.append(SystemMessage(content=f"Context:\n{context}"))
-    for f in st.session_state.memory_facts:
-        messages.append(SystemMessage(content=f"Remembered fact: {f}"))
-    for f in st.session_state.session_facts:
-        messages.append(SystemMessage(content=f"Session fact: {f}"))
-    messages.append(HumanMessage(content=txt))
-
-    if not (docs or st.session_state.memory_facts or st.session_state.session_facts):
-        st.warning("⚠️ Not enough info to answer your request.")
+    
+    # ─── Normal LLM query ────────────────────────────────────────────────────
     else:
-        resp = llm.invoke(messages)
-        st.session_state.chat_history.append(("User", txt))
-        st.session_state.chat_history.append(("Assistant", resp.content))
+        # retrieve relevant docs
+        docs = retriever.invoke(txt)
+        context = "\n\n".join(d.page_content for d in docs)
+
+        # build system prompt
+        sys_prompt = (
+            "You are a helpful legal assistant. Answer strictly using the provided "
+            "context, remembered facts, session facts, and any facts stated inline. "
+            "Do not invent info."
+        )
+        if st.session_state.persona:
+            sys_prompt += f" Adopt persona: {st.session_state.persona}."
+
+        # assemble messages
+        messages = [SystemMessage(content=sys_prompt)]
+        if context:
+            messages.append(SystemMessage(content=f"Context:\n{context}"))
+        for f in st.session_state.memory_facts:
+            messages.append(SystemMessage(content=f"Remembered fact: {f}"))
+        for f in st.session_state.session_facts:
+            messages.append(SystemMessage(content=f"Session fact: {f}"))
+        messages.append(HumanMessage(content=txt))
+
+        # call LLM or warn if no context
+        if not (docs or st.session_state.memory_facts or st.session_state.session_facts):
+            st.warning("⚠️ Not enough info to answer your request.")
+        else:
+            resp = llm.invoke(messages)
+            st.session_state.chat_history.append(("User", txt))
+            st.session_state.chat_history.append(("Assistant", resp.content))
 
 # ─── Render chat history ───────────────────────────────────────────────────────
 for speaker, text in st.session_state.chat_history:

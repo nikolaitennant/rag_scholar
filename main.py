@@ -168,6 +168,47 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+st.markdown(
+    """
+    <style>
+      .info-box {
+        margin-bottom:24px;
+        padding:26px 28px;
+        background:#e7f3fc;
+        border-radius:14px;
+        border-left:7px solid #2574a9;
+        color:#184361;
+        font-size:1.08rem;
+        box-shadow:0 1px 8px #eef4fa;
+        line-height:1.7;
+      }
+      /* Dark‐mode overrides */
+      @media (prefers-color-scheme: dark) {
+        .info-box {
+          background: #2b2b2b;
+          color: #ddd;
+          border-left-color: #bb86fc;
+          box-shadow: 0 1px 8px rgba(0,0,0,0.5);
+        }
+        .info-box b { color: #fff; }
+        .info-box a, .info-box span { color: #a0d6ff; }
+      }
+    </style>
+
+    <div class="info-box">
+      <b style='font-size:1.13rem;'>ℹ️ This assistant ONLY uses information from your uploaded documents and <span style='color:#1c853b;'>preloaded default context</span>.</b>
+      <ul style='margin-left:1.1em; margin-top:12px;'>
+        <li>If the answer is <b>not present</b> in your docs, it will let you know.</li>
+        <li style='margin-top:8px;'><span style='color:#d97706; font-weight:600;'>It will <u>not</u> invent any information.</span></li>
+        <li style='margin-top:8px;'>You can upload multiple files at once; their content is <b>combined</b> for answering.</li>
+      </ul>
+      <b>✨ Tip:</b> Upload documents that contain the details you want to ask about.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
 # ─── Build vector store ───────────────────────────────────────────────────────
 default_docs, default_index = load_and_index_defaults()
 session_docs = load_uploaded_files(inline_files)

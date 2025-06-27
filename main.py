@@ -11,18 +11,37 @@ import tempfile
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
+# st.set_page_config(page_title="Giulia's Law AI Assistant", page_icon="🤖")
+# st.title("🤖 Giulia's Law AI Assistant")
+# st.markdown("""
+# Upload your `.txt` or `.pdf` documents and chat with them!
+
+# :information_source: **This assistant ONLY uses information from uploaded documents and any default context (CV/course info - included already).**
+# If the answer is not present in your documents, it will let you know.
+# It will not invent or make up any information.
+# You can upload multiple files at once, and it will combine their contents for answering your questions.
+# Make sure to upload relevant documents for the best results.
+
+# """)
+
 st.set_page_config(page_title="Giulia's Law AI Assistant", page_icon="🤖")
 st.title("🤖 Giulia's Law AI Assistant")
+
 st.markdown("""
-Upload your `.txt` or `.pdf` documents and chat with them!
+<div style='padding: 20px; border-radius: 12px; background: #F5F7FA; border: 1.5px solid #E5E8EC; margin-bottom: 18px;'>
+  <h3 style='margin-top: 0;'>Upload your <code>.txt</code> or <code>.pdf</code> documents and chat with them!</h3>
 
-:information_source: **This assistant ONLY uses information from uploaded documents and any default context (CV/course info - included already).**
-If the answer is not present in your documents, it will let you know.
-It will not invent or make up any information.
-You can upload multiple files at once, and it will combine their contents for answering your questions.
-Make sure to upload relevant documents for the best results.
-
-""")
+  <div style='margin: 14px 0; padding: 16px 18px; background: #eef6fa; border-radius: 9px; border-left: 5px solid #3b82f6; color: #185179;'>
+    <b>ℹ️  This assistant ONLY uses information from your uploaded documents and <span style="color:#1c853b;">preloaded default context</span> (such as your CV and course info—already included, <u>no need to upload</u>).</b>
+    <br><br>
+    If the answer is not present in your documents or the preloaded context, it will let you know.<br>
+    <span style="color:#d97706;"><b>It will <u>not</u> invent or make up any information.</b></span><br>
+    You can upload multiple files at once, and their content will be combined for answering your questions.<br>
+    <br>
+    <b>✨ Tip:</b> For the best results, upload documents that contain the details you want to ask about.
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 # --- Functions to load documents ---
 

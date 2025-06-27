@@ -60,7 +60,7 @@ st.set_page_config(page_title="Giulia's Law AI Assistant", page_icon="🤖")
 st.title("🤖 Giulia's Law AI Assistant")
 
 # ─── Sidebar instructions & uploader ────────────────────────────────────────────
-st.sidebar.header("📂 Upload & Controls")
+st.sidebar.header("📂 File Uploads")
 inline_files = st.sidebar.file_uploader(
     "Upload documents",
     type=["pdf", "txt"],

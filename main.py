@@ -217,7 +217,7 @@ if user_input:
     # Vision branch
     if mode == "Vision (image)" and image_file:
         img_bytes = image_file.read()
-        resp = openai.ChatCompletion.create(
+        resp = openai.chat.completions.create(
             model="gpt-4o-mini-vision-preview",
             messages=[{"role":"user","content": txt}],
             files=[{"file": img_bytes, "filename": image_file.name}]

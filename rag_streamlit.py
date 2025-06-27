@@ -19,7 +19,7 @@ Upload your `.txt` or `.pdf` documents and chat with them!
 :information_source: **This assistant ONLY uses information from uploaded documents and any default context.**
 If the answer is not present in your documents, it will let you know.
 
-**Default context** Info such as a CV or course info included already.
+**Default context:** CV/course info included already (Do not need to upload).
 """)
 
 # --- Functions to load documents ---

@@ -68,6 +68,19 @@ st.title("🤖 Giulia's Law AI Assistant")
 # ─── Streamlit page setup & UI ────────────────────────────────────────────────
 st.set_page_config(page_title="Giulia's Law AI Assistant", page_icon="🤖")
 st.title("🤖 Giulia's Law AI Assistant")
+ 
+st.markdown("""
+<div style='margin-top: 20px; padding: 16px 18px; background: #e7f3fc; border-radius: 9px; border-left: 5px solid #2574a9; color: #184361; font-size: 1.05rem;'>
+  <b>ℹ️  This assistant ONLY uses information from your uploaded documents and <span style="color:#1c853b;">preloaded default context</span> (such as your CV and course info—already included, <u>no need to upload</u>).</b>
+  <br><br>
+    If the answer is not present in your documents or the preloaded context, it will let you know.<br>
+    <span style="color:#d97706;"><b>It will <u>not</u> invent or make up any information.</b></span><br>Add commentMore actions
+    You can upload multiple files at once, and their content will be combined for answering your questions.<br>
+    <br>
+    <b>✨ Tip:</b> For the best results, upload documents that contain the details you want to ask about.
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 # Main info box
 st.markdown("""

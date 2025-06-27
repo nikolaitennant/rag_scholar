@@ -63,7 +63,6 @@ st.title("🤖 Giulia's Law AI Assistant")
 st.sidebar.header("📂 Upload & Controls")
 st.sidebar.markdown("""
 • Upload PDF/TXT files here to include in the context.
-• Then type commands (`remember:`, `memo:`, `role:`) or questions below.
 """, unsafe_allow_html=True)
 inline_files = st.sidebar.file_uploader(
     "Upload documents",

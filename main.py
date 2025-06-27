@@ -117,17 +117,24 @@ if all_documents:
     if user_input:
         docs = retriever.invoke(user_input)
         context = "\n\n".join(d.page_content for d in docs)
+        # If no context, use the user's facts as the only context
         if not context.strip():
-            context = user_input
-        system_prompt = (
-            "You are a helpful assistant. "
-            "You must answer using ONLY the provided knowledge base context and any facts the user provides about themselves in their current prompt. "
-            "You may treat any personal information stated directly by the user in their question as factual for this answer. "
-            "If there is not enough information to fulfill the user's request, respond with the following:\n"
-            "'Sorry, there is not enough information in the documents or user input to answer your request.'\n"
-            "Do not make up or invent any information or details beyond what is in the context or the user's current prompt.\n\n"
-            f"Context:\n{context}"
-        )
+            context = f"The user states: '{user_input}'"
+            system_prompt = (
+                "You are a helpful assistant. "
+                "For this answer, you may use the information the user provides below as context. "
+                "Do not use any knowledge beyond what the user says or what is in the context below."
+                f"\n\nContext:\n{context}"
+            )
+        else:
+            system_prompt = (
+                "You are a helpful assistant. "
+                "You must answer using ONLY the provided knowledge base context and any facts the user provides about themselves in their current prompt. "
+                "If there is not enough information to fulfill the user's request, respond with the following:\n"
+                "'Sorry, there is not enough information in the documents or user input to answer your request.'\n"
+                "Do not make up or invent any information or details beyond what is in the context or the user's current prompt.\n\n"
+                f"Context:\n{context}"
+            )
         messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(content=user_input)
@@ -135,6 +142,7 @@ if all_documents:
         result = llm.invoke(messages)
         st.session_state.chat_history.append(("You", user_input))
         st.session_state.chat_history.append(("Assistant", result.content))
+
     
     # Display chat history
     for role, message in st.session_state.chat_history:

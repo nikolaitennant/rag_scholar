@@ -102,7 +102,12 @@ st.markdown("""
     font-size:1rem;
     box-shadow:0 1px 4px rgba(0,0,0,0.05);
 '>
-  <b>✨ Quick Tip:</b> Use <code>remember:</code> to store a fact permanently, <code>memo:</code> for session-only facts, and <code>role:</code> to set your assistant’s persona.
+  <b>✨ Quick Tip:</b>
+  <ul style='margin-top:8px; padding-left:1.2em;'>
+    <li><code>remember:&lt;your-fact&gt;</code> – store a fact <b>permanently</b>.</li>
+    <li><code>memo:&lt;your-fact&gt;</code> – store a fact for <b>this session only</b>.</li>
+    <li><code>role:&lt;your-persona&gt;</code> – set the assistant’s <b>persona</b>.</li>
+  </ul>
 </div>
 """, unsafe_allow_html=True)
 

@@ -59,6 +59,20 @@ def build_vectorstore(default_index, dynamic_docs):
 st.set_page_config(page_title="Giulia's Law AI Assistant", page_icon="🤖")
 st.title("🤖 Giulia's Law AI Assistant")
 
+# ─── Sidebar instructions & uploader ────────────────────────────────────────────
+st.sidebar.header("📂 Upload & Controls")
+st.sidebar.markdown("""
+• Upload PDF/TXT files here to include in the context.
+• Then type commands (`remember:`, `memo:`, `role:`) or questions below.
+""", unsafe_allow_html=True)
+inline_files = st.sidebar.file_uploader(
+    "Upload documents",
+    type=["pdf", "txt"],
+    accept_multiple_files=True,
+    key="inline_uploader",
+    label_visibility="visible"
+)
+
 # ─── Introductory info box ────────────────────────────────────────────────────
 st.markdown("""
 <div style='margin-bottom:24px; padding:26px 28px; background:#e7f3fc; border-radius:14px; border-left:7px solid #2574a9; color:#184361; font-size:1.08rem; box-shadow:0 1px 8px #eef4fa; line-height:1.7;'>
@@ -91,49 +105,17 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ─── Sidebar instructions ──────────────────────────────────────────────────────
-st.sidebar.header("📂 Sidebar Controls")
-st.sidebar.markdown("""
-• Use the 📎 icon next to the chat to upload PDF/TXT files inline.
-• Or type commands (`remember:`, `memo:`, `role:`) and questions directly below.
-""", unsafe_allow_html=True)
-
-# ─── CSS hack to collapse drop-zone and overlay icon ─────────────────────────
-st.markdown("""
-<style>
-/* hide default uploader visuals */
-div[data-testid="stFileUploader"] > div { display: none !important; }
-/* keep input but make transparent and overlay under icon */
-div[data-testid="stFileUploader"] input[type="file"] {
-  opacity: 0; position: absolute; width:32px; height:32px; cursor:pointer;
-  top: 0; left: 0;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ─── Main chat + inline uploader ──────────────────────────────────────────────
-upload_col, chat_col = st.columns([0.5, 9.5], gap="small")
-with upload_col:
-    inline_files = st.file_uploader(
-        "", type=["pdf","txt"], accept_multiple_files=True,
-        key="inline_uploader", label_visibility="collapsed"
-    )
-    # overlay paper-clip icon
-    st.markdown("<div style='font-size:24px; position:relative; top:-32px; left:4px;'>📎</div>", unsafe_allow_html=True)
-
-with chat_col:
-    user_input = st.chat_input("Type a question or use `remember:`, `memo:`, `role:`…")
-
 # ─── Build vector store ───────────────────────────────────────────────────────
-default_index = load_and_index_defaults()
+def_index = load_and_index_defaults()
 memory_docs = [type("Doc", (), {"page_content": f})() for f in st.session_state.memory_facts]
 uploaded_docs = load_uploaded_files(inline_files)
 dynamic_docs = uploaded_docs + memory_docs
-vector_store = build_vectorstore(default_index, dynamic_docs)
+vector_store = build_vectorstore(def_index, dynamic_docs)
 retriever = vector_store.as_retriever()
 llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini", temperature=0.0)
 
-# ─── Handle user input ─────────────────────────────────────────────────────────
+# ─── Handle user input & chat ────────────────────────────────────────────────
+user_input = st.chat_input("Type a question or use `remember:`, `memo:`, `role:`…")
 if user_input:
     txt = user_input.strip()
     low = txt.lower()
@@ -150,7 +132,6 @@ if user_input:
         st.success(f"👤 Persona set to: {st.session_state.persona}")
         st.experimental_rerun()
 
-    # normal query
     docs = retriever.invoke(txt)
     context = "\n\n".join(d.page_content for d in docs)
     sys_prompt = (

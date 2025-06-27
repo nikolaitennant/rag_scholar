@@ -163,6 +163,7 @@ from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain.docstore.document import Document
 from langchain.memory import ConversationSummaryBufferMemory
 from langchain.chains import ConversationalRetrievalChain
+from langchain_community.docstore import InMemoryDocstore
 
 # ---------- config ----------
 load_dotenv()
@@ -174,6 +175,18 @@ st.set_page_config("Giulia Law AI", "🤖")
 st.title("🤖 Giulia's Law AI Assistant")
 
 # ---------- utilities ----------
+def make_empty_faiss(embed_model) -> FAISS:
+    """Return an empty FAISS vector store that can accept .add_documents()."""
+    dim = len(embed_model.embed_query("placeholder"))
+    index = faiss.IndexFlatL2(dim)            # empty, but dimension is set
+    docstore = InMemoryDocstore({})
+    return FAISS(
+        embedding_function=embed_model,
+        index=index,
+        docstore=docstore,
+        index_to_docstore_id=[],
+    )
+
 def load_files(uploaded):
     folder = tempfile.mkdtemp()
     docs = []
@@ -215,7 +228,7 @@ def maybe_set_role(msg: str):
 if os.path.exists(INDEX_PATH):
     vstore = FAISS.load_local(INDEX_PATH, EMBED)
 else:
-    vstore = FAISS.from_documents([], EMBED)          # empty DB on first run
+    vstore = make_empty_faiss(EMBED)          
 
 # add default docs exactly once
 if not os.path.exists(DEFAULT_FLAG):

@@ -10,15 +10,17 @@ import tempfile
 # Load env variables
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
-
 st.set_page_config(page_title="Giulia's Law AI Assistant", page_icon="🤖")
 st.title("🤖 Giulia's Law AI Assistant")
-st.markdown("""
-Upload your `.txt` or `.pdf` documents and chat with them!
 
-  <div style='margin: 14px 0; padding: 16px 18px; background: #eef6fa; border-radius: 9px; border-left: 5px solid #3b82f6; color: #185179;'>
-    <b>ℹ️  This assistant ONLY uses information from your uploaded documents and <span style="color:#1c853b;">preloaded default context</span> (such as your CV and course info—already included, <u>no need to upload</u>).</b>
-    <br><br>
+# Simple, unstyled upload instruction
+st.markdown("Upload your .txt or .pdf documents and chat with them!")
+
+# Blue info box with styling
+st.markdown("""
+<div style='margin-top: 20px; padding: 16px 18px; background: #e7f3fc; border-radius: 9px; border-left: 5px solid #2574a9; color: #184361; font-size: 1.05rem;'>
+  <b>ℹ️  This assistant ONLY uses information from your uploaded documents and <span style="color:#1c853b;">preloaded default context</span> (such as your CV and course info—already included, <u>no need to upload</u>).</b>
+  <br><br>
     If the answer is not present in your documents or the preloaded context, it will let you know.<br>
     <span style="color:#d97706;"><b>It will <u>not</u> invent or make up any information.</b></span><br>
     You can upload multiple files at once, and their content will be combined for answering your questions.<br>

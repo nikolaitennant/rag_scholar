@@ -16,10 +16,12 @@ st.title("🤖 Giulia's Law AI Assistant")
 st.markdown("""
 Upload your `.txt` or `.pdf` documents and chat with them!
 
-:information_source: **This assistant ONLY uses information from uploaded documents and any default context.**
+:information_source: **This assistant ONLY uses information from uploaded documents and any default context (CV/course info - included already).**
 If the answer is not present in your documents, it will let you know.
+It will not invent or make up any information.
+You can upload multiple files at once, and it will combine their contents for answering your questions.
+Make sure to upload relevant documents for the best results.
 
-**Default context:** CV/course info included already (Do not need to upload).
 """)
 
 # --- Functions to load documents ---

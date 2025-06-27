@@ -61,9 +61,6 @@ st.title("🤖 Giulia's Law AI Assistant")
 
 # ─── Sidebar instructions & uploader ────────────────────────────────────────────
 st.sidebar.header("📂 Upload & Controls")
-st.sidebar.markdown("""
-• Upload PDF/TXT files here to include in the context.
-""", unsafe_allow_html=True)
 inline_files = st.sidebar.file_uploader(
     "Upload documents",
     type=["pdf", "txt"],

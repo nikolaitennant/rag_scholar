@@ -117,6 +117,8 @@ if all_documents:
     if user_input:
         docs = retriever.invoke(user_input)
         context = "\n\n".join(d.page_content for d in docs)
+        if not context.strip():
+            context = user_input  # use the user prompt as context
         system_prompt = (
             "You are a helpful assistant. "
             "You must answer using ONLY the provided knowledge base context and any facts the user provides about themselves in their current prompt. "

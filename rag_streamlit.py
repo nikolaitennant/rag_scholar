@@ -1,0 +1,73 @@
+import streamlit as st
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_community.document_loaders import TextLoader
+from langchain_core.messages import SystemMessage, HumanMessage
+from dotenv import load_dotenv
+import os
+import tempfile
+
+# Load env variables
+load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY")
+
+st.set_page_config(page_title="RAG Assistant", page_icon="🤖")
+st.title("🤖 RAG Assistant")
+st.markdown("Upload your `.txt` documents below and chat with them!")
+
+# Sidebar for file upload
+uploaded_files = st.sidebar.file_uploader("Upload your text files here", type="txt", accept_multiple_files=True)
+
+# Chat history for nicer UI
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+def load_uploaded_files(uploaded_files):
+    temp_folder = tempfile.mkdtemp()
+    all_documents = []
+    for uploaded_file in uploaded_files:
+        file_path = os.path.join(temp_folder, uploaded_file.name)
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        loader = TextLoader(file_path)
+        all_documents.extend(loader.load())
+    return all_documents
+
+if uploaded_files:
+    # Load and embed docs
+    all_documents = load_uploaded_files(uploaded_files)
+    embeddings = OpenAIEmbeddings(api_key=api_key)
+    vector_store = FAISS.from_documents(all_documents, embeddings)
+    retriever = vector_store.as_retriever()
+    llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini", temperature=0.3)
+    
+    st.success("Documents uploaded and indexed! Ask your questions below:")
+
+    # User chat input
+    user_input = st.chat_input("Ask something about your docs...")
+    if user_input:
+        docs = retriever.invoke(user_input)
+        context = "\n\n".join(d.page_content for d in docs)
+        system_prompt = (
+            "You are a helpful assistant. "
+            "Use ONLY the following knowledge base context to answer the user. "
+            "If the answer is not in the context, say you don't know.\n\n"
+            f"Context:\n{context}"
+        )
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_input)
+        ]
+        result = llm.invoke(messages)
+        # Add to chat history
+        st.session_state.chat_history.append(("You", user_input))
+        st.session_state.chat_history.append(("Assistant", result.content))
+    
+    # Display chat history
+    for role, message in st.session_state.chat_history:
+        if role == "You":
+            st.chat_message("user").write(message)
+        else:
+            st.chat_message("assistant").write(message)
+else:
+    st.info("Upload at least one .txt file to start chatting.")

@@ -87,6 +87,8 @@ with st.expander("🎯 Quick Tips (commands & scope)", expanded=False):
     st.markdown("""
     <div style="text-align:center; margin:24px 0;">
     <div style="display:inline-block; text-align:left; max-width:600px; width:90%;">
+
+    ##
     | **Command**   | **What it Does**                     | **Scope**           |
     |--------------:|--------------------------------------|---------------------|
     | `remember:`   | Store a fact **permanently**         | Across all sessions |

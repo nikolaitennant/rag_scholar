@@ -63,25 +63,7 @@ def build_vectorstore(default_index, dynamic_docs):
 st.set_page_config(page_title="Giulia's Law AI Assistant", page_icon="🤖")
 st.title("🤖 Giulia's Law AI Assistant")
 
-# Instructions/info box
-
-# ─── Streamlit page setup & UI ────────────────────────────────────────────────
-st.set_page_config(page_title="Giulia's Law AI Assistant", page_icon="🤖")
-st.title("🤖 Giulia's Law AI Assistant")
- 
-st.markdown("""
-<div style='margin-top: 20px; padding: 16px 18px; background: #e7f3fc; border-radius: 9px; border-left: 5px solid #2574a9; color: #184361; font-size: 1.05rem;'>
-  <b>ℹ️  This assistant ONLY uses information from your uploaded documents and <span style="color:#1c853b;">preloaded default context</span> (such as your CV and course info—already included, <u>no need to upload</u>).</b>
-  <br><br>
-    If the answer is not present in your documents or the preloaded context, it will let you know.<br>
-    <span style="color:#d97706;"><b>It will <u>not</u> invent or make up any information.</b></span><br>Add commentMore actions
-    You can upload multiple files at once, and their content will be combined for answering your questions.<br>
-    <br>
-    <b>✨ Tip:</b> For the best results, upload documents that contain the details you want to ask about.
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
+# Introductory info box
 st.markdown("""
 <div style='
     margin-bottom: 24px;
@@ -115,28 +97,6 @@ st.markdown("""
   </ul>
   <div style='height: 7px;'></div>
   <b>✨ Tip:</b> For best results, upload documents that contain the details you want to ask about.
-</div>
-""", unsafe_allow_html=True)
-
-# Main info box
-st.markdown("""
-<div style='
-    margin-bottom:24px;
-    padding:26px 28px;
-    background:#e7f3fc;
-    border-radius:14px;
-    border-left:7px solid #2574a9;
-    color:#184361;
-    font-size:1.08rem;
-    box-shadow:0 1px 8px #eef4fa;
-    line-height:1.6;
-'>
-  <b style='font-size:1.13rem;'>ℹ️ This assistant uses ONLY your uploaded documents, remembered facts, session facts, and default context.</b>
-  <ul style='margin-left:1.1em;margin-top:12px;'>
-    <li>If the answer is <b>not</b> in your docs or remembered facts, you'll see a warning.</li>
-    <li style='margin-top:8px;'><span style='color:#d97706;font-weight:600;'>No hallucination—nothing invented.</span></li>
-    <li style='margin-top:8px;'>Upload multiple files; content is combined for retrieval.</li>
-  </ul>
 </div>
 """, unsafe_allow_html=True)
 

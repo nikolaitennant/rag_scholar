@@ -14,9 +14,6 @@ api_key = os.getenv("OPENAI_API_KEY")
 st.set_page_config(page_title="Giulia's Law AI Assistant", page_icon="🤖")
 st.title("🤖 Giulia's Law AI Assistant")
 
-# Plain upload instruction
-st.markdown("Upload your .txt or .pdf documents and chat with them!")
-
 # Spacing before info boxes
 st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
 

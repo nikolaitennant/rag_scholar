@@ -16,9 +16,12 @@ st.title("🤖 Guilia's AI Assistant")
 st.markdown("Upload your `.txt` or `.pdf` documents below and chat with them!")
 
 # Sidebar for file upload
-uploaded_files = st.sidebar.file_uploader(
-    "Upload your text or PDF files here", type=["txt", "pdf"], accept_multiple_files=True
-)
+st.markdown("""
+Upload your `.txt` or `.pdf` documents below and chat with them!
+
+:warning: **This assistant ONLY uses the information found in your uploaded documents.**
+If the answer is not present in your documents, it will let you know.
+""")
 
 # Chat history for nicer UI
 if "chat_history" not in st.session_state:
@@ -56,8 +59,10 @@ if uploaded_files:
         context = "\n\n".join(d.page_content for d in docs)
         system_prompt = (
             "You are a helpful assistant. "
-            "Use ONLY the following knowledge base context to answer the user. "
-            "If the answer is not in the context, say you don't know.\n\n"
+            "You must answer ONLY using the provided knowledge base context. "
+            "If there is not enough information to fulfill the user's request, respond with the following:\n"
+            "'Sorry, there is not enough information in the documents to answer your request.'\n"
+            "Do not make up or invent any information or details. Only use what is present in the context below.\n\n"
             f"Context:\n{context}"
         )
         messages = [

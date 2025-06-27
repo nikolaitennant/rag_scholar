@@ -83,24 +83,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
     # ─── Quick Tips (Centered) ───────────────────────────────────────────────────
-with st.expander("🎯 Quick Tips (commands & scope)", expanded=False):
+with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
     st.markdown("""
-    <div style="text-align:center; margin:24px 0;">
-    <div style="display:inline-block; text-align:left; max-width:600px; width:90%;">
-
-    ##
     | **Command**   | **What it Does**                     | **Scope**           |
     |--------------:|--------------------------------------|---------------------|
     | `remember:`   | Store a fact **permanently**         | Across all sessions |
     | `memo:`       | Store a fact **for this session**    | Single session      |
     | `role:`       | Set your assistant’s **persona/role**| N/A                 |
-
-    > **How to use:**  
-    > Just start your line with the prefix above—no extra formatting needed.
-
-    </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
 # ─── Build vector store ───────────────────────────────────────────────────────
 def_index = load_and_index_defaults()

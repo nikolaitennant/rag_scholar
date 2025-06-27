@@ -13,15 +13,17 @@ api_key = os.getenv("OPENAI_API_KEY")
 
 st.set_page_config(page_title="Guilia's AI Assistant", page_icon="🤖")
 st.title("🤖 Guilia's AI Assistant")
-st.markdown("Upload your `.txt` or `.pdf` documents below and chat with them!")
-
-# Sidebar for file upload
 st.markdown("""
 Upload your `.txt` or `.pdf` documents below and chat with them!
 
 :warning: **This assistant ONLY uses the information found in your uploaded documents.**
 If the answer is not present in your documents, it will let you know.
 """)
+
+# Sidebar for file upload
+uploaded_files = st.sidebar.file_uploader(
+    "Upload your text or PDF files here", type=["txt", "pdf"], accept_multiple_files=True
+)
 
 # Chat history for nicer UI
 if "chat_history" not in st.session_state:

@@ -64,6 +64,12 @@ st.set_page_config(page_title="Giulia's Law AI Assistant", page_icon="🤖")
 st.title("🤖 Giulia's Law AI Assistant")
 
 # Instructions/info box
+
+# ─── Streamlit page setup & UI ────────────────────────────────────────────────
+st.set_page_config(page_title="Giulia's Law AI Assistant", page_icon="🤖")
+st.title("🤖 Giulia's Law AI Assistant")
+
+# Main info box
 st.markdown("""
 <div style='
     margin-bottom:24px;
@@ -76,15 +82,27 @@ st.markdown("""
     box-shadow:0 1px 8px #eef4fa;
     line-height:1.6;
 '>
-  <b style='font-size:1.13rem;'>ℹ️  This assistant uses ONLY your uploaded documents, remembered facts, session facts, and default context.</b>
+  <b style='font-size:1.13rem;'>ℹ️ This assistant uses ONLY your uploaded documents, remembered facts, session facts, and default context.</b>
   <ul style='margin-left:1.1em;margin-top:12px;'>
     <li>If the answer is <b>not</b> in your docs or remembered facts, you'll see a warning.</li>
     <li style='margin-top:8px;'><span style='color:#d97706;font-weight:600;'>No hallucination—nothing invented.</span></li>
-    <li style='margin-top:8px;'>Upload multiple files; their content is combined for retrieval.</li>
+    <li style='margin-top:8px;'>Upload multiple files; content is combined for retrieval.</li>
   </ul>
-  <p style='margin-top:12px;'>
-    <b>✨ Tip:</b> <code>remember:</code> for permanent facts, <code>memo:</code> for session facts, <code>role:</code> to set persona.
-  </p>
+</div>
+""", unsafe_allow_html=True)
+
+# Standalone Quick-Tip box
+st.markdown("""
+<div style='
+    margin-bottom:24px;
+    padding:16px 20px;
+    background:#f0f4f8;
+    border-radius:10px;
+    color:#243447;
+    font-size:1rem;
+    box-shadow:0 1px 4px rgba(0,0,0,0.05);
+'>
+  <b>✨ Quick Tip:</b> Use <code>remember:</code> to store a fact permanently, <code>memo:</code> for session-only facts, and <code>role:</code> to set your assistant’s persona.
 </div>
 """, unsafe_allow_html=True)
 

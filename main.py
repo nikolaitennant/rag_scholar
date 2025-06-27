@@ -102,12 +102,34 @@ st.markdown("""
     font-size:1rem;
     box-shadow:0 1px 4px rgba(0,0,0,0.05);
 '>
-  <b>✨ Quick Tip:</b>
-  <ul style='margin-top:8px; padding-left:1.2em;'>
-    <li><code>remember:&lt;your-fact&gt;</code> – store a fact <b>permanently</b>.</li>
-    <li><code>memo:&lt;your-fact&gt;</code> – store a fact for <b>this session only</b>.</li>
-    <li><code>role:&lt;your-persona&gt;</code> – set the assistant’s <b>persona</b>.</li>
+  <b>✨ Quick Tip:</b> Use <code>remember:</code> to store a fact permanently, <code>memo:</code> for session-only facts, and <code>role:</code> to set your assistant’s persona.
+</div>
+""", unsafe_allow_html=True)
+
+
+
+
+st.markdown("""
+<div style='
+    margin-bottom:24px;
+    padding:26px 28px;
+    background:#e7f3fc;
+    border-radius:14px;
+    border-left:7px solid #2574a9;
+    color:#184361;
+    font-size:1.08rem;
+    box-shadow:0 1px 8px #eef4fa;
+    line-height:1.6;
+'>
+  <b style='font-size:1.13rem;'>ℹ️  This assistant uses ONLY your uploaded documents, remembered facts, session facts, and default context.</b>
+  <ul style='margin-left:1.1em;margin-top:12px;'>
+    <li>If the answer is <b>not</b> in your docs or remembered facts, you'll see a warning.</li>
+    <li style='margin-top:8px;'><span style='color:#d97706;font-weight:600;'>No hallucination—nothing invented.</span></li>
+    <li style='margin-top:8px;'>Upload multiple files; their content is combined for retrieval.</li>
   </ul>
+  <p style='margin-top:12px;'>
+    <b>✨ Tip:</b> remember: for permanent facts, memo: for session facts, role: to set persona.
+  </p>
 </div>
 """, unsafe_allow_html=True)
 

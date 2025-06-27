@@ -315,6 +315,43 @@ st.info(
     """
 )
 
+st.markdown(
+    """
+    <style>
+      .info-box {
+        margin-bottom: 24px;
+        padding: 26px 28px;
+        background: var(--secondary-background-color);
+        color: var(--text-color);
+        border-radius: var(--radius);
+        border-left: 6px solid var(--primary-color);
+        box-shadow: 0 1px 8px var(--shadow-color);
+        font-size: 1.08rem;
+        line-height: 1.7;
+      }
+      .info-box b {
+        color: var(--text-color);
+      }
+      .info-box li {
+        margin-top: 0.5em;
+      }
+    </style>
+
+    <div class="info-box">
+      <b style="font-size:1.13rem;">
+        ℹ️ This assistant uses only your uploaded docs and preloaded context.
+      </b>
+      <ul>
+        <li><b>Supported formats:</b> PDF, TXT, DOC/DOCX, PPTX, CSV, PNG/JPG</li>
+        <li>If it’s not in your docs, you’ll be told (no inventing).</li>
+        <li>You can upload multiple files; they’re combined for answering.</li>
+      </ul>
+      <b>✨ Tip:</b> Use the sidebar toggle to keep docs session-only or persist them.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 # ─── Build vector store ───────────────────────────────────────────────────────
 default_docs, default_index = load_and_index_defaults()
 session_docs = load_uploaded_files(inline_files)

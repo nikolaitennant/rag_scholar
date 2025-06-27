@@ -57,13 +57,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Green box, more margin from blue box
-st.markdown("""
-<div style='margin-top: 14px; margin-bottom: 22px; padding: 16px 18px; background: #e7faeb; border-radius: 11px; color: #217b36; font-size: 1.06rem; font-weight: 500; border-left: 6px solid #3bc46b;'>
-  Default context loaded (CV, course info, etc)! Ask your questions below:
-</div>
-""", unsafe_allow_html=True)
-
 # --- Functions to load documents ---
 
 def load_uploaded_files(uploaded_files):

@@ -1,4 +1,3 @@
-import streamlit as st
 import requests
 import json
 import base64
@@ -174,7 +173,7 @@ if user_input:
     txt = user_input.strip()
     low = txt.lower()
 
-                # Vision branch (via HTTP JSON)
+            # Vision branch (via HTTP JSON)
     if mode == "Image/Chart" and image_file:
         # encode image
         img_bytes = image_file.read()
@@ -205,7 +204,6 @@ if user_input:
             assistant_msg = f"⚠️ Vision API error {resp.status_code}: {resp.text}"
         else:
             assistant_msg = resp.json()["choices"][0]["message"]["content"]
-        # Append single response to chat history
         st.session_state.chat_history.append(("User", txt))
         st.session_state.chat_history.append(("Assistant", assistant_msg))
 

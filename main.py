@@ -118,7 +118,7 @@ upload_mode = st.sidebar.radio(
 )
 
 mode = st.sidebar.radio(
-    "🔄 Media Type :",
+    "Media Type :",
     ("Text only", "Image/Chart"),
     index=0
 )

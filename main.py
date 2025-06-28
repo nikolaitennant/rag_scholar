@@ -117,19 +117,19 @@ upload_mode = st.sidebar.radio(
     index=0
 )
 inline_files = st.sidebar.file_uploader(
-    "Upload docs for RAG:",
+    "Upload docs:",
     type=["pdf","txt","docx","doc","pptx","csv"],
     accept_multiple_files=True
 )
 
 image_file = st.sidebar.file_uploader(
-    "Upload image/chart (for vision):",
+    "Upload image/chart (for visual interpretation):",
     type=["png","jpg","jpeg"]
 )
 
 mode = st.sidebar.radio(
     "🔄 Processing mode:",
-    ("RAG (text only)", "Vision (image)"),
+    ("Text only", "Vision (image)"),
     index=0
 )
 
@@ -139,7 +139,7 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 |------------:|--------------------------------|---------------------|
 | `remember:` | Store a fact permanently       | Across sessions     |
 | `memo:`     | Store a fact this session only | Single session      |
-| `role:`     | Set the assistant’s persona    | N/A                 |
+| `role:`     | Set the assistant’s persona    | Single session      |
 > Use **Session only** to avoid persisting docs across restarts.
 """, unsafe_allow_html=True)
 

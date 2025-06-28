@@ -16,6 +16,8 @@ from dotenv import load_dotenv
 from PIL import Image
 import pytesseract
 import faiss
+import nltk                           
+nltk.download("punkt", quiet=True) 
 
 from openai import OpenAI
 
@@ -132,7 +134,7 @@ def ocr_bytes(b:bytes)->str:
     try: return pytesseract.image_to_string(Image.open(io.BytesIO(b)),lang='eng',config='--psm 6')
     except Exception: return ""
 
-def uncited(txt:str): return [s for s in re.split(r"(?<=[.!?])\\s+",txt) if s.strip() and "[#" not in s]
+# def uncited(txt:str): return [s for s in re.split(r"(?<=[.!?])\\s+",txt) if s.strip() and "[#" not in s]
 
 def to_dict(m): return {"role":"user" if isinstance(m,HumanMessage) else "system","content":m.content}
 
@@ -166,6 +168,38 @@ if os.path.exists(CTX_DIR):
     for f in os.listdir(CTX_DIR):
         base_docs.extend(load_and_split(os.path.join(CTX_DIR,f)))
 vs = build_or_load_index(base_docs)
+
+LEGAL_KEYWORDS = {
+    # words / phrases that usually indicate a rule, authority, or factual assertion
+    "held", "holding", "ratio", "rule", "principle", "because", "therefore",
+    "thus", "however", "applies", "application", "statute", "section", "§",
+    "case", "authority", "precedent", "duty", "breach", "liable", "liability",
+    "defence", "defense", "test", "standard", "requirement", "requires",
+    "must", "shall", "may", "where", "if", "unless"
+}
+
+CITE_PAT   = re.compile(r"\[#\d+\]")
+ALPHA_PAT  = re.compile(r"[A-Za-z]")          # ignore empty punctuation blobs
+
+def uncited_substantive(text: str) -> list[str]:
+    """
+    Return sentences that (a) look substantive and (b) lack a [#n] citation.
+    Uses NLTK's Punkt tokenizer for reasonably accurate segmentation.
+    """
+    from nltk.tokenize import sent_tokenize
+
+    offenders = []
+    for sent in sent_tokenize(text):
+        s_clean = sent.strip()
+        if not ALPHA_PAT.search(s_clean):          # skip whitespace / emoji only
+            continue
+        if CITE_PAT.search(s_clean):               # already cited
+            continue
+        # substantiveness heuristic: any legal keyword or > 12 words
+        word_count = len(s_clean.split())
+        if word_count > 12 or any(k in s_clean.lower() for k in LEGAL_KEYWORDS):
+            offenders.append(s_clean)
+    return offenders
 
 # ── MAIN LOOP ──────────────────────────────────────────────────────────────
 if query:
@@ -259,9 +293,11 @@ if query:
 
     answer = res.choices[0].message.content.strip()
 
-    if uncited(answer):
-        st.warning("⚠️ Some sentences lack [#] citations.")
-
+    missing = uncited_substantive(answer)
+    if missing:
+        preview = " | ".join(missing[:3]) + (" …" if len(missing) > 3 else "")
+        st.warning(f"⚠️ Missing citations in: {preview}")
+    
     # ── Update chat history (cap at MAX_TURNS) ----------------------------------
     st.session_state.hist.extend([("user", txt), ("assistant", answer)])
     st.session_state.hist = st.session_state.hist[-MAX_TURNS * 2:]
@@ -269,3 +305,4 @@ if query:
     # ── Render chat -------------------------------------------------------------
     for role, msg in st.session_state.hist:
         st.chat_message(role).write(msg)
+      import nltk, re

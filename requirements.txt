@@ -18,3 +18,4 @@ pillow>=10.2                                # image I/O
 pytesseract>=0.3
 sentence-transformers>=2.7
 torch>=2.2          # CPU build okay
+rank_bm25>=0.2.2

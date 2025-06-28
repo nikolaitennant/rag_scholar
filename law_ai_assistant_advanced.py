@@ -1,21 +1,14 @@
-# ───────────────────────── law_ai_assistant_advanced.py (v1.4) ─────────────────────────
+# ───────────────────────────── law_ai_assistant.py ─────────────────────────────
 """
-Self-contained Streamlit RAG app for law-exam prep that works on **any** recent
-LangChain version (≥0.1) with *no version pin* headaches.
+Streamlit RAG assistant for law-exam prep, version-agnostic: no pin-chasing.
 
-Key points
-──────────
-• Universal import shim for `BM25Retriever` and `EnsembleRetriever`; falls back
-to dense-only retrieval if either class is missing.
-• Structure-aware chunking, optional hybrid BM25, optional cross-encoder
-re-rank, IRAC answer scaffold, OCR for images, citation validator.
-• Zero reliance on `.to_openai()` – we convert messages manually.
-
-Run:
-    pip install streamlit openai python-dotenv pillow pytesseract faiss-cpu \
-                langchain langchain-openai sentence-transformers rank_bm25 \
-                unstructured[all-docs,powerpoint]
-    streamlit run law_ai_assistant_advanced.py
+Features
+────────
+• Upload PDFs, DOC/DOCX, PPTX, CSV, TXT, PNG/JPG diagrams.
+• Structure-aware chunking → FAISS embeddings (OpenAI).
+• Optional hybrid (BM25 + dense) retrieval, optional cross-encoder re-rank.
+• Image OCR + GPT-4o multimodal, IRAC answer scaffold, citation check.
+• `remember:`, `memo:`, `role:` commands.
 """
 
 import os, io, re, base64, tempfile
@@ -28,20 +21,9 @@ import pytesseract
 
 from openai import OpenAI
 
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_community.document_loaders import (
-    PyPDFLoader, UnstructuredPowerPointLoader, Docx2txtLoader,
-    UnstructuredWordDocumentLoader, TextLoader, CSVLoader, UnstructuredImageLoader,
-)
-from langchain_core.documents import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_core.messages import SystemMessage, HumanMessage
-
-# ════════════ 1. UNIVERSAL IMPORT SHIM ═══════════════════════════════════════════════════
-
+# ═══════════════════════════ universal LangChain imports ══════════════════════
 def _import(cls_name: str):
-    """Try community → core paths; return class or None."""
+    """Try community → core; return class or None."""
     for path in ("langchain_community.retrievers", "langchain.retrievers"):
         try:
             module = __import__(path, fromlist=[cls_name])
@@ -53,34 +35,53 @@ def _import(cls_name: str):
 BM25Retriever     = _import("BM25Retriever")
 EnsembleRetriever = _import("EnsembleRetriever")
 
-# Optional cross-encoder
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_community.document_loaders import (
+    PyPDFLoader, UnstructuredPowerPointLoader, Docx2txtLoader,
+    UnstructuredWordDocumentLoader, TextLoader, CSVLoader,
+    UnstructuredImageLoader,
+)
+from langchain_core.documents import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_core.messages import SystemMessage, HumanMessage
+
+# optional cross-encoder
 try:
-    from sentence_transformers import CrossEncoder  # type: ignore
+    from sentence_transformers import CrossEncoder          # type: ignore
 except ImportError:
     CrossEncoder = None
 
-# ════════════ 2. ENV & CLIENT ════════════════════════════════════════════════════════════
+# try docx2txt (Word loader); if missing, treat Word files as plain text
+try:
+    import docx2txt  # noqa: F401
+except ImportError:
+    st.warning("docx2txt not found – DOC/DOCX will be read as plain text.")
+    Docx2txtLoader = TextLoader
+    UnstructuredWordDocumentLoader = TextLoader
+
+# ═══════════════════════════ env & client ═════════════════════════════════════
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
-    st.error("OPENAI_API_KEY not set")
-    st.stop()
+    st.error("🔑  OPENAI_API_KEY not set"); st.stop()
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 EMBED_MODEL = "text-embedding-3-small"
 LLM_MODEL   = "gpt-4o-mini"
 
-# ════════════ 3. CONSTANTS ═══════════════════════════════════════════════════════════════
-CTX_DIR   = "default_context"
-CHUNK_SZ  = 900
-CHUNK_OV  = 120
-FIRST_K   = 20
-FINAL_K   = 6
+# ═══════════════════════════ constants ════════════════════════════════════════
+CTX_DIR  = "default_context"
+CHUNK_SZ = 900
+CHUNK_OV = 120
+FIRST_K  = 20
+FINAL_K  = 6
 
-# ════════════ 4. HELPERS ════════════════════════════════════════════════════════════════
+# ═══════════════════════════ helpers ═════════════════════════════════════════
 SEC_PAT = re.compile(r"^(Section|Article|Clause|§)\s+\d+[\w.\-]*", re.I)
 
 def split_legal(text: str) -> List[str]:
+    """Prefer § headings; fallback to size-based chunks."""
     lines, buf, out = text.splitlines(), [], []
     for ln in lines:
         if SEC_PAT.match(ln) and buf:
@@ -88,9 +89,11 @@ def split_legal(text: str) -> List[str]:
         else:
             buf.append(ln)
     if buf: out.append("\n".join(buf))
-    splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SZ, chunk_overlap=CHUNK_OV)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SZ,
+                                              chunk_overlap=CHUNK_OV)
     chunks = []
-    for sect in out: chunks.extend(splitter.split_text(sect))
+    for part in out:
+        chunks.extend(splitter.split_text(part))
     return chunks
 
 LOADER_MAP = {
@@ -111,7 +114,7 @@ def load_and_split(path: str) -> List[Document]:
     if not loader_cls:
         return []
     docs = loader_cls(path).load()
-    out = []
+    out: List[Document] = []
     for d in docs:
         meta = d.metadata or {}; meta["source_file"] = os.path.basename(path)
         for chunk in split_legal(d.page_content):
@@ -137,16 +140,12 @@ def get_cross_encoder():
         st.warning("Cross-encoder weights unavailable – skipping re-rank.")
         return None
 
-
 def hybrid_retriever(vs: FAISS, docs: List[Document]):
     dense = vs.as_retriever(search_kwargs={"k": FIRST_K})
     if not (BM25Retriever and EnsembleRetriever):
-        return dense  # fallback
-    bm25 = BM25Retriever.from_texts([d.page_content for d in docs]) if BM25Retriever else None
-    if not bm25:
         return dense
+    bm25 = BM25Retriever.from_texts([d.page_content for d in docs])
     return EnsembleRetriever(retrievers=[dense, bm25], weights=[0.7, 0.3])
-
 
 def rerank(query: str, docs: List[Document]) -> List[Document]:
     ce = get_cross_encoder()
@@ -157,7 +156,6 @@ def rerank(query: str, docs: List[Document]) -> List[Document]:
         d.metadata["ce_score"] = float(s)
     return sorted(docs, key=lambda d: d.metadata["ce_score"], reverse=True)[:FINAL_K]
 
-
 def ocr_bytes(data: bytes) -> str:
     try:
         img = Image.open(io.BytesIO(data))
@@ -165,47 +163,56 @@ def ocr_bytes(data: bytes) -> str:
     except Exception:
         return ""
 
-
-def uncited_sents(txt: str) -> List[str]:
+def uncited(txt: str) -> List[str]:
     return [s for s in re.split(r"(?<=[.!?])\s+", txt) if s.strip() and "[#" not in s]
 
-
 def lc_to_dict(msg: Union[SystemMessage, HumanMessage]) -> Dict:
-    if isinstance(msg.content, list):
+    if isinstance(msg.content, list):  # multimodal user
         return {"role": "user", "content": msg.content}
     role = "system" if isinstance(msg, SystemMessage) else "user"
     return {"role": role, "content": msg.content}
 
-# ════════════ 5. STREAMLIT UI ════════════════════════════════════════════════════════════
+# ═══════════════════════════ UI ══════════════════════════════════════════════
 st.set_page_config("Law AI Assistant", "⚖️")
-st.title("⚖️ Law AI Assistant (no-pins edition)")
+st.title("⚖️ Law AI Assistant")
 
-uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
-image_file    = st.sidebar.file_uploader("Optional image / chart", type=["png","jpg","jpeg"])
-query         = st.chat_input("Ask or use remember:/memo:/role:")
+uploader = st.sidebar.file_uploader
+uploaded_docs = uploader("Upload legal docs",
+                         type=list(LOADER_MAP.keys()), accept_multiple_files=True)
+image_file = uploader("Optional image / chart", type=["png", "jpg", "jpeg"])
 
-for k, d in {"perm":[], "sess":[], "persona":None, "hist":[]}.items():
+query = st.chat_input("Ask or use remember:/memo:/role:")
+
+# session defaults
+for k, d in {"perm": [], "sess": [], "persona": None, "hist": [],
+             "last_image": None}.items():
     st.session_state.setdefault(k, d)
 
-# ════════════ 6. MAIN LOOP ═══════════════════════════════════════════════════════════════
+# cache most recent image
+if image_file is not None:
+    st.session_state["last_image"] = image_file
+img_file = image_file or st.session_state["last_image"]
+
+# ═══════════════════════════ MAIN LOOP ═══════════════════════════════════════
 if query:
     txt = query.strip(); low = txt.lower()
 
-    # Commands
     if low.startswith("remember:"):
         st.session_state.perm.append(txt.partition(":")[2].strip())
         st.session_state.hist.append(("assistant", "✅ Remembered.")); st.rerun()
+
     elif low.startswith("memo:"):
         st.session_state.sess.append(txt.partition(":")[2].strip())
         st.session_state.hist.append(("assistant", "🗒️ Noted (session).")); st.rerun()
+
     elif low.startswith("role:"):
         st.session_state.persona = txt.partition(":")[2].strip()
-        st.session_state.hist.append(("assistant", f"👤 Persona set → {st.session_state.persona}")); st.rerun()
+        st.session_state.hist.append(("assistant",
+                                      f"👤 Persona set → {st.session_state.persona}")); st.rerun()
 
-    # Question answering
-    else:
+    else:  # question
         corpus, vs = base_corpus_vs()
-        # dynamic uploads
+
         if uploaded_docs:
             tmp = tempfile.mkdtemp(); new_docs = []
             for uf in uploaded_docs:
@@ -214,51 +221,57 @@ if query:
             vs.add_documents(new_docs); corpus.extend(new_docs)
 
         retriever = hybrid_retriever(vs, corpus)
-        initial_hits = retriever.invoke(txt)
-        top_docs = rerank(txt, initial_hits)
+        hits = rerank(txt, retriever.invoke(txt))
 
-        # Image branch
+        # image
         ocr_text = ""; img_payload = None
-        if image_file:
-            b = image_file.getvalue(); ocr_text = ocr_bytes(b)
-            img_payload = {"type":"image_url","image_url":{"url":f"data:image/png;base64,{base64.b64encode(b).decode()}"}}
+        if img_file:
+            b = img_file.getvalue(); ocr_text = ocr_bytes(b)
+            img_payload = {"type": "image_url",
+                           "image_url": {"url":
+                                         f"data:image/png;base64,{base64.b64encode(b).decode()}" }}
 
-        # Snippets
+        # snippets
         snippets = []
-        for i, d in enumerate(top_docs, 1):
-            snippet = re.sub(r"\s+"," ", d.page_content)[:1000]
-            src = d.metadata.get("source_file","doc")
-            snippets.append(f"[#${i}] ({src}) {snippet}")
+        for i, d in enumerate(hits, 1):
+            snippet = re.sub(r"\s+", " ", d.page_content)[:1000]
+            src = d.metadata.get("source_file", "doc")
+            snippets.append(f"[#{i}] ({src}) {snippet}")
 
-        sys = "You are a meticulous legal assistant. Answer in IRAC format. Cite snippets [#n]. If info missing, say so."
-        if st.session_state.persona: sys += f" Adopt persona: {st.session_state.persona}."
+        sys_txt = ("You are a meticulous legal assistant. "
+                   "Use IRAC (Issue, Rule, Application, Conclusion). "
+                   "Cite snippets [#n]. If unsure, say so.")
+        if st.session_state.persona:
+            sys_txt += f" Adopt persona: {st.session_state.persona}."
 
-        msgs: List[Union[SystemMessage, HumanMessage]] = [SystemMessage(content=sys)]
+        msgs: List[Union[SystemMessage, HumanMessage]] = [SystemMessage(content=sys_txt)]
         if snippets:
-            msgs.append(SystemMessage(content="Snippets:\n"+"\n\n".join(snippets)))
+            msgs.append(SystemMessage(content="Snippets:\n" + "\n\n".join(snippets)))
         for f in st.session_state.perm + st.session_state.sess:
             msgs.append(SystemMessage(content=f"Fact: {f}"))
-        if ocr_text.strip(): msgs.append(SystemMessage(content=f"OCR:\n{ocr_text.strip()}"))
-        # user
+        if ocr_text.strip():
+            msgs.append(SystemMessage(content=f"OCR:\n{ocr_text.strip()}"))
+
+        # user message
         if img_payload:
-            msgs.append(HumanMessage(content=[{"type":"text","text":txt}, img_payload]))
+            msgs.append(HumanMessage(content=[{"type": "text", "text": txt}, img_payload]))
         else:
             msgs.append(HumanMessage(content=txt))
 
-        with st.spinner("Thinking …"):
-            resp = client.chat.completions.create(
+        with st.spinner("Thinking…"):
+            res = client.chat.completions.create(
                 model=LLM_MODEL,
                 messages=[lc_to_dict(m) for m in msgs],
                 temperature=0.0,
                 max_tokens=800,
             )
-        answer = resp.choices[0].message.content.strip()
-        if uncited_sents(answer):
-            st.warning("⚠️ Some statements may lack citations – review recommended.")
+        answer = res.choices[0].message.content.strip()
+        if uncited(answer):
+            st.warning("⚠️ Some sentences lack [#] citations – review recommended.")
 
         st.session_state.hist.append(("user", txt))
         st.session_state.hist.append(("assistant", answer))
 
-# Render chat
+# render chat
 for role, msg in st.session_state.hist:
     st.chat_message(role).write(msg)

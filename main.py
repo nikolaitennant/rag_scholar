@@ -129,7 +129,7 @@ image_file = st.sidebar.file_uploader(
 
 mode = st.sidebar.radio(
     "🔄 Processing mode:",
-    ("Text only", "Vision (image)"),
+    ("Text only", "Image/Chart"),
     index=0
 )
 

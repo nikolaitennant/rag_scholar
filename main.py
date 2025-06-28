@@ -121,17 +121,6 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 > Use **Session only** to avoid persisting docs across restarts.
 """, unsafe_allow_html=True)
 
-# Persist mode: copy docs into default_context
-if upload_mode == "Persist across sessions" and inline_files:
-    os.makedirs("default_context", exist_ok=True)
-    for f in inline_files:
-        dest = os.path.join("default_context", f.name)
-        if not os.path.exists(dest):
-            with open(dest, "wb") as out:
-                out.write(f.getbuffer())
-    st.sidebar.success("✅ Documents saved for future sessions.")
-
-
 upload_mode = st.sidebar.radio(
     "Chat History:",
     ("Session only", "Persist across sessions"),
@@ -155,6 +144,17 @@ image_file = st.sidebar.file_uploader(
     "Upload image/chart (Beta):",
     type=["png","jpg","jpeg"]
 )
+
+# Persist mode: copy docs into default_context
+if upload_mode == "Persist across sessions" and inline_files:
+    os.makedirs("default_context", exist_ok=True)
+    for f in inline_files:
+        dest = os.path.join("default_context", f.name)
+        if not os.path.exists(dest):
+            with open(dest, "wb") as out:
+                out.write(f.getbuffer())
+    st.sidebar.success("✅ Documents saved for future sessions.")
+
 
 
 # ─── Introductory info box ────────────────────────────────────────────────────

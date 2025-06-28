@@ -173,13 +173,13 @@ def lc_to_dict(msg: Union[SystemMessage, HumanMessage]) -> Dict:
     return {"role": role, "content": msg.content}
 
 # ═══════════════════════════ UI ══════════════════════════════════════════════
-st.set_page_config("Law AI Assistant", "⚖️")
-st.title("⚖️ Law AI Assistant")
+st.set_page_config("Giulia's Law AI Assistant!", "⚖️")
+st.title("⚖️ Giulia's Law AI Assistant!")
 
 uploader = st.sidebar.file_uploader
 uploaded_docs = uploader("Upload legal docs",
                          type=list(LOADER_MAP.keys()), accept_multiple_files=True)
-image_file = uploader("Optional image / chart", type=["png", "jpg", "jpeg"])
+image_file = uploader("Optional image / chart (beta)", type=["png", "jpg", "jpeg"])
 
 query = st.chat_input("Ask or use remember:/memo:/role:")
 

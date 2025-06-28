@@ -218,11 +218,13 @@ if query:
     STYLE
     1. Start with one friendly line that restates the user’s question.  
     2. Give a concise answer:  
-    – Definitions → one sentence.  
-    – Case / statute / principle → 2-3 sentences (facts → rule → takeaway).  
-    – Problem question → short paragraph applying the rule.  
-    3. End with an optional one-line exam tip.
-
+         • If the answer is long, summarize first.
+         • If the answer is short, give it directly.
+    3. Cite sources in the answer with [#n] (e.g., “As per [#1] …”).
+    4. End with a friendly line that invites follow-up questions.
+    5. Use the IRAC format only if explicitly asked for it.
+    6. Use the provided snippets and stored facts to answer the question.
+        
     Tone: clear, confident, peer-to-peer.  Explain jargon in plain English.
     """.strip()
 

@@ -1,9 +1,9 @@
 import streamlit as st
-import openai
 import requests
 import json
 import base64
 from dotenv import load_dotenv
+from openai import OpenAI
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
@@ -18,25 +18,22 @@ from langchain_core.messages import SystemMessage, HumanMessage
 import os
 import tempfile
 
-# ─── Load env variables ────────────────────────────────────────────────────────
+# ─── Load environment variables ─────────────────────────────────────────────
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
-openai.api_key = api_key
+# Initialize OpenAI client (v1 SDK)
+client = OpenAI(api_key=api_key)
 
-# ─── Initialize session state ─────────────────────────────────────────────────
+# ─── Initialize Streamlit session state ─────────────────────────────────────
 for key in ("memory_facts", "session_facts", "chat_history"):
     if key not in st.session_state:
         st.session_state[key] = []
 if "persona" not in st.session_state:
     st.session_state.persona = None
 
-# ─── Helpers: load & index docs ───────────────────────────────────────────────
+# ─── Helpers: load & index default documents ────────────────────────────────
 @st.cache_resource(show_spinner=False)
-def load_and_index_defaults(folder="default_context"):
-    """
-    Load supported files from 'folder' and build FAISS index.
-    Returns (docs_list, FAISS_index).
-    """
+def load_and_index_defaults(folder: str = "default_context"):
     docs = []
     if os.path.exists(folder):
         for fname in os.listdir(folder):
@@ -99,21 +96,17 @@ def load_uploaded_files(uploaded_files):
 
 
 def build_vectorstore(default_docs, default_index, session_docs):
-    """
-    Rebuild FAISS index over default_docs + session_docs when uploads present; else return default_index.
-    """
     if session_docs:
         embeddings = OpenAIEmbeddings(api_key=api_key)
         return FAISS.from_documents(default_docs + session_docs, embeddings)
     return default_index
 
-# ─── Page config & title ─────────────────────────────────────────────────────
+# ─── Page config & title ─────────────────────────────────────────────────
 st.set_page_config(page_title="Giulia's AI Law Assistant", page_icon="🤖")
 st.title("🤖 Giulia's AI Law Assistant")
 
-# ─── Sidebar: uploader, mode toggles & quick tips ─────────────────────────────
+# ─── Sidebar: uploader, mode toggles, quick tips ──────────────────────────
 st.sidebar.header("📂 File Uploads & Additional Info")
-
 with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
     st.markdown("""
 | **Command** | **What it Does**               | **Scope**           |
@@ -121,33 +114,29 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 | `remember:` | Store a fact permanently       | Across sessions     |
 | `memo:`     | Store a fact this session only | Single session      |
 | `role:`     | Set the assistant’s persona    | Single session      |
-> Use **Session only** to avoid persisting docs across restarts.
+> Tip: Use **Session only** to avoid persisting docs across restarts.
 """, unsafe_allow_html=True)
 
 upload_mode = st.sidebar.radio(
-    "Chat History:",
+    "Upload scope:",
     ("Session only", "Persist across sessions"),
     index=0
 )
-
 mode = st.sidebar.radio(
-    "Media Type :",
+    "Processing mode:",
     ("Text only", "Image/Chart"),
     index=0
 )
-
 inline_files = st.sidebar.file_uploader(
-    "Upload docs:",
+    "Upload docs for RAG:",
     type=["pdf","txt","docx","doc","pptx","csv"],
     accept_multiple_files=True
 )
-
 image_file = st.sidebar.file_uploader(
     "Upload image/chart (Beta):",
     type=["png","jpg","jpeg"]
 )
-
-# Persist mode: copy docs into default_context
+# Persist across sessions
 if upload_mode == "Persist across sessions" and inline_files:
     os.makedirs("default_context", exist_ok=True)
     for f in inline_files:
@@ -157,93 +146,76 @@ if upload_mode == "Persist across sessions" and inline_files:
                 out.write(f.getbuffer())
     st.sidebar.success("✅ Documents saved for future sessions.")
 
-# ─── Introductory info box ────────────────────────────────────────────────────
+# ─── Introductory info box ─────────────────────────────────────────────
 st.markdown(
     """
-    <style>
-      .info-box {
-        margin-bottom: 24px;
-        padding: 26px 28px;
-        background: #e7f3fc;
-        border-radius: 14px;
-        border-left: 7px solid #2574a9;
-        color: #184361;
-        font-size: 1.08rem;
-        box-shadow: 0 1px 8px #eef4fa;
-        line-height: 1.7;
-      }
-      .info-box ul {
-        margin-left: 1.1em;
-        margin-top: 12px;
-      }
-      .info-box li {
-        margin-bottom: 8px;
-      }
-    </style>
-
-    <div class="info-box">
-      <b style="font-size:1.13rem;">ℹ️ How this assistant works:</b>
-      <ul>
-        <li>📄 <b>Only your documents:</b> I read and answer using just the files you upload plus any built-in context. I don’t look up anything on the web.</li>
-        <li>❓ <b>No surprises:</b> If the answer isn’t in your docs, I’ll tell you I don’t have enough information instead of making stuff up.</li>
-        <li>📂 <b>All your files:</b> You can upload as many PDFs, Word docs, slides, spreadsheets, or images as you need—I’ll consider them all together.</li>
-      </ul>
-      <b>✨ Tip:</b> To get the best answers, upload any notes, reports, or visuals related to your question so I have the full picture.
-    </div>
-    """,
-    unsafe_allow_html=True
+<div class="info-box" style='margin:24px 0; padding:20px; background:#e7f3fc; border-left:7px solid #2574a9; color:#184361; border-radius:14px;'>
+  <b style='font-size:1.13rem;'>ℹ️ How this assistant works:</b>
+  <ul style='margin-left:1.1em; margin-top:12px;'>
+    <li>📄 <b>Only your documents:</b> Answers use only your uploads & built-in context—no web searches.</li>
+    <li>❓ <b>No surprises:</b> If it’s not in your docs, you’ll be told instead of made up.</li>
+    <li>📂 <b>All your files:</b> Upload PDFs, Word, slides, CSVs, images; they’re indexed together.</li>
+  </ul>
+  <b>✨ Tip:</b> Upload notes, reports, or visuals related to your question for best results.
+</div>
+""", unsafe_allow_html=True
 )
 
-# ─── Build vector store ───────────────────────────────────────────────────────
+# ─── Build RAG index ─────────────────────────────────────────────────────
 default_docs, default_index = load_and_index_defaults()
 session_docs = load_uploaded_files(inline_files)
 vector_store = build_vectorstore(default_docs, default_index, session_docs)
 retriever = vector_store.as_retriever()
 chat_llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini", temperature=0.0)
 
-# ─── Handle user input & chat ────────────────────────────────────────────────
+# ─── Chat handler ───────────────────────────────────────────────────────
 user_input = st.chat_input("Type a question or use `remember:`, `memo:`, `role:`…")
 if user_input:
     txt = user_input.strip()
     low = txt.lower()
 
-    # Vision branch (Image/Chart mode)
+    # Vision branch (multimodal JSON)
     if mode == "Image/Chart" and image_file:
-        # prepare image
         img_bytes = image_file.read()
         b64 = base64.b64encode(img_bytes).decode()
-        ext = image_file.name.split('.')[-1]
-        files = {"file": (image_file.name, img_bytes, f"image/{ext}")}
-        # tell the nano model to accept image + text
-        data = {
-            "model": "gpt-4.1-nano-2025-04-14",
-            "messages": json.dumps([{"role":"user","content": txt}])
+        # build multimodal JSON payload
+        payload = {
+            "model": "gpt-4-vision-preview",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text",      "text": txt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}}
+                    ]
+                }
+            ],
+            "max_tokens": 300
         }
-        headers = {"Authorization": f"Bearer {api_key}"}
-        response = requests.post(
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        resp = requests.post(
             "https://api.openai.com/v1/chat/completions",
             headers=headers,
-            data=data,
-            files=files
+            json=payload
         )
-        try:
-            response.raise_for_status()
-            result = response.json()
-            assistant_msg = result["choices"][0]["message"]["content"]
-        except Exception:
-            assistant_msg = "⚠️ Sorry, I couldn't interpret the image."
+        if resp.status_code != 200:
+            assistant_msg = f"⚠️ Vision API error {resp.status_code}: {resp.text}"
+        else:
+            assistant_msg = resp.json()["choices"][0]["message"]["content"]
         st.session_state.chat_history.append(("User", txt))
         st.session_state.chat_history.append(("Assistant", assistant_msg))
 
-    # Command branches.append(("User", txt))
-        st.session_state.chat_history.append(("Assistant", assistant_msg))
-        st.session_state.memory_facts.append(txt.split(":",1)[1].strip())
+    # Command branches
+    elif low.startswith("remember:"):
+        fact = txt.split(":", 1)[1].strip()
+        st.session_state.memory_facts.append(fact)
         st.success("✅ Fact remembered permanently.")
     elif low.startswith("memo:"):
-        st.session_state.session_facts.append(txt.split(":",1)[1].strip())
+        fact = txt.split(":", 1)[1].strip()
+        st.session_state.session_facts.append(fact)
         st.info("ℹ️ Session-only fact added.")
     elif low.startswith("role:"):
-        st.session_state.persona = txt.split(":",1)[1].strip()
+        st.session_state.persona = txt.split(":", 1)[1].strip()
         st.success(f"👤 Persona set: {st.session_state.persona}")
 
     # RAG branch
@@ -272,7 +244,7 @@ if user_input:
             st.session_state.chat_history.append(("User", txt))
             st.session_state.chat_history.append(("Assistant", resp.content))
 
-# ─── Render chat history ───────────────────────────────────────────────────────
+# ─── Render chat history ─────────────────────────────────────────────────
 for speaker, text in st.session_state.chat_history:
     role = "user" if speaker == "User" else "assistant"
     st.chat_message(role).write(text)

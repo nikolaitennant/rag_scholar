@@ -110,10 +110,10 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 | `role:`     | Set the assistant’s persona    | Single session      |
 """, unsafe_allow_html=True)
 
-upload_mode = st.sidebar.radio("Upload scope:", ("Session only", "Persist across sessions"), index=0)
-mode = st.sidebar.radio("Processing mode:", ("Text only", "Image/Chart"), index=0)
-inline_files = st.sidebar.file_uploader("Upload docs for RAG:", type=["pdf","txt","docx","doc","pptx","csv"], accept_multiple_files=True)
-image_file = st.sidebar.file_uploader("Upload image/chart (Beta):", type=["png","jpg","jpeg"])
+upload_mode = st.sidebar.radio("Chat History:", ("Session only", "Persist across sessions"), index=0)
+mode = st.sidebar.radio("Media Type:", ("Text only", "Image/Chart"), index=0)
+inline_files = st.sidebar.file_uploader("Upload document:", type=["pdf","txt","docx","doc","pptx","csv"], accept_multiple_files=True)
+image_file = st.sidebar.file_uploader("Upload image/chart:", type=["png","jpg","jpeg"])
 
 if upload_mode == "Persist across sessions" and inline_files:
     os.makedirs("default_context", exist_ok=True)
@@ -128,11 +128,11 @@ st.markdown("""
 <div class="info-box" style='margin:24px 0; padding:20px; background:#e7f3fc; border-left:7px solid #2574a9; color:#184361; border-radius:14px;'>
   <b style='font-size:1.13rem;'>ℹ️ How this assistant works:</b>
   <ul style='margin-left:1.1em; margin-top:12px;'>
-    <li>📄 <b>Only your documents:</b> Answers use only your uploads & built-in context—no web searches.</li>
-    <li>❓ <b>No surprises:</b> If it’s not in your docs, you’ll be told instead of made up.</li>
-    <li>📂 <b>All your files:</b> Upload PDFs, Word, slides, CSVs, images; they’re indexed together.</li>
+    <li>📄 <b>Only your documents:</b> I read and answer using just the files you upload plus any built-in context. I don’t look up anything on the web.</li>
+    <li>❓ <b>No surprises:</b> If the answer isn’t in your docs, I’ll tell you I don’t have enough information instead of making stuff up.</li>
+    <li>📂 <b>All your files:</b> You can upload as many PDFs, Word docs, slides, spreadsheets, or images as you need—I'll consider them all together.</li>
   </ul>
-  <b>✨ Tip:</b> Upload notes, reports, or visuals related to your question for best results.
+  <b>✨ Tip:</b> To get the best answers, upload any notes, reports, or visuals related to your question so I have the full picture.
 </div>
 """, unsafe_allow_html=True)
 

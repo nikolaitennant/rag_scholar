@@ -110,12 +110,12 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 | `role:`     | Set the assistant’s persona    | Single session      |
 """, unsafe_allow_html=True)
 
-upload_mode = st.sidebar.radio("Save conversation for later?:", ("No, this session only", "Yes, keep it next time"), index=0)
+upload_mode = st.sidebar.radio("Save conversation for later?:", ("No, this session only", "Yes, remember for next time"), index=0)
 mode = st.sidebar.radio("Media Type:", ("Text only", "Image/Chart"), index=0)
 inline_files = st.sidebar.file_uploader("Upload document:", type=["pdf","txt","docx","doc","pptx","csv"], accept_multiple_files=True)
 image_file = st.sidebar.file_uploader("Upload image/chart:", type=["png","jpg","jpeg"])
 
-if upload_mode == "Yes, keep it next time" and inline_files:
+if upload_mode == "Yes, remember for next time" and inline_files:
     os.makedirs("default_context", exist_ok=True)
     for f in inline_files:
         dest = os.path.join("default_context", f.name)

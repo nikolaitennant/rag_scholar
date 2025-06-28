@@ -112,13 +112,13 @@ st.title("🤖 Giulia's AI Law Assistant")
 st.sidebar.header("📂 File Uploads & Tools")
 
 upload_mode = st.sidebar.radio(
-    "Upload scope:",
+    "Chat History:",
     ("Session only", "Persist across sessions"),
     index=0
 )
 
 mode = st.sidebar.radio(
-    "🔄 Processing mode:",
+    "🔄 Media Type :",
     ("Text only", "Image/Chart"),
     index=0
 )

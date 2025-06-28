@@ -1,13 +1,20 @@
-streamlit
-openai
-python-dotenv
-langchain-openai
-langchain-community
-langchain
-faiss-cpu
-docx2txt
-unstructured
-pandas
-python-pptx
-python-docx
-Pillow
+# ───────────────────────────── requirements.txt ─────────────────────────────
+# Core
+streamlit>=1.33
+openai>=1.30
+python-dotenv>=1.0
+
+# Retrieval & embeddings
+langchain>=0.2
+langchain-openai>=0.1
+langchain-community>=0.2
+faiss-cpu>=1.8
+
+# File loaders & preprocessing
+unstructured[all-docs,powerpoint]>=0.12     # PDF, DOC, PPTX loaders
+pillow>=10.2                                # image I/O
+
+# OCR
+pytesseract>=0.3
+sentence-transformers>=2.7
+torch>=2.2          # CPU build okay

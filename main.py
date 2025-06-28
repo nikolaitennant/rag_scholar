@@ -208,9 +208,6 @@ if user_input:
         st.session_state.chat_history.append(("User", txt))
         st.session_state.chat_history.append(("Assistant", assistant_msg))
 
-    # Command branches(("User", txt))
-        st.session_state.chat_history.append(("Assistant", assistant_msg))
-
     # Command branches
     elif low.startswith("remember:"):
         fact = txt.split(":", 1)[1].strip()

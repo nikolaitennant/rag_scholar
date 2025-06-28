@@ -109,19 +109,7 @@ st.set_page_config(page_title="Giulia's AI Law Assistant", page_icon="🤖")
 st.title("🤖 Giulia's AI Law Assistant")
 
 # ─── Sidebar: uploader, mode toggles & quick tips ─────────────────────────────
-st.sidebar.header("📂 File Uploads & Tools")
-
-upload_mode = st.sidebar.radio(
-    "Chat History:",
-    ("Session only", "Persist across sessions"),
-    index=0
-)
-
-mode = st.sidebar.radio(
-    "Media Type :",
-    ("Text only", "Image/Chart"),
-    index=0
-)
+st.sidebar.header("📂 File Uploads & Additional Info")
 
 with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
     st.markdown("""
@@ -143,7 +131,20 @@ if upload_mode == "Persist across sessions" and inline_files:
                 out.write(f.getbuffer())
     st.sidebar.success("✅ Documents saved for future sessions.")
 
-    
+
+upload_mode = st.sidebar.radio(
+    "Chat History:",
+    ("Session only", "Persist across sessions"),
+    index=0
+)
+
+mode = st.sidebar.radio(
+    "Media Type :",
+    ("Text only", "Image/Chart"),
+    index=0
+)
+
+
 inline_files = st.sidebar.file_uploader(
     "Upload docs:",
     type=["pdf","txt","docx","doc","pptx","csv"],

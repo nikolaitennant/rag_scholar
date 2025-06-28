@@ -252,11 +252,11 @@ if query:
             1. Begin with one conversational line that restates the user’s question in your own words.
             – Example: “Sure — the issue you’re raising is how promissory estoppel works in contract renegotiations.”
             2. Then deliver the substantive answer:
-            • **Definitions** – one clear sentence.
-            • **Case / statute / principle** – 2–3 concise sentences: facts → holding / rule → takeaway.
-            • **Problem / fact pattern** – a short paragraph explaining how the rule applies to the facts.
-            3. Close, if helpful, with a one-line exam tip or common pitfall.
-
+            – Use the IRAC structure: Issue, Rule, Application, Conclusion if applicable.
+            – If the user asks for a case, provide the case name and a brief summary.
+            – If the user asks for a statute, provide the name and a brief summary.
+            – If the user asks for a legal principle, provide the name and a brief summary.
+            3. Conclude with a brief summary of the main points.
             Tone: conversational, confident, and exam-ready—like a gifted upper-year student helping a classmate revise. Keep jargon minimal; explain any Latin or technical terms in plain English.
 
             Remember: no citation → no claim.

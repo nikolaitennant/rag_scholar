@@ -116,6 +116,13 @@ upload_mode = st.sidebar.radio(
     ("Session only", "Persist across sessions"),
     index=0
 )
+
+mode = st.sidebar.radio(
+    "🔄 Processing mode:",
+    ("Text only", "Image/Chart"),
+    index=0
+)
+
 inline_files = st.sidebar.file_uploader(
     "Upload docs:",
     type=["pdf","txt","docx","doc","pptx","csv"],
@@ -127,11 +134,7 @@ image_file = st.sidebar.file_uploader(
     type=["png","jpg","jpeg"]
 )
 
-mode = st.sidebar.radio(
-    "🔄 Processing mode:",
-    ("Text only", "Image/Chart"),
-    index=0
-)
+
 
 with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
     st.markdown("""

@@ -174,23 +174,37 @@ if user_input:
     txt = user_input.strip()
     low = txt.lower()
 
-        # Vision branch (multimodal via SDK)
+            # Vision branch (via HTTP JSON)
     if mode == "Image/Chart" and image_file:
-        # read and encode image
+        # encode image
         img_bytes = image_file.read()
         b64 = base64.b64encode(img_bytes).decode()
         ext = image_file.name.split('.')[-1]
         data_url = f"data:image/{ext};base64,{b64}"
-        # call multimodal model via OpenAI Python SDK
-        resp = client.chat.completions.create(
-            model="gpt-4o-mini",
-            input=[
-                {"type": "input_text",  "text": txt},
-                {"type": "input_image", "image_url": data_url}
+        # build JSON payload with messages containing text+image
+        payload = {
+            "model": "gpt-4o-mini",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text",      "text": txt},
+                        {"type": "image_url", "image_url": {"url": data_url}}
+                    ]
+                }
             ],
-            max_tokens=300
+            "max_tokens": 300
+        }
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        resp = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers=headers,
+            json=payload
         )
-        assistant_msg = resp.choices[0].message.content
+        if resp.status_code != 200:
+            assistant_msg = f"⚠️ Vision API error {resp.status_code}: {resp.text}"
+        else:
+            assistant_msg = resp.json()["choices"][0]["message"]["content"]
         st.session_state.chat_history.append(("User", txt))
         st.session_state.chat_history.append(("Assistant", assistant_msg))
 

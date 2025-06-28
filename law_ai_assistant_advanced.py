@@ -305,4 +305,3 @@ if query:
     # ── Render chat -------------------------------------------------------------
     for role, msg in st.session_state.hist:
         st.chat_message(role).write(msg)
-      import nltk, re

@@ -5,7 +5,7 @@ openai>=1.30
 python-dotenv>=1.0
 
 # Retrieval & embeddings
-langchain>=0.2
+langchain>=0.3.27
 langchain-openai>=0.1
 langchain-community>=0.2
 faiss-cpu>=1.8

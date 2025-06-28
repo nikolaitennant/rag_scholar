@@ -257,6 +257,7 @@ if query:
     4. End with a friendly line that invites follow-up questions.
     5. Use the IRAC format only if explicitly asked for it.
     6. Use the provided snippets and stored facts to answer the question.
+    • Personal details (e.g., the user’s name, school, background) also require a [#n] citation from the snippets or stored facts.
         
     Tone: clear, confident, peer-to-peer.  Explain jargon in plain English.
     """.strip()

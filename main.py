@@ -128,6 +128,7 @@ if upload_mode == "Yes, remember for next time" and inline_files:
 
 st.markdown("""
     <style>
+      /* Base layout */
       .info-box {
         margin-bottom: 24px;
         padding: 26px 28px;
@@ -136,26 +137,26 @@ st.markdown("""
         line-height: 1.7;
       }
 
-      /* Light‐mode (Streamlit) */
-      html[data-theme="light"] .info-box {
-        background: #e7f3fc !important;
-        color: #184361 !important;
-        border-left: 7px solid #2574a9 !important;
-        box-shadow: 0 1px 8px #eef4fa !important;
+      /* Light-mode styles */
+      @media (prefers-color-scheme: light) {
+        .info-box {
+          background: #e7f3fc !important;
+          color: #184361 !important;
+          border-left: 7px solid #2574a9 !important;
+          box-shadow: 0 1px 8px #eef4fa !important;
+        }
       }
 
-      /* Dark‐mode (Streamlit) */
-      html[data-theme="dark"] .info-box {
-        background: #2b2b2b !important;
-        color: #ddd !important;
-        border-left: 7px solid #bb86fc !important;
-        box-shadow: 0 1px 8px rgba(0,0,0,0.5) !important;
-      }
-      html[data-theme="dark"] .info-box b {
-        color: #fff !important;
-      }
-      html[data-theme="dark"] .info-box span {
-        color: #a0d6ff !important;
+      /* Dark-mode overrides */
+      @media (prefers-color-scheme: dark) {
+        .info-box {
+          background: #2b2b2b !important;
+          color: #ddd !important;
+          border-left: 7px solid #bb86fc !important;
+          box-shadow: 0 1px 8px rgba(0,0,0,0.5) !important;
+        }
+        .info-box b { color: #fff !important; }
+        .info-box span { color: #a0d6ff !important; }
       }
     </style>
 

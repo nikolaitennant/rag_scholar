@@ -123,19 +123,6 @@ mode = st.sidebar.radio(
     index=0
 )
 
-inline_files = st.sidebar.file_uploader(
-    "Upload docs:",
-    type=["pdf","txt","docx","doc","pptx","csv"],
-    accept_multiple_files=True
-)
-
-image_file = st.sidebar.file_uploader(
-    "Upload image/chart (Beta):",
-    type=["png","jpg","jpeg"]
-)
-
-
-
 with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
     st.markdown("""
 | **Command** | **What it Does**               | **Scope**           |
@@ -155,6 +142,19 @@ if upload_mode == "Persist across sessions" and inline_files:
             with open(dest, "wb") as out:
                 out.write(f.getbuffer())
     st.sidebar.success("✅ Documents saved for future sessions.")
+
+    
+inline_files = st.sidebar.file_uploader(
+    "Upload docs:",
+    type=["pdf","txt","docx","doc","pptx","csv"],
+    accept_multiple_files=True
+)
+
+image_file = st.sidebar.file_uploader(
+    "Upload image/chart (Beta):",
+    type=["png","jpg","jpeg"]
+)
+
 
 # ─── Introductory info box ────────────────────────────────────────────────────
 st.markdown(
@@ -191,9 +191,6 @@ st.markdown(
         .info-box span { color: #a0d6ff !important; }
       }
     </style>
-
-
-
 
 <div style='margin-bottom:24px; padding:26px 28px; background:#e7f3fc; border-radius:14px; border-left:7px solid #2574a9; color:#184361; font-size:1.08rem; box-shadow:0 1px 8px #eef4fa; line-height:1.7;'>
   <b style='font-size:1.13rem;'>ℹ️ How this assistant works:</b>

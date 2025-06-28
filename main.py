@@ -183,19 +183,17 @@ if user_input:
     elif low.startswith("remember:"):
         fact = txt.split(":", 1)[1].strip()
         st.session_state.memory_facts.append(fact)
-        st.session_state.chat_history.append(("User", txt))
+        # only the assistant confirmation goes into chat_history:
         st.session_state.chat_history.append(("Assistant", "✅ Fact remembered permanently."))
 
     elif low.startswith("memo:"):
         fact = txt.split(":", 1)[1].strip()
         st.session_state.session_facts.append(fact)
-        st.session_state.chat_history.append(("User", txt))
         st.session_state.chat_history.append(("Assistant", "ℹ️ Session-only fact added."))
 
     elif low.startswith("role:"):
         persona = txt.split(":", 1)[1].strip()
         st.session_state.persona = persona
-        st.session_state.chat_history.append(("User", txt))
         st.session_state.chat_history.append(("Assistant", f"👤 Persona set: {persona}"))
 
     # ─ RAG / LLM branch ───────────────────────

@@ -10,3 +10,9 @@ sentence-transformers
 rank_bm25
 unstructured[all-docs,powerpoint]
 docx2txt
+pandas
+python-pptx
+python-docx
+langchain-community
+
+

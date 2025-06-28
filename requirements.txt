@@ -1,21 +1,11 @@
-# ───────────────────────────── requirements.txt ─────────────────────────────
-# Core
 streamlit
 openai
 python-dotenv
-
-# Retrieval & embeddings
-langchain
-langchain-openai
-langchain-community
-faiss-cpu
-
-# File loaders & preprocessing
-unstructured[all-docs,powerpoint]   # PDF, DOC, PPTX loaders
-pillow                             # image I/O
-
-# OCR
 pytesseract
+Pillow
+faiss-cpu
+langchain          # auto-pulls langchain-community in new versions
+langchain-openai
 sentence-transformers
-torch     # CPU build okay
 rank_bm25
+unstructured[all-docs,powerpoint]

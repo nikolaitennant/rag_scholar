@@ -205,6 +205,7 @@ if user_input:
             assistant_msg = f"⚠️ Vision API error {resp.status_code}: {resp.text}"
         else:
             assistant_msg = resp.json()["choices"][0]["message"]["content"]
+        # Append single response to chat history
         st.session_state.chat_history.append(("User", txt))
         st.session_state.chat_history.append(("Assistant", assistant_msg))
 

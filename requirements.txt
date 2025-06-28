@@ -4,15 +4,12 @@ python-dotenv
 pytesseract
 Pillow
 faiss-cpu
-langchain          # auto-pulls langchain-community in new versions
+langchain         
 langchain-openai
 sentence-transformers
 rank_bm25
 unstructured[all-docs,powerpoint]
 docx2txt
-# pandas
-# python-pptx
-# python-docx
 langchain-community
 
 

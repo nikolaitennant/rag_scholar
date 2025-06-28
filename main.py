@@ -388,7 +388,6 @@ st.title("🤖 Giulia's AI Law Assistant")
 # ─── Sidebar: uploader, mode toggles & quick tips ─────────────────────────────
 st.sidebar.header("📂 File Uploads & Additional Info")
 
-# Quick Tips expander
 with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
     st.markdown("""
 | **Command** | **What it Does**               | **Scope**           |
@@ -398,16 +397,6 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 | `role:`     | Set the assistant’s persona    | Single session      |
 > Use **Session only** to avoid persisting docs across restarts.
 """, unsafe_allow_html=True)
-
-# Persist mode: copy docs into default_context
-if upload_mode == "Persist across sessions" and inline_files:
-    os.makedirs("default_context", exist_ok=True)
-    for f in inline_files:
-        dest = os.path.join("default_context", f.name)
-        if not os.path.exists(dest):
-            with open(dest, "wb") as out:
-                out.write(f.getbuffer())
-    st.sidebar.success("✅ Documents saved for future sessions.")
 
 upload_mode = st.sidebar.radio(
     "Chat History:",
@@ -421,6 +410,7 @@ mode = st.sidebar.radio(
     index=0
 )
 
+
 inline_files = st.sidebar.file_uploader(
     "Upload docs:",
     type=["pdf","txt","docx","doc","pptx","csv"],
@@ -428,56 +418,56 @@ inline_files = st.sidebar.file_uploader(
 )
 
 image_file = st.sidebar.file_uploader(
-    "Upload image/chart (for vision):",
+    "Upload image/chart (Beta):",
     type=["png","jpg","jpeg"]
 )
+
+# Persist mode: copy docs into default_context
+if upload_mode == "Persist across sessions" and inline_files:
+    os.makedirs("default_context", exist_ok=True)
+    for f in inline_files:
+        dest = os.path.join("default_context", f.name)
+        if not os.path.exists(dest):
+            with open(dest, "wb") as out:
+                out.write(f.getbuffer())
+    st.sidebar.success("✅ Documents saved for future sessions.")
+
 
 # ─── Introductory info box ────────────────────────────────────────────────────
 st.markdown(
     """
     <style>
-      /* Base layout */
       .info-box {
         margin-bottom: 24px;
         padding: 26px 28px;
+        background: #e7f3fc;
         border-radius: 14px;
+        border-left: 7px solid #2574a9;
+        color: #184361;
         font-size: 1.08rem;
+        box-shadow: 0 1px 8px #eef4fa;
         line-height: 1.7;
       }
-
-      /* Light-mode styles */
-      @media (prefers-color-scheme: light) {
-        .info-box {
-          background: #e7f3fc !important;
-          color: #184361 !important;
-          border-left: 7px solid #2574a9 !important;
-          box-shadow: 0 1px 8px #eef4fa !important;
-        }
+      .info-box ul {
+        margin-left: 1.1em;
+        margin-top: 12px;
       }
-
-      /* Dark-mode overrides */
-      @media (prefers-color-scheme: dark) {
-        .info-box {
-          background: #2b2b2b !important;
-          color: #ddd !important;
-          border-left: 7px solid #bb86fc !important;
-          box-shadow: 0 1px 8px rgba(0,0,0,0.5) !important;
-        }
-        .info-box b { color: #fff !important; }
-        .info-box span { color: #a0d6ff !important; }
+      .info-box li {
+        margin-bottom: 8px;
       }
     </style>
 
     <div class="info-box">
-      <b style='font-size:1.13rem;'>ℹ️ This assistant only uses information from your uploaded docs and preloaded context.</b>
-      <ul style='margin-left:1.1em; margin-top:12px;'>
-        <li>If it’s not in your docs, you’ll be told.</li>
-        <li><span style='color:#d97706; font-weight:600;'>It will <u>not</u> invent information.</span></li>
-        <li>You can upload multiple files; they’re combined for answering.</li>
+      <b style="font-size:1.13rem;">ℹ️ How this assistant works:</b>
+      <ul>
+        <li>📄 <b>Only your documents:</b> I read and answer using just the files you upload plus any built-in context. I don’t look up anything on the web.</li>
+        <li>❓ <b>No surprises:</b> If the answer isn’t in your docs, I’ll tell you I don’t have enough information instead of making stuff up.</li>
+        <li>📂 <b>All your files:</b> You can upload as many PDFs, Word docs, slides, spreadsheets, or images as you need—I’ll consider them all together.</li>
       </ul>
-      <b>✨ Tip:</b> Upload the docs you want to ask about.
+      <b>✨ Tip:</b> To get the best answers, upload any notes, reports, or visuals related to your question so I have the full picture.
     </div>
-    """, unsafe_allow_html=True
+    """,
+    unsafe_allow_html=True
 )
 
 # ─── Build vector store ───────────────────────────────────────────────────────

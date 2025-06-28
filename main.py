@@ -493,7 +493,7 @@ if user_input:
         data_url = f"data:image/{ext};base64,{b64}"
         # call GPT-4 Vision via new SDK
         resp = client.chat.completions.create(
-            model="gpt-4o-mini-vision-preview",
+            model="gpt-4o-mini",
             messages=[
                 {"type":"text",      "text": txt},
                 {"type":"image_url", "image_url": data_url}

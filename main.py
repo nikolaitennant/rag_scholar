@@ -220,7 +220,7 @@ if user_input:
     low = txt.lower()
 
     # Vision branch
-    if mode == "Vision (image)" and image_file:
+    if mode == "Image/Chart" and image_file:
         img_bytes = image_file.read()
         resp = openai.chat.completions.create(
             model="gpt-4o-mini-vision-preview",

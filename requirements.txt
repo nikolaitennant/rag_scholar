@@ -13,6 +13,6 @@ docx2txt
 # pandas
 # python-pptx
 # python-docx
-# langchain-community
+langchain-community
 
 

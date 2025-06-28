@@ -230,7 +230,7 @@ if user_input:
         result = response.json()
         assistant_msg = result["choices"][0]["message"]["content"]
         st.session_state.chat_history.append(("User", txt))
-        st.session_state.chat_history.append(("Assistant", assistant_msg)):
+        st.session_state.chat_history.append(("Assistant", assistant_msg))
         st.session_state.memory_facts.append(txt.split(":",1)[1].strip())
         st.success("✅ Fact remembered permanently.")
     elif low.startswith("memo:"):

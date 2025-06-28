@@ -1,4 +1,5 @@
 streamlit
+openai
 python-dotenv
 langchain-openai
 langchain-community
@@ -10,4 +11,3 @@ pandas
 python-pptx
 python-docx
 Pillow
-openai==0.27.8

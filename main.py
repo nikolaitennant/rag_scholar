@@ -130,7 +130,7 @@ inline_files = st.sidebar.file_uploader(
 )
 
 image_file = st.sidebar.file_uploader(
-    "Upload image/chart (for visual interpretation):",
+    "Upload image/chart (Beta):",
     type=["png","jpg","jpeg"]
 )
 

@@ -192,15 +192,6 @@ st.markdown(
       }
     </style>
 
-    <div class="info-box">
-      <b style='font-size:1.13rem;'>ℹ️ This assistant only uses information from your uploaded docs and preloaded context.</b>
-      <ul style='margin-left:1.1em; margin-top:12px;'>
-        <li>If it’s not in your docs, you’ll be told.</li>
-        <li><span style='color:#d97706; font-weight:600;'>It will <u>not</u> invent information.</span></li>
-        <li>You can upload multiple files; they’re combined for answering.</li>
-      </ul>
-      <b>✨ Tip:</b> Upload the docs you want to ask about.
-    </div>
 
 
 

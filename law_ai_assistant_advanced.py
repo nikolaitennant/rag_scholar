@@ -238,9 +238,17 @@ if query:
             src = d.metadata.get("source_file", "doc")
             snippets.append(f"[#{i}] ({src}) {snippet}")
 
-        sys_txt = ("You are a meticulous legal assistant. "
-                   "Use IRAC (Issue, Rule, Application, Conclusion). "
-                   "Cite snippets [#n]. If unsure, say so.")
+        sys_txt = (
+    "You are a careful law-exam assistant.\n"
+    "• Base every statement on the snippets below or stored facts.\n"
+    "• Cite each borrowed idea with [#n].\n"
+    "• If the material is missing, say so frankly.\n\n"
+    "Response guidelines:\n"
+    "  ▸ For definition questions → one-sentence definition.\n"
+    "  ▸ For case / statute / principle questions → concise exam-style summary (facts + rule).\n"
+    "  ▸ For problem questions → analytical paragraph showing how the rule applies.\n\n"
+    "Write in clear, precise prose; aim for a single, well-reasoned paragraph."
+)
         if st.session_state.persona:
             sys_txt += f" Adopt persona: {st.session_state.persona}."
 

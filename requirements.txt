@@ -1,21 +1,21 @@
 # ───────────────────────────── requirements.txt ─────────────────────────────
 # Core
-streamlit>=1.33
-openai>=1.30
-python-dotenv>=1.0
+streamlit
+openai
+python-dotenv
 
 # Retrieval & embeddings
-langchain>=0.3.27
-langchain-openai>=0.1
-langchain-community>=0.2
-faiss-cpu>=1.8
+langchain
+langchain-openai
+langchain-community
+faiss-cpu
 
 # File loaders & preprocessing
-unstructured[all-docs,powerpoint]>=0.12     # PDF, DOC, PPTX loaders
-pillow>=10.2                                # image I/O
+unstructured[all-docs,powerpoint]   # PDF, DOC, PPTX loaders
+pillow                             # image I/O
 
 # OCR
-pytesseract>=0.3
-sentence-transformers>=2.7
-torch>=2.2          # CPU build okay
-rank_bm25>=0.2.2
+pytesseract
+sentence-transformers
+torch     # CPU build okay
+rank_bm25

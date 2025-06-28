@@ -267,8 +267,8 @@ if query:
         if uncited:
             st.warning("⚠️ Sentences without citations: " + "; ".join(uncited[:3]))
 
-        st.session_state.hist.extend([("user", text), ("assistant", answer)])
-.append(("assistant", answer))
+        st.session_state.hist.append(("user", txt))
+        st.session_state.hist.append(("assistant", answer))
 
 # ── Render chat history ───────────────────────────────────────────────────────────────
 for role, msg in st.session_state.hist:

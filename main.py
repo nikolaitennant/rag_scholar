@@ -492,13 +492,14 @@ if user_input:
         ext = image_file.name.split('.')[-1]
         data_url = f"data:image/{ext};base64,{b64}"
         # call GPT-4 Vision via input list
-        resp = openai.chat.completions.create(
+        resp = client.chat.completions.create(
             model="gpt-4o-mini-vision-preview",
             input=[
                 {"type": "input_text", "text": txt},
                 {"type": "input_image", "image_url": data_url}
             ]
         )
+
         assistant_msg = resp.choices[0].message.content
         st.session_state.chat_history.append(("User", txt))
         st.session_state.chat_history.append(("Assistant", assistant_msg))

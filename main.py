@@ -174,19 +174,22 @@ if user_input:
     txt = user_input.strip()
     low = txt.lower()
 
-    # Vision branch (multimodal JSON)
+        # Vision branch (multimodal JSON)
     if mode == "Image/Chart" and image_file:
         img_bytes = image_file.read()
         b64 = base64.b64encode(img_bytes).decode()
-        # build multimodal JSON payload
+        ext = image_file.name.split('.')[-1]
+        # prepare data URL for the image
+        data_url = f"data:image/{ext};base64,{b64}"
+        # build payload using the new multimodal spec
         payload = {
-                "model": "gpt-4o-mini",
-                "input": [
-                    {"type": "input_text",  "text": txt},
-                    {"type": "input_image", "image_url": data_url}
-                ],
-                "max_tokens": 300
-            }
+            "model": "gpt-4o-mini",
+            "input": [
+                {"type": "input_text",  "text": txt},
+                {"type": "input_image", "image_url": data_url}
+            ],
+            "max_tokens": 300
+        }
         headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
         resp = requests.post(
             "https://api.openai.com/v1/chat/completions",

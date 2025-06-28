@@ -1,265 +1,264 @@
+# ───────────────────────── law_ai_assistant_advanced.py (v1.4) ─────────────────────────
+"""
+Self-contained Streamlit RAG app for law-exam prep that works on **any** recent
+LangChain version (≥0.1) with *no version pin* headaches.
+
+Key points
+──────────
+• Universal import shim for `BM25Retriever` and `EnsembleRetriever`; falls back
+to dense-only retrieval if either class is missing.
+• Structure-aware chunking, optional hybrid BM25, optional cross-encoder
+re-rank, IRAC answer scaffold, OCR for images, citation validator.
+• Zero reliance on `.to_openai()` – we convert messages manually.
+
+Run:
+    pip install streamlit openai python-dotenv pillow pytesseract faiss-cpu \
+                langchain langchain-openai sentence-transformers rank_bm25 \
+                unstructured[all-docs,powerpoint]
+    streamlit run law_ai_assistant_advanced.py
+"""
+
+import os, io, re, base64, tempfile
+from typing import List, Dict, Union
+
 import streamlit as st
-import requests
-import json
-import base64
 from dotenv import load_dotenv
+from PIL import Image
+import pytesseract
+
 from openai import OpenAI
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_community.document_loaders import PyPDFLoader
-from langchain.document_loaders import (
-    Docx2txtLoader,
-    UnstructuredWordDocumentLoader,
-    UnstructuredPowerPointLoader,
-    CSVLoader,
-    TextLoader,
-    UnstructuredImageLoader
+from langchain_community.document_loaders import (
+    PyPDFLoader, UnstructuredPowerPointLoader, Docx2txtLoader,
+    UnstructuredWordDocumentLoader, TextLoader, CSVLoader, UnstructuredImageLoader,
 )
+from langchain_core.documents import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.messages import SystemMessage, HumanMessage
-import os
-import tempfile
 
-# ─── Load environment variables ─────────────────────────────────────────────
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=api_key)
+# ════════════ 1. UNIVERSAL IMPORT SHIM ═══════════════════════════════════════════════════
 
-# ─── Streamlit session state ───────────────────────────────────────────────
-for key in ("memory_facts", "session_facts", "chat_history"):
-    if key not in st.session_state:
-        st.session_state[key] = []
-if "persona" not in st.session_state:
-    st.session_state.persona = None
-
-# ─── Helpers: load & index default docs ────────────────────────────────────
-@st.cache_resource(show_spinner=False)
-def load_and_index_defaults(folder: str = "default_context"):
-    docs = []
-    if os.path.exists(folder):
-        for fname in os.listdir(folder):
-            lower = fname.lower()
-            path = os.path.join(folder, fname)
-            if lower.endswith(".pdf"):
-                loader = PyPDFLoader(path)
-            elif lower.endswith(".docx"):
-                loader = Docx2txtLoader(path)
-            elif lower.endswith(".doc"):
-                loader = UnstructuredWordDocumentLoader(path)
-            elif lower.endswith(".pptx"):
-                loader = UnstructuredPowerPointLoader(path)
-            elif lower.endswith(".csv"):
-                loader = CSVLoader(path)
-            elif lower.endswith((".png", ".jpg", ".jpeg")):
-                loader = UnstructuredImageLoader(path)
-            elif lower.endswith(".txt"):
-                loader = TextLoader(path)
-            else:
-                continue
-            docs.extend(loader.load())
-    embeddings = OpenAIEmbeddings(api_key=api_key)
-    index = FAISS.from_documents(docs, embeddings)
-    return docs, index
-
-def load_uploaded_files(uploaded_files):
-    if not uploaded_files:
-        return []
-    tmp = tempfile.mkdtemp()
-    docs = []
-    for f in uploaded_files:
-        lower = f.name.lower()
-        if not lower.endswith((".pdf",".txt",".docx",".doc",".pptx",".csv",".png",".jpg",".jpeg")):
+def _import(cls_name: str):
+    """Try community → core paths; return class or None."""
+    for path in ("langchain_community.retrievers", "langchain.retrievers"):
+        try:
+            module = __import__(path, fromlist=[cls_name])
+            return getattr(module, cls_name)
+        except (ImportError, AttributeError):
             continue
-        fp = os.path.join(tmp, f.name)
-        with open(fp, "wb") as out:
-            out.write(f.getbuffer())
-        if lower.endswith(".pdf"):
-            loader = PyPDFLoader(fp)
-        elif lower.endswith(".docx"):
-            loader = Docx2txtLoader(fp)
-        elif lower.endswith(".doc"):
-            loader = UnstructuredWordDocumentLoader(fp)
-        elif lower.endswith(".pptx"):
-            loader = UnstructuredPowerPointLoader(fp)
-        elif lower.endswith(".csv"):
-            loader = CSVLoader(fp)
-        elif lower.endswith((".png",".jpg",".jpeg")):
-            loader = UnstructuredImageLoader(fp)
+    return None
+
+BM25Retriever     = _import("BM25Retriever")
+EnsembleRetriever = _import("EnsembleRetriever")
+
+# Optional cross-encoder
+try:
+    from sentence_transformers import CrossEncoder  # type: ignore
+except ImportError:
+    CrossEncoder = None
+
+# ════════════ 2. ENV & CLIENT ════════════════════════════════════════════════════════════
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    st.error("OPENAI_API_KEY not set")
+    st.stop()
+
+client = OpenAI(api_key=OPENAI_API_KEY)
+EMBED_MODEL = "text-embedding-3-small"
+LLM_MODEL   = "gpt-4o-mini"
+
+# ════════════ 3. CONSTANTS ═══════════════════════════════════════════════════════════════
+CTX_DIR   = "default_context"
+CHUNK_SZ  = 900
+CHUNK_OV  = 120
+FIRST_K   = 20
+FINAL_K   = 6
+
+# ════════════ 4. HELPERS ════════════════════════════════════════════════════════════════
+SEC_PAT = re.compile(r"^(Section|Article|Clause|§)\s+\d+[\w.\-]*", re.I)
+
+def split_legal(text: str) -> List[str]:
+    lines, buf, out = text.splitlines(), [], []
+    for ln in lines:
+        if SEC_PAT.match(ln) and buf:
+            out.append("\n".join(buf)); buf = [ln]
         else:
-            loader = TextLoader(fp)
-        docs.extend(loader.load())
-    return docs
+            buf.append(ln)
+    if buf: out.append("\n".join(buf))
+    splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SZ, chunk_overlap=CHUNK_OV)
+    chunks = []
+    for sect in out: chunks.extend(splitter.split_text(sect))
+    return chunks
 
-def build_vectorstore(default_docs, default_index, session_docs):
-    if session_docs:
-        embeddings = OpenAIEmbeddings(api_key=api_key)
-        return FAISS.from_documents(default_docs + session_docs, embeddings)
-    return default_index
+LOADER_MAP = {
+    "pdf":  PyPDFLoader,
+    "docx": Docx2txtLoader,
+    "doc":  UnstructuredWordDocumentLoader,
+    "pptx": UnstructuredPowerPointLoader,
+    "csv":  CSVLoader,
+    "txt":  TextLoader,
+    "png":  UnstructuredImageLoader,
+    "jpg":  UnstructuredImageLoader,
+    "jpeg": UnstructuredImageLoader,
+}
 
-# ─── Streamlit UI setup ───────────────────────────────────────────────────
-st.set_page_config(page_title="Giulia's AI Law Assistant", page_icon="🤖")
-st.title("🤖 Giulia's AI Law Assistant")
+def load_and_split(path: str) -> List[Document]:
+    ext = path.lower().split(".")[-1]
+    loader_cls = LOADER_MAP.get(ext)
+    if not loader_cls:
+        return []
+    docs = loader_cls(path).load()
+    out = []
+    for d in docs:
+        meta = d.metadata or {}; meta["source_file"] = os.path.basename(path)
+        for chunk in split_legal(d.page_content):
+            out.append(Document(page_content=chunk, metadata=meta))
+    return out
 
-# Sidebar
-st.sidebar.header("📂 File Uploads & Additional Info")
-with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
-    st.markdown("""
-| **Command** | **What it Does**               | **Scope**           |
-|------------:|--------------------------------|---------------------|
-| `remember:` | Store a fact permanently       | Across sessions     |
-| `memo:`     | Store a fact this session only | Single session      |
-| `role:`     | Set the assistant’s persona    | Single session      |
-""", unsafe_allow_html=True)
+@st.cache_resource(show_spinner=False)
+def base_corpus_vs():
+    corpus = []
+    if os.path.exists(CTX_DIR):
+        for fn in os.listdir(CTX_DIR):
+            corpus.extend(load_and_split(os.path.join(CTX_DIR, fn)))
+    vs = FAISS.from_documents(corpus, OpenAIEmbeddings(model=EMBED_MODEL))
+    return corpus, vs
 
-upload_mode = st.sidebar.radio("Save conversation for later?:", ("No, this session only", "Yes, remember for next time"), index=0)
-mode = st.sidebar.radio("Media Type:", ("Text only", "Image/Chart"), index=0)
-inline_files = st.sidebar.file_uploader("Upload document:", type=["pdf","txt","docx","doc","pptx","csv"], accept_multiple_files=True)
-image_file = st.sidebar.file_uploader("Upload image/chart:", type=["png","jpg","jpeg"])
-
-if upload_mode == "Yes, remember for next time" and inline_files:
-    os.makedirs("default_context", exist_ok=True)
-    for f in inline_files:
-        dest = os.path.join("default_context", f.name)
-        if not os.path.exists(dest):
-            with open(dest, "wb") as out:
-                out.write(f.getbuffer())
-    st.sidebar.success("✅ Documents saved for future sessions.")
+@st.cache_resource(show_spinner=False)
+def get_cross_encoder():
+    if CrossEncoder is None:
+        return None
+    try:
+        return CrossEncoder("mixedbread-ai/mxbai-rerank-base-v1")
+    except Exception:
+        st.warning("Cross-encoder weights unavailable – skipping re-rank.")
+        return None
 
 
+def hybrid_retriever(vs: FAISS, docs: List[Document]):
+    dense = vs.as_retriever(search_kwargs={"k": FIRST_K})
+    if not (BM25Retriever and EnsembleRetriever):
+        return dense  # fallback
+    bm25 = BM25Retriever.from_texts([d.page_content for d in docs]) if BM25Retriever else None
+    if not bm25:
+        return dense
+    return EnsembleRetriever(retrievers=[dense, bm25], weights=[0.7, 0.3])
 
-st.markdown("""
-    <style>
-      /* Base layout */
-      .info-box {
-        margin-bottom: 24px;
-        padding: 26px 28px;
-        border-radius: 14px;
-        font-size: 1.08rem;
-        line-height: 1.7;
-      }
 
-      /* Light-mode styles */
-      @media (prefers-color-scheme: light) {
-        .info-box {
-          background: #e7f3fc !important;
-          color: #184361 !important;
-          border-left: 7px solid #2574a9 !important;
-          box-shadow: 0 1px 8px #eef4fa !important;
-        }
-      }
+def rerank(query: str, docs: List[Document]) -> List[Document]:
+    ce = get_cross_encoder()
+    if not ce or not docs:
+        return docs[:FINAL_K]
+    scores = ce.predict([[query, d.page_content] for d in docs])
+    for d, s in zip(docs, scores):
+        d.metadata["ce_score"] = float(s)
+    return sorted(docs, key=lambda d: d.metadata["ce_score"], reverse=True)[:FINAL_K]
 
-      /* Dark-mode overrides */
-      @media (prefers-color-scheme: dark) {
-        .info-box {
-          background: #2b2b2b !important;
-          color: #ddd !important;
-          border-left: 7px solid #bb86fc !important;
-          box-shadow: 0 1px 8px rgba(0,0,0,0.5) !important;
-        }
-        .info-box b { color: #fff !important; }
-        .info-box span { color: #a0d6ff !important; }
-      }
-    </style>
 
-<div class="info-box" style='margin:24px 0; padding:20px; background:#e7f3fc; border-left:7px solid #2574a9; color:#184361; border-radius:14px;'>
-  <b style='font-size:1.13rem;'>ℹ️ How this assistant works:</b>
-  <ul style='margin-left:1.1em; margin-top:12px;'>
-    <li>📄 <b>Only your documents:</b> I read and answer using just the files you upload plus any built-in context. I don’t look up anything on the web.</li>
-    <li>❓ <b>No surprises:</b> If the answer isn’t in your docs, I’ll tell you I don’t have enough information instead of making stuff up.</li>
-    <li>📂 <b>All your files:</b> You can upload as many PDFs, Word docs, slides, spreadsheets, or images as you need—I'll consider them all together.</li>
-  </ul>
-  <b>✨ Tip:</b> To get the best answers, upload any notes, reports, or visuals related to your question so I have the full picture.
-</div>
-""", unsafe_allow_html=True)
+def ocr_bytes(data: bytes) -> str:
+    try:
+        img = Image.open(io.BytesIO(data))
+        return pytesseract.image_to_string(img)
+    except Exception:
+        return ""
 
-# ─── Build or update RAG index ────────────────────────────────────────────
-default_docs, default_index = load_and_index_defaults()
-session_docs = load_uploaded_files(inline_files)
-vector_store = build_vectorstore(default_docs, default_index, session_docs)
-retriever = vector_store.as_retriever()
-chat_llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini", temperature=0.0)
 
-# ─── Chat handler ─────────────────────────────────────────────────────────
-user_input = st.chat_input("Type a question or use `remember:`, `memo:`, `role:`…")
-if user_input:
-    txt = user_input.strip()
-    low = txt.lower()
+def uncited_sents(txt: str) -> List[str]:
+    return [s for s in re.split(r"(?<=[.!?])\s+", txt) if s.strip() and "[#" not in s]
 
-    # ─ Vision branch ─────────────────────────
-    if mode == "Image/Chart" and image_file:
-        img_bytes = image_file.read()
-        b64 = base64.b64encode(img_bytes).decode()
-        ext = image_file.name.split('.')[-1]
-        data_url = f"data:image/{ext};base64,{b64}"
 
-        payload = {
-            "model": "gpt-4o-mini",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text",      "text": txt},
-                        {"type": "image_url", "image_url": {"url": data_url}}
-                    ]
-                }
-            ],
-            "max_tokens": 300
-        }
-        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-        resp = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-        if resp.status_code != 200:
-            assistant_msg = f"⚠️ Vision API error {resp.status_code}: {resp.text}"
-        else:
-            assistant_msg = resp.json()["choices"][0]["message"]["content"]
+def lc_to_dict(msg: Union[SystemMessage, HumanMessage]) -> Dict:
+    if isinstance(msg.content, list):
+        return {"role": "user", "content": msg.content}
+    role = "system" if isinstance(msg, SystemMessage) else "user"
+    return {"role": role, "content": msg.content}
 
-        st.session_state.chat_history.append(("User", txt))
-        st.session_state.chat_history.append(("Assistant", assistant_msg))
+# ════════════ 5. STREAMLIT UI ════════════════════════════════════════════════════════════
+st.set_page_config("Law AI Assistant", "⚖️")
+st.title("⚖️ Law AI Assistant (no-pins edition)")
 
-    # ─ Command branches ───────────────────────
-    elif low.startswith("remember:"):
-        fact = txt.split(":", 1)[1].strip()
-        st.session_state.memory_facts.append(fact)
-        # only the assistant confirmation goes into chat_history:
-        st.session_state.chat_history.append(("Assistant", "✅ Fact remembered permanently."))
+uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
+image_file    = st.sidebar.file_uploader("Optional image / chart", type=["png","jpg","jpeg"])
+query         = st.chat_input("Ask or use remember:/memo:/role:")
 
+for k, d in {"perm":[], "sess":[], "persona":None, "hist":[]}.items():
+    st.session_state.setdefault(k, d)
+
+# ════════════ 6. MAIN LOOP ═══════════════════════════════════════════════════════════════
+if query:
+    txt = query.strip(); low = txt.lower()
+
+    # Commands
+    if low.startswith("remember:"):
+        st.session_state.perm.append(txt.partition(":")[2].strip())
+        st.session_state.hist.append(("assistant", "✅ Remembered.")); st.rerun()
     elif low.startswith("memo:"):
-        fact = txt.split(":", 1)[1].strip()
-        st.session_state.session_facts.append(fact)
-        st.session_state.chat_history.append(("Assistant", "ℹ️ Session-only fact added."))
-
+        st.session_state.sess.append(txt.partition(":")[2].strip())
+        st.session_state.hist.append(("assistant", "🗒️ Noted (session).")); st.rerun()
     elif low.startswith("role:"):
-        persona = txt.split(":", 1)[1].strip()
-        st.session_state.persona = persona
-        st.session_state.chat_history.append(("Assistant", f"👤 Persona set: {persona}"))
+        st.session_state.persona = txt.partition(":")[2].strip()
+        st.session_state.hist.append(("assistant", f"👤 Persona set → {st.session_state.persona}")); st.rerun()
 
-    # ─ RAG / LLM branch ───────────────────────
+    # Question answering
     else:
-        docs = retriever.invoke(txt)
-        context = "\n\n".join(d.page_content for d in docs)
+        corpus, vs = base_corpus_vs()
+        # dynamic uploads
+        if uploaded_docs:
+            tmp = tempfile.mkdtemp(); new_docs = []
+            for uf in uploaded_docs:
+                p = os.path.join(tmp, uf.name); open(p, "wb").write(uf.getbuffer())
+                new_docs.extend(load_and_split(p))
+            vs.add_documents(new_docs); corpus.extend(new_docs)
 
-        sys_prompt = (
-            "You are a helpful legal assistant. Answer using provided context, remembered facts, "
-            "and session facts. Do not invent information."
-        )
-        if st.session_state.persona:
-            sys_prompt += f" Adopt persona: {st.session_state.persona}."
+        retriever = hybrid_retriever(vs, corpus)
+        initial_hits = retriever.invoke(txt)
+        top_docs = rerank(txt, initial_hits)
 
-        messages = [SystemMessage(content=sys_prompt)]
-        if context:
-            messages.append(SystemMessage(content=f"Context:\n{context}"))
-        for f in st.session_state.memory_facts:
-            messages.append(SystemMessage(content=f"Remembered fact: {f}"))
-        for f in st.session_state.session_facts:
-            messages.append(SystemMessage(content=f"Session fact: {f}"))
-        messages.append(HumanMessage(content=txt))
+        # Image branch
+        ocr_text = ""; img_payload = None
+        if image_file:
+            b = image_file.getvalue(); ocr_text = ocr_bytes(b)
+            img_payload = {"type":"image_url","image_url":{"url":f"data:image/png;base64,{base64.b64encode(b).decode()}"}}
 
-        if not (docs or st.session_state.memory_facts or st.session_state.session_facts):
-            st.warning("⚠️ Not enough info to answer.")
+        # Snippets
+        snippets = []
+        for i, d in enumerate(top_docs, 1):
+            snippet = re.sub(r"\s+"," ", d.page_content)[:1000]
+            src = d.metadata.get("source_file","doc")
+            snippets.append(f"[#${i}] ({src}) {snippet}")
+
+        sys = "You are a meticulous legal assistant. Answer in IRAC format. Cite snippets [#n]. If info missing, say so."
+        if st.session_state.persona: sys += f" Adopt persona: {st.session_state.persona}."
+
+        msgs: List[Union[SystemMessage, HumanMessage]] = [SystemMessage(content=sys)]
+        if snippets:
+            msgs.append(SystemMessage(content="Snippets:\n"+"\n\n".join(snippets)))
+        for f in st.session_state.perm + st.session_state.sess:
+            msgs.append(SystemMessage(content=f"Fact: {f}"))
+        if ocr_text.strip(): msgs.append(SystemMessage(content=f"OCR:\n{ocr_text.strip()}"))
+        # user
+        if img_payload:
+            msgs.append(HumanMessage(content=[{"type":"text","text":txt}, img_payload]))
         else:
-            resp = chat_llm.invoke(messages)
-            st.session_state.chat_history.append(("User", txt))
-            st.session_state.chat_history.append(("Assistant", resp.content))
+            msgs.append(HumanMessage(content=txt))
 
-# ─── Render the chat history ───────────────────────────────────────────────
-for speaker, text in st.session_state.chat_history:
-    role = "user" if speaker == "User" else "assistant"
-    st.chat_message(role).write(text)
+        with st.spinner("Thinking …"):
+            resp = client.chat.completions.create(
+                model=LLM_MODEL,
+                messages=[lc_to_dict(m) for m in msgs],
+                temperature=0.0,
+                max_tokens=800,
+            )
+        answer = resp.choices[0].message.content.strip()
+        if uncited_sents(answer):
+            st.warning("⚠️ Some statements may lack citations – review recommended.")
+
+        st.session_state.hist.append(("user", txt))
+        st.session_state.hist.append(("assistant", answer))
+
+# Render chat
+for role, msg in st.session_state.hist:
+    st.chat_message(role).write(msg)

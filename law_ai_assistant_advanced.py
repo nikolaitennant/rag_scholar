@@ -16,8 +16,10 @@ from dotenv import load_dotenv
 from PIL import Image
 import pytesseract
 import faiss
-import nltk                           
-nltk.download("punkt", quiet=True) 
+import nltk, ssl
+ssl._create_default_https_context = ssl._create_unverified_context  # avoids SSL issues on some hosts
+nltk.download("punkt", quiet=True)
+nltk.download("punkt_tab", quiet=True)   # <-- NEW — satisfies latest NLTK
 
 from openai import OpenAI
 

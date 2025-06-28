@@ -483,23 +483,22 @@ if user_input:
     txt = user_input.strip()
     low = txt.lower()
 
-            # Vision branch (Image/Chart mode)
+                # Vision branch (Image/Chart mode)
     if mode == "Image/Chart" and image_file:
-        # encode image
+        # encode image to data URL
         import base64
         img_bytes = image_file.read()
         b64 = base64.b64encode(img_bytes).decode()
         ext = image_file.name.split('.')[-1]
         data_url = f"data:image/{ext};base64,{b64}"
-        # call GPT-4 Vision via input list
+        # call GPT-4 Vision via new SDK
         resp = client.chat.completions.create(
             model="gpt-4o-mini-vision-preview",
-            input=[
-                {"type": "input_text", "text": txt},
-                {"type": "input_image", "image_url": data_url}
+            messages=[
+                {"type":"text",      "text": txt},
+                {"type":"image_url", "image_url": data_url}
             ]
         )
-
         assistant_msg = resp.choices[0].message.content
         st.session_state.chat_history.append(("User", txt))
         st.session_state.chat_history.append(("Assistant", assistant_msg))

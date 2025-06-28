@@ -136,8 +136,6 @@ def ocr_bytes(b:bytes)->str:
     try: return pytesseract.image_to_string(Image.open(io.BytesIO(b)),lang='eng',config='--psm 6')
     except Exception: return ""
 
-# def uncited(txt:str): return [s for s in re.split(r"(?<=[.!?])\\s+",txt) if s.strip() and "[#" not in s]
-
 def to_dict(m): return {"role":"user" if isinstance(m,HumanMessage) else "system","content":m.content}
 
 # ── UI ───────────────────────────────────────────────────────────────────────

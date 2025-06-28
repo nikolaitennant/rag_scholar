@@ -207,29 +207,32 @@ if user_input:
     txt = user_input.strip()
     low = txt.lower()
 
-        # Vision branch (Image/Chart mode)
+            # Vision branch (Image/Chart mode)
     if mode == "Image/Chart" and image_file:
-        # prepare image and send HTTP multipart request
+        # prepare image bytes
         img_bytes = image_file.read()
-        b64 = base64.b64encode(img_bytes).decode()
         ext = image_file.name.split('.')[-1]
-        # build form fields
         files = {"file": (image_file.name, img_bytes, f"image/{ext}")}
-        data = {
+        # JSON payload for chat
+        payload = {
             "model": "gpt-4o-mini",
-            "messages": json.dumps([{"role": "user", "content": txt}])
+            "messages": [{"role": "user", "content": txt}]
         }
         headers = {"Authorization": f"Bearer {api_key}"}
+        # send request with json payload and file
         response = requests.post(
             "https://api.openai.com/v1/chat/completions",
             headers=headers,
-            files=files,
-            data=data
+            json=payload,
+            files=files
         )
         response.raise_for_status()
         result = response.json()
         assistant_msg = result["choices"][0]["message"]["content"]
         st.session_state.chat_history.append(("User", txt))
+        st.session_state.chat_history.append(("Assistant", assistant_msg))
+
+    # Command branches.append(("User", txt))
         st.session_state.chat_history.append(("Assistant", assistant_msg))
         st.session_state.memory_facts.append(txt.split(":",1)[1].strip())
         st.success("✅ Fact remembered permanently.")

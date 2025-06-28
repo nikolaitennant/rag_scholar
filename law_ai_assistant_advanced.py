@@ -142,7 +142,7 @@ def to_dict(m): return {"role":"user" if isinstance(m,HumanMessage) else "system
 
 # ── UI ───────────────────────────────────────────────────────────────────────
 st.set_page_config("Giulia's Law AI Assistant", "⚖️")
-st.title("⚖️ Giulia's Law AI Assistant (v1.6)")
+st.title("⚖️ Giulia's Law AI Assistant!")
 
 uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
 image_file    = st.sidebar.file_uploader("Optional image / chart", type=["png","jpg","jpeg"])
@@ -156,7 +156,7 @@ if st.sidebar.button("💾 Save uploads to default_context"):
         st.success("Files saved! Reload to re-index.")
     else: st.info("No docs to save.")
 
-query = st.chat_input("Ask … or use remember:/memo:/role:")
+query = st.chat_input("Ask anything")
 
 for k,d in {"perm":[], "sess":[], "persona":None, "hist":[], "last_img":None}.items():
     st.session_state.setdefault(k,d)
@@ -253,9 +253,8 @@ if query:
 
     STYLE
     1. Start with one friendly line that restates the user’s question.  
-    2. Give a concise answer:  
-         • If the answer is long, summarize first.
-         • If the answer is short, give it directly.
+    2. Give a detailed answer with clear reasoning.
+    3. Use plain English; explain legal jargon. 
     3. Cite sources in the answer with [#n] (e.g., “As per [#1] …”).
     4. End with a friendly line that invites follow-up questions.
     5. Use the IRAC format only if explicitly asked for it.

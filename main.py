@@ -180,18 +180,13 @@ if user_input:
         b64 = base64.b64encode(img_bytes).decode()
         # build multimodal JSON payload
         payload = {
-            "model": "gpt-4-vision-preview",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text",      "text": txt},
-                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}}
-                    ]
-                }
-            ],
-            "max_tokens": 300
-        }
+                "model": "gpt-4o-mini",
+                "input": [
+                    {"type": "input_text",  "text": txt},
+                    {"type": "input_image", "image_url": data_url}
+                ],
+                "max_tokens": 300
+            }
         headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
         resp = requests.post(
             "https://api.openai.com/v1/chat/completions",

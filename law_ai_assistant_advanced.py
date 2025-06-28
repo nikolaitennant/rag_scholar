@@ -21,6 +21,22 @@ import pytesseract
 
 from openai import OpenAI
 
+# ── Universal LangChain import shim ─────────────────────────────
+# Works on both pre-v0.3.27 and newer “community” split builds.
+def _import_retrievers():
+    try:                                # ≥ 0.3.27
+        from langchain_community.retrievers import BM25Retriever, EnsembleRetriever
+    except ImportError:
+        try:                            # 0.2 – 0.3.26
+            from langchain.retrievers import BM25Retriever, EnsembleRetriever
+        except ImportError:
+            # BM25 not available (rank_bm25 wheel missing)
+            from langchain.retrievers import EnsembleRetriever  # type: ignore
+            BM25Retriever = None
+    return BM25Retriever, EnsembleRetriever
+
+BM25Retriever, EnsembleRetriever = _import_retrievers()
+# ────────────────────────────────────────────────────────────────
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import (
@@ -29,13 +45,6 @@ from langchain_community.document_loaders import (
     UnstructuredImageLoader,
 )
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-
-# BM25 & Ensemble (defensive import)
-try:
-    from langchain_community.retrievers import BM25Retriever, EnsembleRetriever
-except ImportError:  # rank_bm25 wheel absent or old langchain build
-    BM25Retriever = None
-    from langchain_community.retrievers import EnsembleRetriever
 
 from sentence_transformers import CrossEncoder
 from langchain_core.messages import SystemMessage, HumanMessage

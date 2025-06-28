@@ -201,7 +201,20 @@ st.markdown(
       </ul>
       <b>✨ Tip:</b> Upload the docs you want to ask about.
     </div>
-    """, unsafe_allow_html=True
+
+
+
+<div style='margin-bottom:24px; padding:26px 28px; background:#e7f3fc; border-radius:14px; border-left:7px solid #2574a9; color:#184361; font-size:1.08rem; box-shadow:0 1px 8px #eef4fa; line-height:1.7;'>
+  <b style='font-size:1.13rem;'>ℹ️ How this assistant works:</b>
+  <ul style='margin-left:1.1em; margin-top:12px;'>
+    <li>📄 <b>Only your documents:</b> I read and answer using just the files you upload plus any built-in context. I don’t look up anything on the web.</li>
+    <li>❓ <b>No surprises:</b> If the answer isn’t in your docs, I’ll tell you I don’t have enough information instead of making stuff up.</li>
+    <li>📂 <b>All your files:</b> You can upload as many PDFs, Word docs, slides, spreadsheets, or images as you need—I'll consider them all together.</li>
+  </ul>
+  <b>✨ Tip:</b> To get the best answers, upload any notes, reports, or visuals related to your question so I have the full picture.
+</div>
+""", unsafe_allow_html=True
+
 )
 
 # ─── Build vector store ───────────────────────────────────────────────────────

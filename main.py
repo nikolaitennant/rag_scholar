@@ -235,8 +235,8 @@ if st.session_state.get("confirm_delete"):
                 st.stop()
         if col_no.button("Cancel", key="cancel_delete"):
             st.session_state.confirm_delete = False
-            st.experimental_rerun()
-            
+            st.rerun()          # ← use plain st.rerun(), not experimental_rerun
+
 # ---------------- Sidebar: default_context browser -----------------
 with st.sidebar.expander(f"📁 {active_class} files", expanded=False):
     if not os.path.exists(CTX_DIR):

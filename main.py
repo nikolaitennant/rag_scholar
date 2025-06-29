@@ -203,7 +203,7 @@ with st.sidebar.container():
     INDEX_DIR = f"faiss_{active_class}"
 
     # 2️⃣  FILE-BROWSER EXPANDER (shown under the selector)
-    with st.sidebar.expander(f"🗄️ {active_class} files", expanded=False):
+    with st.sidebar.expander(f"🗄️ {active_class} File Browser", expanded=False):
         if not os.path.exists(CTX_DIR):
             st.write("_Folder does not exist yet_")
         else:

@@ -165,6 +165,33 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 with st.sidebar.container():
     st.markdown("### Class controls")
 
+    # --- list available class folders -----------------------------------
+    class_folders = sorted(
+        d for d in os.listdir(BASE_CTX_DIR)
+        if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
+    )
+    if not class_folders:
+        st.sidebar.error(f"No folders found inside {BASE_CTX_DIR}.")
+        st.stop()
+
+    # --- pick default active class in session state ---------------------
+    if "active_class" not in st.session_state:
+        st.session_state.active_class = class_folders[0]
+
+    # 1️⃣  CLASS SELECTOR (must come before any file-browser widgets)
+    active_class = st.sidebar.selectbox(
+        "🏷️  Select class / module",
+        class_folders,
+        index=class_folders.index(st.session_state.active_class)
+    )
+    if active_class != st.session_state.active_class:
+        st.session_state.active_class = active_class
+        st.rerun()                       # reload to pick up the new folder
+
+    # --- paths that depend on active_class ------------------------------
+    CTX_DIR   = os.path.join(BASE_CTX_DIR, active_class)
+    INDEX_DIR = f"faiss_{active_class}"
+
     # 2️⃣  FILE-BROWSER EXPANDER (shown under the selector)
     with st.expander(f"📁 {active_class} files", expanded=False):
         if not os.path.exists(CTX_DIR):
@@ -215,33 +242,6 @@ with st.sidebar.container():
 
                 st.success(f"Added “{clean}”. Select it in the list above.")
                 st.rerun()
-
-                    # --- list available class folders -----------------------------------
-    class_folders = sorted(
-        d for d in os.listdir(BASE_CTX_DIR)
-        if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
-    )
-    if not class_folders:
-        st.sidebar.error(f"No folders found inside {BASE_CTX_DIR}.")
-        st.stop()
-
-    # --- pick default active class in session state ---------------------
-    if "active_class" not in st.session_state:
-        st.session_state.active_class = class_folders[0]
-
-    # 1️⃣  CLASS SELECTOR (must come before any file-browser widgets)
-    active_class = st.sidebar.selectbox(
-        "🏷️  Select class / module",
-        class_folders,
-        index=class_folders.index(st.session_state.active_class)
-    )
-    if active_class != st.session_state.active_class:
-        st.session_state.active_class = active_class
-        st.rerun()                       # reload to pick up the new folder
-
-    # --- paths that depend on active_class ------------------------------
-    CTX_DIR   = os.path.join(BASE_CTX_DIR, active_class)
-    INDEX_DIR = f"faiss_{active_class}"
 
 # # ─── Sidebar: choose active class / module ───────────────────────────────
 # with st.sidebar.container():

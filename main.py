@@ -237,15 +237,27 @@ LOADER_MAP = {
 }
 
 uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
-if st.sidebar.button("💾 Save uploads to default_context"):
+if st.sidebar.button(f"💾 Save uploads to {active_class}")
+#     if uploaded_docs:
+#         os.makedirs(CTX_DIR, exist_ok=True)
+#         for uf in uploaded_docs:
+#             dest = os.path.join(CTX_DIR, uf.name)
+#             with open(dest,"wb") as out: out.write(uf.getbuffer())
+#         shutil.rmtree(INDEX_DIR, ignore_errors=True)
+#         st.success("Files saved! Reload to re-index.")
+#     else: st.info("No docs to save.")
+
     if uploaded_docs:
         os.makedirs(CTX_DIR, exist_ok=True)
         for uf in uploaded_docs:
-            dest = os.path.join(CTX_DIR, uf.name)
-            with open(dest,"wb") as out: out.write(uf.getbuffer())
-        shutil.rmtree(INDEX_DIR, ignore_errors=True)
-        st.success("Files saved! Reload to re-index.")
-    else: st.info("No docs to save.")
+            with open(os.path.join(CTX_DIR, uf.name), "wb") as out:
+                out.write(uf.getbuffer())
+
+        shutil.rmtree(INDEX_DIR, ignore_errors=True)   # wipe stale FAISS
+        st.success("Files saved! Re-indexing…")
+        st.rerun()                                     # ← add this
+    else:
+        st.info("No docs to save.")
 
 # --- Sidebar: narrow or prioritise docs ---------------------------------
 all_files = sorted(os.listdir(CTX_DIR)) if os.path.exists(CTX_DIR) else []

@@ -239,9 +239,9 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
 <ul style="margin-left:1.1em;margin-top:12px">
 
 <!-- Core behaviour ---------------------------------------------------- -->
-  <li><b>Document-only answers</b> – I rely <em>solely</em> on the files you upload or the facts you store with <code>remember:</code>/<code>memo:</code>. No web searching.</li>
+  <li><b>Document-only answers</b> – I rely <em>solely</em> on the files you upload or the facts you store with remember:/memo:/user queries. No web searching!</li>
 
-  <li><b>Citations</b> – every sentence that states a legal rule, date, or authority ends with <code>[#n]</code>. If I can’t cite it, I’ll say so.</li>
+  <li><b>Citations</b> – every sentence that states a legal rule, date, or authority ends with [#n]. If I can’t cite it, I’ll say so.</li>
 
   <li><b>Sources pill</b> – under each reply you’ll see “Sources used: #2, #7 …”. Click to preview which file each number came from.</li>
 
@@ -260,14 +260,6 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
   <li style="margin-top:6px;color:gray;font-size:0.95rem">
       Tip: the “Prioritise / Only these docs” switch activates once at least one file is ticked.
   </li>
-    <!-- Commands ---------------------------------------------------------- -->
-    <li><b>Commands</b>
-        <ul>
-            <li><code>remember:</code> – store a fact permanently, across sessions.</li>
-            <li><code>memo:</code> – store a fact for this session only.</li>
-            <li><code>role:</code> – set the assistant’s persona (e.g., “role: I’m a friendly law student”).</li>
-        </ul>
-    </li>
 </ul>
 </div>
         """,

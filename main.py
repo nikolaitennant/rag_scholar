@@ -107,6 +107,7 @@ def build_vectorstore(default_docs, default_index, session_docs):
         return FAISS.from_documents(default_docs + session_docs, embeddings)
     return default_index
 
+
 def _split_sentences(text: str):
     parts, buff, in_code = [], [], False
     for line in text.splitlines(keepends=True):

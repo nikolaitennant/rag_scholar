@@ -212,7 +212,7 @@ with st.sidebar.container():
                         os.remove(os.path.join(CTX_DIR, fn))
                         shutil.rmtree(INDEX_DIR, ignore_errors=True)
                         st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
+               
 
             
     # ── Sidebar: add a new class folder ──────────────────────────────────────

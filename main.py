@@ -13,10 +13,7 @@ from langchain_community.document_loaders import (
     PyPDFLoader
 )
 from langchain_core.messages import SystemMessage, HumanMessage
-import os
-import tempfile
-import shutil
-import re  
+import html, re, shutil, tempfile, os
 
 # ─── Load environment variables ─────────────────────────────────────────────
 load_dotenv()
@@ -90,6 +87,33 @@ def build_vectorstore(default_docs, default_index, session_docs):
         return FAISS.from_documents(default_docs + session_docs, embeddings)
     return default_index
 
+CITE_RE   = re.compile(r"\[\s*#\d+\s*\]$")
+INLINE_RE = re.compile(r"\[\s*#(\d+)\s*\]")
+
+def _split_sentences(text:str):
+    parts, buff, in_code = [], [], False
+    for line in text.splitlines(keepends=True):
+        if line.strip().startswith("```"):
+            in_code = not in_code
+            parts.append("".join(buff)); buff=[]
+            parts.append(line);          continue
+        if in_code: parts.append(line);  continue
+        for chunk in re.split(r"(?<=[.!?])\s+", line):
+            if chunk: parts.append(chunk)
+    if buff: parts.append("".join(buff))
+    return parts
+
+def highlight_missing_citations(text:str)->str:
+    out=[]
+    for sent in _split_sentences(text):
+        esc = html.escape(sent, quote=False)
+        out.append(esc if CITE_RE.search(sent.strip())
+                     else f"<span class='missing-cite'>{esc}</span>")
+    return "".join(out)
+
+def extract_citation_numbers(text:str)->list[int]:
+    return sorted({int(n) for n in INLINE_RE.findall(text)})
+
 # ─── Streamlit UI setup ───────────────────────────────────────────────────
 st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
  
@@ -97,6 +121,13 @@ st.markdown("""
 <style>
 /* stretch content edge-to-edge */
 section.main > div { max-width: 1200px; }
+
+/* ─── citation checker ─────────────────── */
+.missing-cite{
+  background:#fff9c4;         /* pale yellow */
+  padding:0 3px;
+  border-radius:4px;
+}
 
 /* info-panel look */
 .info-panel {
@@ -337,7 +368,20 @@ if user_input:
 
     # ─ RAG / LLM answer branch ───────────────────────────────────────────
     else:
-        context = "\n\n".join(d.page_content for d in docs)
+        # number the retrieved docs and remember their metadata  ────────────────
+        snippet_map = {}                           # {id:int → dict}
+        context_parts = []
+        for i, d in enumerate(docs, start=1):
+            context_parts.append(f"[#{i}]\n{d.page_content}")   # prepend marker
+            snippet_map[i] = {
+                "preview": re.sub(r"\s+", " ", d.page_content.strip())[:160] + "…",
+                "source":  os.path.basename(
+                                d.metadata.get("source")
+                                or d.metadata.get("file_path","-unknown-")
+                            ),
+                "page":    d.metadata.get("page", None),
+            }
+        context = "\n\n".join(context_parts)
 
         # sys_prompt = (
         #     "You are a helpful legal assistant. Answer using provided context, remembered facts, "
@@ -387,11 +431,47 @@ if user_input:
             st.warning("⚠️ Not enough info to answer.")
         else:
             resp = chat_llm.invoke(messages)
-            st.session_state.chat_history.append(("User", txt))
-            st.session_state.chat_history.append(("Assistant", resp.content))
+            # st.session_state.chat_history.append(("User", txt))
+            st.session_state.chat_history.append({"speaker":"User", "text": txt})
+            # st.session_state.chat_history.append(("Assistant", resp.content))
+            st.session_state.chat_history.append(
+            {"speaker":"Assistant", "text": resp.content, "snippets": snippet_map})
 
 # ─── Render the chat history ──────────────────────────────────────────────
-for speaker, text in st.session_state.chat_history:
-    role = "user" if speaker == "User" else "assistant"
-    st.chat_message(role).write(text)
+# for speaker, text in st.session_state.chat_history:
+#     role = "user" if speaker == "User" else "assistant"
+#     st.chat_message(role).write(text)
+
+# ─── Render the chat history ──────────────────────────────────────────────
+for entry in st.session_state.chat_history:
+    # backward-compat: tuple → dict
+    if isinstance(entry, tuple):
+        speaker, text = entry
+        entry = {"speaker": speaker, "text": text}
+
+    if entry["speaker"] == "Assistant":
+        highlighted = highlight_missing_citations(entry["text"])
+        cites       = extract_citation_numbers(entry["text"])
+
+        with st.chat_message("assistant"):
+            st.markdown(highlighted, unsafe_allow_html=True)
+
+            if cites:
+                pill = ", ".join(f"#{n}" for n in cites)
+                with st.expander(f"Sources used: {pill}", expanded=False):
+                    for n in cites:
+                        info = entry.get("snippets", {}).get(n)
+                        if not info:
+                            st.write(f"• [#{n}] – (not in this context?)")
+                            continue
+                        label = f"**[#{n}]** – {info['preview']}"
+                        note  = info["source"]
+                        if info["page"] is not None:
+                            note += f"  (p.{info['page']+1})"
+                        st.markdown(
+                            f"{label}<br/><span style='color:gray;font-size:0.85rem'>from <b>{note}</b></span>",
+                            unsafe_allow_html=True
+                        )
+    else:
+        st.chat_message("user").write(entry["text"])
 

@@ -15,6 +15,7 @@ from langchain_community.document_loaders import (
 from langchain_core.messages import SystemMessage, HumanMessage
 import os
 import tempfile
+import shutil
 
 # ─── Load environment variables ─────────────────────────────────────────────
 load_dotenv()

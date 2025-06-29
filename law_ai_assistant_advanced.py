@@ -17,6 +17,7 @@ from PIL import Image
 import pytesseract
 import faiss
 import nltk, ssl
+import zipfile
 ssl._create_default_https_context = ssl._create_unverified_context  # avoids SSL issues on some hosts
 nltk.download("punkt", quiet=True)
 nltk.download("punkt_tab", quiet=True)   # <-- NEW — satisfies latest NLTK
@@ -87,21 +88,44 @@ def split_legal(text: str) -> List[str]:
     for part in out: chunks.extend(splitter.split_text(part))
     return chunks
 
+def safe_docx_loader(path: str):
+    """
+    Return a loader **only if** the file is a valid DOCX ZIP archive.
+    Otherwise raise a ValueError.
+    """
+    # A real DOCX is just a ZIP with XML parts.
+    if zipfile.is_zipfile(path):
+        return Docx2txtLoader(path)
+    raise ValueError("Not a valid .docx file")
+
 LOADER_MAP = {
-    "pdf":  PyPDFLoader,  "docx": Docx2txtLoader, "doc":  UnstructuredWordDocumentLoader,
+    "pdf":  PyPDFLoader,  "docx": safe_docx_loader, "doc":  TextLoader,  # treat old .doc as plain text fallback
     "pptx": UnstructuredPowerPointLoader, "csv":  CSVLoader, "txt":  TextLoader,
     "png":  UnstructuredImageLoader,     "jpg":  UnstructuredImageLoader,  "jpeg": UnstructuredImageLoader,
 }
 
 def load_and_split(path: str) -> List[Document]:
-    ext = path.lower().split(".")[-1]; loader_cls = LOADER_MAP.get(ext)
-    if not loader_cls: return []
-    docs = loader_cls(path).load(); out = []
+    ext = path.lower().split(".")[-1]
+    loader_cls = LOADER_MAP.get(ext)
+    if not loader_cls:
+        return []
+
+    try:
+        # if loader_cls is a function (safe_docx_loader) call it first
+        loader = loader_cls(path) if callable(loader_cls) else loader_cls(path)
+        docs = loader.load()
+    except Exception as e:
+        st.warning(f"⚠️  Skipped “{os.path.basename(path)}” – {e}")
+        return []
+
+    out = []
     for d in docs:
-        meta = d.metadata or {}; meta["source_file"] = os.path.basename(path)
+        meta = d.metadata or {}
+        meta["source_file"] = os.path.basename(path)
         for chunk in split_legal(d.page_content):
             out.append(Document(page_content=chunk, metadata=meta))
     return out
+
 
 @st.cache_resource(show_spinner=False)
 def embeddings(): return OpenAIEmbeddings(model=EMBED_MODEL)

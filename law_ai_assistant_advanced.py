@@ -9,7 +9,7 @@ Changes v1.6
 """
 
 import os, io, re, base64, tempfile, shutil
-from typing import List, Dict, Union───────────────────────────────────────
+from typing import List, Dict, Union
 import gc  
 
 import streamlit as st

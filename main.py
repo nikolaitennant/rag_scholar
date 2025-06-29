@@ -450,7 +450,7 @@ for entry in st.session_state.chat_history:
         entry = {"speaker": speaker, "text": text}
 
     if entry["speaker"] == "Assistant":
-        highlighted = highlight_missing_citations(entry["text"])
+        highlighted = entry["text"]
         cites       = extract_citation_numbers(entry["text"])
 
         with st.chat_message("assistant"):

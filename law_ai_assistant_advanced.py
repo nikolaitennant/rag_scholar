@@ -360,10 +360,18 @@ if query:
     answer = res.choices[0].message.content.strip()
 
     missing = uncited_substantive(answer)
+
     if missing:
+        # show up to 3 offender sentences so the user sees WHY it failed
         preview = " | ".join(missing[:3]) + (" …" if len(missing) > 3 else "")
-        st.warning(f"⚠️ Missing citations in: {preview}")
-    
+        st.warning(f"⚠️ I found sentences without [#] citations: {preview}")
+
+        # hard-fail: overwrite the answer so nothing uncited is displayed
+        answer = (
+            "I don’t have enough information in the provided material to answer that. "
+            "Please upload a source or re-phrase your question."
+        )
+
     # ── Update chat history (cap at MAX_TURNS) ----------------------------------
     st.session_state.hist.extend([("user", txt), ("assistant", answer)])
     st.session_state.hist = st.session_state.hist[-MAX_TURNS * 2:]

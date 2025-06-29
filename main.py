@@ -92,8 +92,6 @@ def build_vectorstore(default_docs, default_index, session_docs):
     return default_index
 
 # ─── Streamlit UI setup ───────────────────────────────────────────────────
-
-# ── UI ───────────────────────────────────────────────────────────────────────
 st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
  
 st.markdown("""
@@ -136,6 +134,17 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 | `role:`     | Set the assistant’s persona    | Single session      |
 """, unsafe_allow_html=True)
 
+EMBED_MODEL = "text-embedding-3-small"
+LLM_MODEL   = "gpt-4o-mini"
+
+CTX_DIR   = "default_context"
+INDEX_DIR = "faiss_store"
+CHUNK_SZ  = 600
+CHUNK_OV  = 100
+FIRST_K   = 30
+FINAL_K   = 4
+MAX_TURNS = 30  # keep chat history light
+
 # ---------------- Sidebar: default_context browser -----------------
 with st.sidebar.expander("📁 default_context files", expanded=False):
     if not os.path.exists(CTX_DIR):
@@ -164,6 +173,11 @@ with st.sidebar.expander("📁 default_context files", expanded=False):
                     shutil.rmtree(INDEX_DIR, ignore_errors=True)
                     st.experimental_rerun()
 
+
+LOADER_MAP = {
+    "pdf":  PyPDFLoader,  "docx": safe_docx_loader, "doc":  TextLoader,  # treat old .doc as plain text fallback
+    "pptx": UnstructuredPowerPointLoader, "csv":  CSVLoader, "txt":  TextLoader,
+}
 
 uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
 if st.sidebar.button("💾 Save uploads to default_context"):

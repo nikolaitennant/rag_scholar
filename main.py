@@ -264,9 +264,6 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
     files matter most for this question. I’ll look there first, then widen the net.</li>
 
 </ul>
-
-**Pro tip ✨**  Type "show snippet [#2]" and I’ll reveal the exact passage I used.
-
 </div>
         """,
         unsafe_allow_html=True,

@@ -168,7 +168,7 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 
 # ─── Sidebar: choose active class / module ───────────────────────────────
 with st.sidebar.container():
-    # st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("### Class controls")
 
     class_folders = sorted(
@@ -249,28 +249,6 @@ with st.sidebar.container():
                 st.session_state.confirm_delete = False
                 st.rerun()         
 
-    # ── Sidebar: upload files to the current class folder ────────────────────
-    LOADER_MAP = {
-        "pdf":  PyPDFLoader,  "docx": Docx2txtLoader, "doc":  TextLoader,  # treat old .doc as plain text fallback
-        "pptx": UnstructuredPowerPointLoader, "csv":  CSVLoader, "txt":  TextLoader,
-    }
-
-    uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
-    if st.sidebar.button(f"💾 Save uploads to {active_class}"):
-        if uploaded_docs:
-            os.makedirs(CTX_DIR, exist_ok=True)
-            for uf in uploaded_docs:
-                with open(os.path.join(CTX_DIR, uf.name), "wb") as out:
-                    out.write(uf.getbuffer())
-
-            shutil.rmtree(INDEX_DIR, ignore_errors=True)   # wipe stale FAISS
-            st.success("Files saved! Re-indexing…")
-            st.rerun()                                     # ← add this
-        else:
-            st.info("No docs to save.")
-    
-    st.markdown("</div>", unsafe_allow_html=True)  # close the card
-
 # ---------------- Sidebar: default_context browser -----------------
 with st.sidebar.container():
     st.markdown("<div class='card'>", unsafe_allow_html=True)
@@ -303,8 +281,30 @@ with st.sidebar.container():
 
     st.markdown("<div class='sidebar-gap'></div>", unsafe_allow_html=True)
    
+   # ── Sidebar: upload files to the current class folder ────────────────────
+    LOADER_MAP = {
+        "pdf":  PyPDFLoader,  "docx": Docx2txtLoader, "doc":  TextLoader,  # treat old .doc as plain text fallback
+        "pptx": UnstructuredPowerPointLoader, "csv":  CSVLoader, "txt":  TextLoader,
+    }
+
+    uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
+    if st.sidebar.button(f"💾 Save uploads to {active_class}"):
+        if uploaded_docs:
+            os.makedirs(CTX_DIR, exist_ok=True)
+            for uf in uploaded_docs:
+                with open(os.path.join(CTX_DIR, uf.name), "wb") as out:
+                    out.write(uf.getbuffer())
+
+            shutil.rmtree(INDEX_DIR, ignore_errors=True)   # wipe stale FAISS
+            st.success("Files saved! Re-indexing…")
+            st.rerun()                                     # ← add this
+        else:
+            st.info("No docs to save.")
+    
+    st.markdown("</div>", unsafe_allow_html=True)  # close the card
+    
 # --- Sidebar: narrow or prioritise docs ---------------------------------
-                   
+#            
 all_files = sorted(os.listdir(CTX_DIR)) if os.path.exists(CTX_DIR) else []
 sel_docs = st.sidebar.multiselect(
     "📑 Select docs to focus on (optional)", 

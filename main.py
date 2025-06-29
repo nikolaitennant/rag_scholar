@@ -156,6 +156,7 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 | `role:`     | Set the assistant’s persona    | Single session      |
 
 """, unsafe_allow_html=True)
+
 # ─── Sidebar: choose active class / module ───────────────────────────────
 class_folders = sorted(
     d for d in os.listdir(BASE_CTX_DIR)
@@ -181,6 +182,28 @@ if active_class != st.session_state.active_class:
 CTX_DIR   = os.path.join(BASE_CTX_DIR, active_class)
 INDEX_DIR = f"faiss_{active_class}"
 
+# ── Sidebar: add a new class folder ──────────────────────────────────────
+with st.sidebar.expander("➕  Add a new class", expanded=False):
+    new_name = st.text_input(
+        "Class name (letters, numbers, spaces):", 
+        key="new_class_name"
+    )
+    if st.button("Create class", key="create_class"):
+        clean = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip()
+        clean = clean.replace(" ", "_")          # turn spaces into underscores
+        target = os.path.join(BASE_CTX_DIR, clean)
+
+        if not clean:
+            st.error("Please enter a name.")
+        elif clean in class_folders:
+            st.warning(f"“{clean}” already exists.")
+        else:
+            os.makedirs(target, exist_ok=True)   # make the folder
+            # also make a fresh FAISS dir so it's ready later
+            os.makedirs(f"faiss_{clean}", exist_ok=True)
+            st.success(f"Added “{clean}”. Select it in the list above.")
+            st.rerun()
+            
 # ---------------- Sidebar: default_context browser -----------------
 with st.sidebar.expander(f"📁 {active_class} files", expanded=False):
     if not os.path.exists(CTX_DIR):

@@ -312,7 +312,7 @@ if user_input:
         #     "and session facts. Do not invent information."
         # )
 
-        prompt = """
+        sys_prompt = """
         You are Giulia’s friendly but meticulous law-exam assistant.
 
         GROUND RULES

@@ -243,6 +243,26 @@ with st.sidebar.container():
                 st.rerun()         
 
 # ---------------- Sidebar: default_context browser -----------------
+# ── Sidebar: upload files to the current class folder ────────────────────
+LOADER_MAP = {
+    "pdf":  PyPDFLoader,  "docx": Docx2txtLoader, "doc":  TextLoader,  # treat old .doc as plain text fallback
+    "pptx": UnstructuredPowerPointLoader, "csv":  CSVLoader, "txt":  TextLoader,
+}
+
+uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
+if st.sidebar.button(f"💾 Save uploads to {active_class}"):
+    if uploaded_docs:
+        os.makedirs(CTX_DIR, exist_ok=True)
+        for uf in uploaded_docs:
+            with open(os.path.join(CTX_DIR, uf.name), "wb") as out:
+                out.write(uf.getbuffer())
+
+        shutil.rmtree(INDEX_DIR, ignore_errors=True)   # wipe stale FAISS
+        st.success("Files saved! Re-indexing…")
+        st.rerun()                                     # ← add this
+    else:
+        st.info("No docs to save.")
+
 with st.sidebar.container():
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("### 📄 Document controls")
@@ -288,28 +308,6 @@ with st.sidebar.container():
     )
 
     st.markdown("</div>", unsafe_allow_html=True)  # close the card
-
-
-   
-   # ── Sidebar: upload files to the current class folder ────────────────────
-    LOADER_MAP = {
-        "pdf":  PyPDFLoader,  "docx": Docx2txtLoader, "doc":  TextLoader,  # treat old .doc as plain text fallback
-        "pptx": UnstructuredPowerPointLoader, "csv":  CSVLoader, "txt":  TextLoader,
-    }
-
-    uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
-    if st.sidebar.button(f"💾 Save uploads to {active_class}"):
-        if uploaded_docs:
-            os.makedirs(CTX_DIR, exist_ok=True)
-            for uf in uploaded_docs:
-                with open(os.path.join(CTX_DIR, uf.name), "wb") as out:
-                    out.write(uf.getbuffer())
-
-            shutil.rmtree(INDEX_DIR, ignore_errors=True)   # wipe stale FAISS
-            st.success("Files saved! Re-indexing…")
-            st.rerun()                                     # ← add this
-        else:
-            st.info("No docs to save.")
     
 # --------------- Sidebar: light-hearted disclaimer -----------------
 with st.sidebar.expander("⚖️ Disclaimer", expanded=False):

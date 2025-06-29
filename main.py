@@ -199,11 +199,9 @@ with st.sidebar.expander("➕  Add a new class", expanded=False):
             st.warning(f"“{clean}” already exists.")
         else:
             os.makedirs(target, exist_ok=True)   # make the folder
-            # also make a fresh FAISS dir so it's ready later
-            os.makedirs(f"faiss_{clean}", exist_ok=True)
             st.success(f"Added “{clean}”. Select it in the list above.")
             st.rerun()
-            
+
 # ---------------- Sidebar: default_context browser -----------------
 with st.sidebar.expander(f"📁 {active_class} files", expanded=False):
     if not os.path.exists(CTX_DIR):
@@ -319,19 +317,41 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
 # ─── Build or load FAISS index ────────────────────────────────────────────
 embeddings = OpenAIEmbeddings(api_key=api_key)
 
-if os.path.exists(INDEX_DIR):
-    # fast path: load a saved index you created earlier
-    vector_store = FAISS.load_local(
-        INDEX_DIR,
-        embeddings,
-        allow_dangerous_deserialization=True
-    )
+faiss_bin = os.path.join(INDEX_DIR, f"{os.path.basename(INDEX_DIR)}.faiss")
+faiss_pkl = os.path.join(INDEX_DIR, f"{os.path.basename(INDEX_DIR)}.pkl")
+
+def index_files_exist() -> bool:
+    return os.path.isfile(faiss_bin) and os.path.isfile(faiss_pkl)
+
+if index_files_exist():
+    try:
+        vector_store = FAISS.load_local(
+            INDEX_DIR, embeddings, allow_dangerous_deserialization=True
+        )
+    except Exception:              # corrupted ⇒ rebuild
+        shutil.rmtree(INDEX_DIR, ignore_errors=True)
+        vector_store = None
 else:
-    default_docs, default_index = load_and_index_defaults()
+    vector_store = None
+
+if vector_store is None:
+    # build from whatever we actually have right now
+    default_docs, default_index = load_and_index_defaults(CTX_DIR)   # <-- pass class folder
     session_docs  = load_uploaded_files(uploaded_docs)
-    vector_store  = build_vectorstore(default_docs, default_index, session_docs)
+
+    if default_index and session_docs:
+        vector_store = build_vectorstore(default_docs, default_index, session_docs)
+    elif default_index:
+        vector_store = default_index
+    elif session_docs:
+        vector_store = FAISS.from_documents(session_docs, embeddings)
+    else:
+        st.error("⚠️ This class has no documents yet. Upload something first.")
+        st.stop()
+
     vector_store.save_local(INDEX_DIR)
 
+# ─── Set up the LLM client ────────────────────────────────────────────────
 chat_llm = ChatOpenAI(api_key=api_key, model=LLM_MODEL, temperature=0.0)
 
 # ─── Chat handler ─────────────────────────────────────────────────────────

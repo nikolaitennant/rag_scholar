@@ -245,7 +245,6 @@ with st.sidebar.container():
 # ---------------- Sidebar: default_context browser -----------------
             
 with st.sidebar.container():
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("### 📄 Document controls")
 
        # ── Sidebar: upload files to the current class folder ────────────────────
@@ -308,8 +307,7 @@ with st.sidebar.container():
         horizontal=True
     )
 
-    st.markdown("</div>", unsafe_allow_html=True)  # close the card
-    
+
 # --------------- Sidebar: light-hearted disclaimer -----------------
 with st.sidebar.expander("⚖️ Disclaimer", expanded=False):
     st.markdown(

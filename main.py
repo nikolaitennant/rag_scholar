@@ -190,7 +190,7 @@ with st.sidebar.container():
 
     # 1️⃣  CLASS SELECTOR (must come before any file-browser widgets)
     active_class = st.sidebar.selectbox(
-        "🏷️  Select class / module",
+        "Select class / module",
         class_folders,
         index=class_folders.index(st.session_state.active_class),
     )

@@ -139,8 +139,8 @@ def ocr_bytes(b:bytes)->str:
 def to_dict(m): return {"role":"user" if isinstance(m,HumanMessage) else "system","content":m.content}
 
 # ── UI ───────────────────────────────────────────────────────────────────────
-st.set_page_config("Giulia's Law AI Assistant", "⚖️")
-
+st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
+ 
 st.markdown("""
 <style>
 /* stretch content edge-to-edge */
@@ -193,6 +193,16 @@ if st.sidebar.button("💾 Save uploads to default_context"):
         st.success("Files saved! Reload to re-index.")
     else: st.info("No docs to save.")
 
+with st.sidebar.expander("📁 default_context contents"):
+    if os.path.exists(CTX_DIR):
+        files = os.listdir(CTX_DIR)
+        if files:
+            st.write("\n".join(f"• {fn}" for fn in files))
+        else:
+            st.write("_folder is empty_")
+    else:
+        st.write("_folder does not exist yet_")
+
 with st.expander("ℹ️  How this assistant works", expanded=True):
     st.markdown(
         """
@@ -210,7 +220,7 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
   <li>🚦 <b>Limits & tips</b>
       <ul>
         <li>Up to ≈ 4 000 chunks (≈ 350 docs) runs fine on a laptop.</li>
-        <li>If you add files and don’t see them cited, rebuild the index (click “Save” or delete <code>faiss_store/</code>).</li>
+        <li>If you add files and don’t see them cited, rebuild the index (click “Save”).</li>
       </ul></li>
 </ul>
 <b>Pro tip ✨</b> Ask “show snippet [#2]” to view the exact passage I cited.

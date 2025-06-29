@@ -172,121 +172,121 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 
 
 # # ─── Sidebar: choose active class / module ───────────────────────────────
-# with st.sidebar.container():
-#     st.markdown("### Class controls")
+with st.sidebar.container():
+    st.markdown("### Class controls")
 
-# --- list available class folders -----------------------------------
-class_folders = sorted(
-    d for d in os.listdir(BASE_CTX_DIR)
-    if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
-)
-if not class_folders:
-    st.sidebar.error(f"No folders found inside {BASE_CTX_DIR}.")
-    st.stop()
+    # --- list available class folders -----------------------------------
+    class_folders = sorted(
+        d for d in os.listdir(BASE_CTX_DIR)
+        if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
+    )
+    if not class_folders:
+        st.sidebar.error(f"No folders found inside {BASE_CTX_DIR}.")
+        st.stop()
 
-# --- pick default active class in session state ---------------------
-if "active_class" not in st.session_state:
-    st.session_state.active_class = class_folders[0]
+    # --- pick default active class in session state ---------------------
+    if "active_class" not in st.session_state:
+        st.session_state.active_class = class_folders[0]
 
-# 1️⃣  CLASS SELECTOR (must come before any file-browser widgets)
-active_class = st.sidebar.selectbox(
-    "🏷️  Select class / module",
-    class_folders,
-    index=class_folders.index(st.session_state.active_class),
-)
-if active_class != st.session_state.active_class:
-    st.session_state.active_class = active_class
-    st.rerun()  # reload to pick up the new folder
+    # 1️⃣  CLASS SELECTOR (must come before any file-browser widgets)
+    active_class = st.sidebar.selectbox(
+        "🏷️  Select class / module",
+        class_folders,
+        index=class_folders.index(st.session_state.active_class),
+    )
+    if active_class != st.session_state.active_class:
+        st.session_state.active_class = active_class
+        st.rerun()  # reload to pick up the new folder
 
-# --- paths that depend on active_class ------------------------------
-CTX_DIR = os.path.join(BASE_CTX_DIR, active_class)
-INDEX_DIR = f"faiss_{active_class}"
+    # --- paths that depend on active_class ------------------------------
+    CTX_DIR = os.path.join(BASE_CTX_DIR, active_class)
+    INDEX_DIR = f"faiss_{active_class}"
 
-# 2️⃣  FILE-BROWSER EXPANDER (shown under the selector)
-with st.sidebar.expander(f"📁 {active_class} files", expanded=False):
-    if not os.path.exists(CTX_DIR):
-        st.write("_Folder does not exist yet_")
-    else:
-        files = sorted(os.listdir(CTX_DIR))
-        if not files:
-            st.write("_Folder is empty_")
+    # 2️⃣  FILE-BROWSER EXPANDER (shown under the selector)
+    with st.sidebar.expander(f"📁 {active_class} files", expanded=False):
+        if not os.path.exists(CTX_DIR):
+            st.write("_Folder does not exist yet_")
         else:
-            st.markdown("<div class='file-list'>", unsafe_allow_html=True)
-            for fn in files:
-                col1, col2, col3 = st.columns([4, 1, 1])
-                col1.write(fn)
+            files = sorted(os.listdir(CTX_DIR))
+            if not files:
+                st.write("_Folder is empty_")
+            else:
+                st.markdown("<div class='file-list'>", unsafe_allow_html=True)
+                for fn in files:
+                    col1, col2, col3 = st.columns([4, 1, 1])
+                    col1.write(fn)
 
-                with open(os.path.join(CTX_DIR, fn), "rb") as f:
-                    col2.download_button(
-                        "⬇️",
-                        f,
-                        file_name=fn,
-                        mime="application/octet-stream",
-                        key=f"dl_{fn}",
+                    with open(os.path.join(CTX_DIR, fn), "rb") as f:
+                        col2.download_button(
+                            "⬇️",
+                            f,
+                            file_name=fn,
+                            mime="application/octet-stream",
+                            key=f"dl_{fn}",
+                        )
+
+                    if col3.button("🗑️", key=f"del_{fn}"):
+                        os.remove(os.path.join(CTX_DIR, fn))
+                        shutil.rmtree(INDEX_DIR, ignore_errors=True)
+                        st.rerun()
+
+    # 3️⃣  ADD-NEW-CLASS EXPANDER (also under the selector)
+    with st.sidebar.expander("➕  Add a new class", expanded=False):
+        new_name = st.text_input(
+            "Class name (letters, numbers, spaces):", key="new_class_name"
+        )
+
+        if st.button("Create class", key="create_class"):
+            clean = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip().replace(" ", "_")
+            target = os.path.join(BASE_CTX_DIR, clean)
+            seed_src = "giulia.txt"  # starter file
+            seed_dst = os.path.join(target, os.path.basename(seed_src))
+
+            if not clean:
+                st.error("Please enter a name.")
+            elif clean in class_folders:
+                st.warning(f"“{clean}” already exists.")
+            else:
+                os.makedirs(target, exist_ok=True)
+                try:
+                    shutil.copy(seed_src, seed_dst)  # make sure folder isn’t empty
+                except FileNotFoundError:
+                    st.warning(
+                        "Starter file giulia.txt not found – class created empty."
                     )
 
-                if col3.button("🗑️", key=f"del_{fn}"):
-                    os.remove(os.path.join(CTX_DIR, fn))
-                    shutil.rmtree(INDEX_DIR, ignore_errors=True)
-                    st.rerun()
-
-# 3️⃣  ADD-NEW-CLASS EXPANDER (also under the selector)
-with st.sidebar.expander("➕  Add a new class", expanded=False):
-    new_name = st.text_input(
-        "Class name (letters, numbers, spaces):", key="new_class_name"
-    )
-
-    if st.button("Create class", key="create_class"):
-        clean = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip().replace(" ", "_")
-        target = os.path.join(BASE_CTX_DIR, clean)
-        seed_src = "giulia.txt"  # starter file
-        seed_dst = os.path.join(target, os.path.basename(seed_src))
-
-        if not clean:
-            st.error("Please enter a name.")
-        elif clean in class_folders:
-            st.warning(f"“{clean}” already exists.")
-        else:
-            os.makedirs(target, exist_ok=True)
-            try:
-                shutil.copy(seed_src, seed_dst)  # make sure folder isn’t empty
-            except FileNotFoundError:
-                st.warning(
-                    "Starter file giulia.txt not found – class created empty."
-                )
-
-            st.success(f"Added “{clean}”. Select it in the list above.")
-            st.rerun()
-
-# 4️⃣  DELETE CLASS BUTTON (also under the selector)
-if st.sidebar.button("🗑️ Delete this class", key="ask_delete"):
-    st.session_state.confirm_delete = True
-
-if st.session_state.get("confirm_delete"):
-    with st.sidebar.expander("⚠️ Confirm delete", expanded=True):
-        st.error(f"Really delete the class “{active_class}” and all its files?")
-        col_yes, col_no = st.columns(2)
-        if col_yes.button("Yes, delete", key="yes_delete"):
-            shutil.rmtree(
-                os.path.join(BASE_CTX_DIR, active_class), ignore_errors=True
-            )
-            shutil.rmtree(f"faiss_{active_class}", ignore_errors=True)
-            st.session_state.confirm_delete = False
-            # pick a new active class (first alphabetically) or stop if none left
-            remaining = sorted(
-                d
-                for d in os.listdir(BASE_CTX_DIR)
-                if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
-            )
-            if remaining:
-                st.session_state.active_class = remaining[0]
+                st.success(f"Added “{clean}”. Select it in the list above.")
                 st.rerun()
-            else:
-                st.sidebar.success("All classes deleted. Add a new one!")
-                st.stop()
-        if col_no.button("Cancel", key="cancel_delete"):
-            st.session_state.confirm_delete = False
-            st.rerun()
+
+    # 4️⃣  DELETE CLASS BUTTON (also under the selector)
+    if st.sidebar.button("🗑️ Delete this class", key="ask_delete"):
+        st.session_state.confirm_delete = True
+
+    if st.session_state.get("confirm_delete"):
+        with st.sidebar.expander("⚠️ Confirm delete", expanded=True):
+            st.error(f"Really delete the class “{active_class}” and all its files?")
+            col_yes, col_no = st.columns(2)
+            if col_yes.button("Yes, delete", key="yes_delete"):
+                shutil.rmtree(
+                    os.path.join(BASE_CTX_DIR, active_class), ignore_errors=True
+                )
+                shutil.rmtree(f"faiss_{active_class}", ignore_errors=True)
+                st.session_state.confirm_delete = False
+                # pick a new active class (first alphabetically) or stop if none left
+                remaining = sorted(
+                    d
+                    for d in os.listdir(BASE_CTX_DIR)
+                    if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
+                )
+                if remaining:
+                    st.session_state.active_class = remaining[0]
+                    st.rerun()
+                else:
+                    st.sidebar.success("All classes deleted. Add a new one!")
+                    st.stop()
+            if col_no.button("Cancel", key="cancel_delete"):
+                st.session_state.confirm_delete = False
+                st.rerun()
 
 # ---------------- Sidebar: Document Controls -----------------
 

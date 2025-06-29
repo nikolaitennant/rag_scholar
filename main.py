@@ -16,6 +16,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 import os
 import tempfile
 import shutil
+import re  
 
 # ─── Load environment variables ─────────────────────────────────────────────
 load_dotenv()
@@ -393,3 +394,4 @@ if user_input:
 for speaker, text in st.session_state.chat_history:
     role = "user" if speaker == "User" else "assistant"
     st.chat_message(role).write(text)
+

@@ -26,7 +26,7 @@ CTX_DIR = None  # will be set after the user picks a class
 INDEX_DIR = None
 FIRST_K = 30
 FINAL_K = 4
-LLM_MODEL = "gpt-4o-mini"
+LLM_MODEL = "gpt-4.1-mini"
 INLINE_RE = re.compile(r"\[\s*#(\d+)\s*\]")
 
 # ─── Streamlit session state ───────────────────────────────────────────────

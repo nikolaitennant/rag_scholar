@@ -246,6 +246,31 @@ if st.sidebar.button("💾 Save uploads to default_context"):
         st.success("Files saved! Reload to re-index.")
     else: st.info("No docs to save.")
 
+# ---------- live resource meter ------------------------------------------
+import psutil, shutil, humanize, os, time
+
+proc = psutil.Process(os.getpid())
+rss_mb = proc.memory_info().rss / 1024**2         # RAM in MB
+vm      = psutil.virtual_memory()
+
+# size of default_context + faiss_store
+def folder_size(path):
+    return sum(f.stat().st_size for f in os.scandir(path) if f.is_file())
+
+ctx_bytes  = folder_size(CTX_DIR)   if os.path.exists(CTX_DIR)   else 0
+idx_bytes  = folder_size(INDEX_DIR) if os.path.exists(INDEX_DIR) else 0
+disk_total, disk_used, _ = shutil.disk_usage(".")
+
+st.sidebar.markdown("## 📊 Resource usage")
+st.sidebar.write(
+    f"**RAM** {rss_mb:,.0f} MB ({vm.percent:.0f} %)")
+st.sidebar.write(
+    f"**Docs** {humanize.naturalsize(ctx_bytes)}  \n"
+    f"**Index** {humanize.naturalsize(idx_bytes)}")
+st.sidebar.write(
+    f"**Disk used** {humanize.naturalsize(disk_used)} "
+    f"of {humanize.naturalsize(disk_total)}")
+
 # --------------- Sidebar: light-hearted disclaimer -----------------
 with st.sidebar.expander("⚖️ Disclaimer", expanded=False):
     st.markdown(

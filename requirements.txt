@@ -11,5 +11,4 @@ rank_bm25
 unstructured[all-docs,powerpoint]
 docx2txt
 langchain-community
-
-
+humanize

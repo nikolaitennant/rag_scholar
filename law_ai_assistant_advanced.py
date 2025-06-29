@@ -222,32 +222,57 @@ if st.sidebar.button("💾 Save uploads to default_context"):
         st.success("Files saved! Reload to re-index.")
     else: st.info("No docs to save.")
 
+# --------------- Sidebar: light-hearted disclaimer -----------------
+with st.sidebar.expander("⚖️ Disclaimer", expanded=False):
+    st.markdown(
+        """
+I’m an AI study buddy, **not** your solicitor or lecturer.  
+By using this tool you agree that:
+
+* I might be wrong, out-of-date, or miss a key authority.
+* Your exam results remain **your** responsibility.
+* If you flunk, you’ve implicitly waived all claims in tort, contract,
+  equity, and any other jurisdiction you can think of&nbsp;😉
+
+In short: double-check everything before relying on it.
+""",
+        unsafe_allow_html=True,
+    )
+
 with st.expander("ℹ️  How this assistant works", expanded=True):
     st.markdown(
         """
 <div class="info-panel">
 <b>📚 What you should know</b>
 <ul style="margin-left:1.1em;margin-top:12px">
-  <li>📄 <b>Document-only answers</b> – I use <em>only</em> what’s in your files or “remember:” facts. No web searches.</li>
-  <li>🔍 <b>Exact citations</b> – every rule or fact ends with a numbered tag like <code>[#3]</code>. No tag → I’ll refuse to answer.</li>
+  <li>📄 <b>Document-only answers</b> – I draw <em>only</em> on the files you upload or facts you store with <code>remember:</code>. No internet look-ups.</li>
+
+  <li>🔍 <b>Citations matter</b> – each legal rule or fact ends with a tag such as <code>[#3]</code>.  
+      A yellow badge warns you if something looks uncited.</li>
+
   <li>📂 <b>Uploads</b>
       <ul>
-        <li><b>Permanent</b>: copy files to <code>default_context/</code> or click “💾 Save uploads”. They persist and are indexed.</li>
-        <li><b>Session-only</b>: upload via the sidebar and skip “Save”. I can cite them now, but they vanish on refresh.</li>
+        <li><b>Session-only</b> – just drop files in the sidebar. They disappear when you refresh.</li>
+        <li><b>Keep forever</b> – after uploading, click <strong>“💾 Save uploads”</strong>. I’ll remember them in future sessions.<br>
+            (Need to remove one later? Use the 🗑️ icon in the sidebar list.)</li>
       </ul></li>
-  <li>🖼 <b>Image support (beta)</b> – PNG / JPG diagrams run through OCR; complex labels may mis-read.</li>
+
+  <li>🖼 <b>Images (beta)</b> – PNG/JPG diagrams go through OCR. Handwritten or tiny text may be mis-read.</li>
+
   <li>🚦 <b>Limits & tips</b>
       <ul>
-        <li>Up to ≈ 4 000 chunks (≈ 350 docs) runs fine on a laptop.</li>
-        <li>If you add files and don’t see them cited, rebuild the index (click “Save”).</li>
+        <li>Up to ~4 000 chunks (≈ 350 docs) runs smoothly on a typical laptop or Streamlit Cloud.</li>
+        <li>If a new file isn’t cited, click <strong>“🔄 Rebuild index”</strong> in the sidebar.</li>
       </ul></li>
+
+  <li>⚖️ <b>Disclaimer</b> – I’m an AI study buddy, not your solicitor. Double-check everything before you rely on it!</li>
 </ul>
-<b>Pro tip ✨</b> Ask “show snippet [#2]” to view the exact passage I cited.
+
+<b>Pro tip ✨</b> Type <code>show snippet [#2]</code> and I’ll reveal the exact passage I used.
 </div>
         """,
         unsafe_allow_html=True,
     )
-
 
 query = st.chat_input("Ask anything")
 

@@ -307,12 +307,15 @@ sel_docs = st.sidebar.multiselect(
     all_files
 )
 
-mode = st.sidebar.radio(
-    "↳ How should I use the selected docs?",
-    ["Prioritise (default)", "Only these docs"],
-    horizontal=True
-)
-st.markdown("<div class='sidebar-gap'></div>", unsafe_allow_html=True)
+with st.sidebar.container():
+    st.markdown("</div>", unsafe_allow_html=True)  # close the card
+
+    mode = st.sidebar.radio(
+        "↳ How should I use the selected docs?",
+        ["Prioritise (default)", "Only these docs"],
+        horizontal=True
+    )
+    st.markdown("<div class='sidebar-gap'></div>", unsafe_allow_html=True)
 
 # --------------- Sidebar: light-hearted disclaimer -----------------
 with st.sidebar.expander("⚖️ Disclaimer", expanded=False):

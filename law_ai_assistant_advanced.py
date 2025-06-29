@@ -142,6 +142,17 @@ def to_dict(m): return {"role":"user" if isinstance(m,HumanMessage) else "system
 st.set_page_config("Giulia's Law AI Assistant", "⚖️")
 st.title("⚖️ Giulia's Law AI Assistant!")
 
+# Sidebar
+st.sidebar.header("📂 File Uploads & Additional Info")
+with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
+    st.markdown("""
+| **Command** | **What it Does**               | **Scope**           |
+|------------:|--------------------------------|---------------------|
+| `remember:` | Store a fact permanently       | Across sessions     |
+| `memo:`     | Store a fact this session only | Single session      |
+| `role:`     | Set the assistant’s persona    | Single session      |
+""", unsafe_allow_html=True)
+
 uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
 image_file    = st.sidebar.file_uploader("Optional image / chart", type=["png","jpg","jpeg"])
 if st.sidebar.button("💾 Save uploads to default_context"):
@@ -153,6 +164,51 @@ if st.sidebar.button("💾 Save uploads to default_context"):
         shutil.rmtree(INDEX_DIR, ignore_errors=True)
         st.success("Files saved! Reload to re-index.")
     else: st.info("No docs to save.")
+
+st.markdown("""
+    <style>
+      .info-box {
+        margin-bottom: 24px;
+        padding: 26px 28px;
+        border-radius: 14px;
+        font-size: 1.08rem;
+        line-height: 1.7;
+      }
+
+      /* Light‐mode (Streamlit) */
+      html[data-theme="light"] .info-box {
+        background: #e7f3fc !important;
+        color: #184361 !important;
+        border-left: 7px solid #2574a9 !important;
+        box-shadow: 0 1px 8px #eef4fa !important;
+      }
+
+      /* Dark‐mode (Streamlit) */
+      html[data-theme="dark"] .info-box {
+        background: #2b2b2b !important;
+        color: #ddd !important;
+        border-left: 7px solid #bb86fc !important;
+        box-shadow: 0 1px 8px rgba(0,0,0,0.5) !important;
+      }
+      html[data-theme="dark"] .info-box b {
+        color: #fff !important;
+      }
+      html[data-theme="dark"] .info-box span {
+        color: #a0d6ff !important;
+      }
+    </style>
+
+<div class="info-box" style='margin:24px 0; padding:20px; background:#e7f3fc; border-left:7px solid #2574a9; color:#184361; border-radius:14px;'>
+  <b style='font-size:1.13rem;'>ℹ️ How this assistant works:</b>
+  <ul style='margin-left:1.1em; margin-top:12px;'>
+    <li>📄 <b>Only your documents:</b> I read and answer using just the files you upload plus any built-in context. I don’t look up anything on the web.</li>
+    <li>❓ <b>No surprises:</b> If the answer isn’t in your docs, I’ll tell you I don’t have enough information instead of making stuff up.</li>
+    <li>📂 <b>All your files:</b> You can upload as many PDFs, Word docs, slides, spreadsheets, or images as you need—I'll consider them all together.</li>
+  </ul>
+  <b>✨ Tip:</b> To get the best answers, upload any notes, reports, or visuals related to your question so I have the full picture.
+</div>
+""", unsafe_allow_html=True)
+
 
 query = st.chat_input("Ask anything")
 

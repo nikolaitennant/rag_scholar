@@ -286,11 +286,10 @@ if user_input:
     )
 
     if sel_docs:
-        sel_set = set(sel_docs)             # cache once
+        sel_set = set(sel_docs)
 
-        def _in_selection(doc):
-            # grab whatever path key the loader provided, else ""
-            src = doc.metadata.get("source") or doc.metadata.get("file_path") or ""
+        def _in_selection(meta: dict) -> bool:      # meta is a dict
+            src = meta.get("source") or meta.get("file_path") or ""
             return os.path.basename(src) in sel_set
 
         focus_retriever = vector_store.as_retriever(
@@ -298,7 +297,6 @@ if user_input:
         )
     else:
         focus_retriever = None
-
 
 
 

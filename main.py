@@ -237,7 +237,7 @@ LOADER_MAP = {
 }
 
 uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
-if st.sidebar.button(f"💾 Save uploads to {active_class}")
+if st.sidebar.button(f"💾 Save uploads to {active_class}"):
 #     if uploaded_docs:
 #         os.makedirs(CTX_DIR, exist_ok=True)
 #         for uf in uploaded_docs:

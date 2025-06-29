@@ -377,11 +377,11 @@ if query:
     answer = res.choices[0].message.content.strip()
 
     # ── Citation check & refusal ────────────────────────────────────────
-    missing = uncited_substantive(answer)
-    if missing:
-        st.warning("⚠️ Sentences without citations: " + " | ".join(missing[:3]))
-        answer = ("I don’t have enough information in the provided material to answer that. "
-                "Please upload a source or restate with supporting documents.")
+    # missing = uncited_substantive(answer)
+    # if missing:
+    #     st.warning("⚠️ Sentences without citations: " + " | ".join(missing[:3]))
+    #     answer = ("I don’t have enough information in the provided material to answer that. "
+    #             "Please upload a source or restate with supporting documents.")
 
     # ── Update history (cap at MAX_TURNS) ───────────────────────────────
     st.session_state.hist.extend([("user", txt), ("assistant", answer)])

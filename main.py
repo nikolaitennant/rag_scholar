@@ -27,6 +27,7 @@ INDEX_DIR = None
 FIRST_K = 30
 FINAL_K = 4
 LLM_MODEL = "gpt-4o-mini"
+INLINE_RE = re.compile(r"\[\s*#(\d+)\s*\]")
 
 # ─── Streamlit session state ───────────────────────────────────────────────
 for key in ("memory_facts", "session_facts", "chat_history"):
@@ -105,10 +106,6 @@ def build_vectorstore(default_docs, default_index, session_docs):
         embeddings = OpenAIEmbeddings(api_key=api_key)
         return FAISS.from_documents(default_docs + session_docs, embeddings)
     return default_index
-
-
-INLINE_RE = re.compile(r"\[\s*#(\d+)\s*\]")
-
 
 def _split_sentences(text: str):
     parts, buff, in_code = [], [], False
@@ -464,7 +461,6 @@ if user_input:
         docs = primary + secondary
     else:
         docs = full_retriever.invoke(txt)
-    # ---------------------------------------------------------------------
 
     # ─ Command branches ──────────────────────────────────────────────────
     if low.startswith("remember:"):
@@ -501,11 +497,6 @@ if user_input:
                 "page": d.metadata.get("page", None),
             }
         context = "\n\n".join(context_parts)
-
-        # sys_prompt = (
-        #     "You are a helpful legal assistant. Answer using provided context, remembered facts, "
-        #     "and session facts. Do not invent information."
-        # )
 
         sys_prompt = """
         You are Giulia’s friendly but meticulous law-exam assistant.
@@ -552,9 +543,7 @@ if user_input:
             st.warning("⚠️ Not enough info to answer.")
         else:
             resp = chat_llm.invoke(messages)
-            # st.session_state.chat_history.append(("User", txt))
             st.session_state.chat_history.append({"speaker": "User", "text": txt})
-            # st.session_state.chat_history.append(("Assistant", resp.content))
             st.session_state.chat_history.append(
                 {"speaker": "Assistant", "text": resp.content, "snippets": snippet_map}
             )

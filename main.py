@@ -274,7 +274,7 @@ for k, d in {
 
 # ─── Build or update RAG index ────────────────────────────────────────────
 default_docs, default_index = load_and_index_defaults()
-session_docs = load_uploaded_files(inline_files)
+session_docs = load_uploaded_files(uploaded_docs)
 vector_store = build_vectorstore(default_docs, default_index, session_docs)
 retriever = vector_store.as_retriever()
 chat_llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini", temperature=0.0)

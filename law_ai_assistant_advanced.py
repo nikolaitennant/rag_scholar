@@ -10,6 +10,7 @@ Changes v1.6
 
 import os, io, re, base64, tempfile, shutil
 from typing import List, Dict, Union
+import psutil, shutil, humanize, os, time
 import gc  
 
 import streamlit as st
@@ -247,13 +248,21 @@ if st.sidebar.button("💾 Save uploads to default_context"):
         st.success("Files saved! Reload to re-index.")
     else: st.info("No docs to save.")
 
-# ─── 1. Sidebar – “limit search to docs” control ─────────────────────────
+# --- Sidebar: narrow or prioritise docs ---------------------------------
 all_files = sorted(os.listdir(CTX_DIR)) if os.path.exists(CTX_DIR) else []
-sel_docs  = st.sidebar.multiselect("🔎 Search only these docs (optional)", all_files)
+
+sel_docs = st.sidebar.multiselect(
+    "📑 Select docs to focus on (optional)", 
+    all_files
+)
+
+mode = st.sidebar.radio(
+    "↳ How should I use the selected docs?",
+    ["Prioritise (default)", "Only these docs"],
+    horizontal=True
+)
 
 # ---------- live resource meter ------------------------------------------
-import psutil, shutil, humanize, os, time
-
 proc = psutil.Process(os.getpid())
 rss_mb = proc.memory_info().rss / 1024**2         # RAM in MB
 vm      = psutil.virtual_memory()
@@ -423,30 +432,29 @@ if query:
             vs.add_documents(extra_docs)          # vectors stay inside FAISS
             del extra_docs
             gc.collect()
-
-        if sel_docs:                          # user ticked filenames in sidebar
-            filt = lambda m: m.get("source_file") in sel_docs
-            base_retriever = vs.as_retriever(
-                search_kwargs={"k": FIRST_K, "filter": filt}
-            )
-        else:                                 # search the full index
-            base_retriever = vs.as_retriever(search_kwargs={"k": FIRST_K})
-
-        # ─── 1️⃣ first look only at the files the user ticked ───────────────
+            
+        # ---------- Build a retriever honouring the user's choice ---------------
         if sel_docs:
+            # helper: match on metadata["source_file"]
             filt = lambda m: m.get("source_file") in sel_docs
-            pri_retriever = vs.as_retriever(search_kwargs={"k": FIRST_K, "filter": filt})
-            primary_hits  = pri_retriever.invoke(txt)
+
+            if mode.startswith("Only"):
+                # strict filter — anything outside sel_docs is ignored
+                hits = vs.as_retriever(search_kwargs={"k": FIRST_K, "filter": filt}).invoke(txt)
+
+            else:  # "Prioritise"
+                # 1)   search inside the selected files
+                pri_hits = vs.as_retriever(search_kwargs={"k": FIRST_K, "filter": filt}).invoke(txt)
+                # 2)   search the whole corpus
+                base_hits = vs.as_retriever(search_kwargs={"k": FIRST_K}).invoke(txt)
+                # 3)   keep pri_hits first, then append the rest (no duplicates)
+                hits = pri_hits + [d for d in base_hits if d not in pri_hits]
         else:
-            primary_hits = []
+            # no filter at all
+            hits = vs.as_retriever(search_kwargs={"k": FIRST_K}).invoke(txt)
 
-        # ─── 2️⃣ then run the usual search over the whole index ─────────────
-        base_hits = base_retriever.invoke(txt)
-
-        # merge, keeping prioritised hits at the top, no duplicates
-        all_hits = primary_hits + [d for d in base_hits if d not in primary_hits]
-
-        docs = rerank(txt, all_hits)[:FINAL_K]     # final trim
+        # ---------- optional cross-encoder re-rank, final trim -------------------
+        docs = rerank(txt, hits)[:FINAL_K]
 
         # snippet build
         snippets=[]

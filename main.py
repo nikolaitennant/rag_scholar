@@ -175,7 +175,7 @@ with st.sidebar.expander("📁 default_context files", expanded=False):
 
 
 LOADER_MAP = {
-    "pdf":  PyPDFLoader,  "docx": safe_docx_loader, "doc":  TextLoader,  # treat old .doc as plain text fallback
+    "pdf":  PyPDFLoader,  "docx": Docx2txtLoader, "doc":  TextLoader,  # treat old .doc as plain text fallback
     "pptx": UnstructuredPowerPointLoader, "csv":  CSVLoader, "txt":  TextLoader,
 }
 

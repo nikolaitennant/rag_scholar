@@ -177,7 +177,34 @@ active_class = st.sidebar.selectbox(
 )
 if active_class != st.session_state.active_class:
     st.session_state.active_class = active_class
-    st.rerun()                       # reload to pick up the new folder
+    st.rerun()                   
+
+# ---------------- Sidebar: default_context browser -----------------
+with st.sidebar.expander(f"📁 {active_class} files", expanded=False):
+    if not os.path.exists(CTX_DIR):
+        st.write("_Folder does not exist yet_")
+    else:
+        files = sorted(os.listdir(CTX_DIR))
+        if not files:
+            st.write("_Folder is empty_")
+        else:
+            for fn in files:
+                col1, col2, col3 = st.columns([4, 1, 1])
+                col1.write(fn)
+                # download link
+                with open(os.path.join(CTX_DIR, fn), "rb") as f:
+                    col2.download_button(
+                        label="⬇️",
+                        data=f,
+                        file_name=fn,
+                        mime="application/octet-stream",
+                        key=f"dl_{fn}",
+                    )
+                # delete button
+                if col3.button("🗑️", key=f"del_{fn}"):
+                    os.remove(os.path.join(CTX_DIR, fn))
+                    shutil.rmtree(INDEX_DIR, ignore_errors=True)
+                    st.rerun()      
 
 # point the rest of the app at the chosen folder --------------------------
 CTX_DIR   = os.path.join(BASE_CTX_DIR, active_class)
@@ -235,7 +262,7 @@ if st.session_state.get("confirm_delete"):
                 st.stop()
         if col_no.button("Cancel", key="cancel_delete"):
             st.session_state.confirm_delete = False
-            st.rerun()          # ← use plain st.rerun(), not experimental_rerun
+            st.rerun()         
 
 # ---------------- Sidebar: default_context browser -----------------
 with st.sidebar.expander(f"📁 {active_class} files", expanded=False):
@@ -262,7 +289,7 @@ with st.sidebar.expander(f"📁 {active_class} files", expanded=False):
                 if col3.button("🗑️", key=f"del_{fn}"):
                     os.remove(os.path.join(CTX_DIR, fn))
                     shutil.rmtree(INDEX_DIR, ignore_errors=True)
-                    st.rerun()                 # ← was st.experimental_rerun()
+                    st.rerun()                
 
 
 LOADER_MAP = {

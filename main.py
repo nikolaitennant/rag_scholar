@@ -187,6 +187,33 @@ with st.sidebar.container():
     # point the rest of the app at the chosen folder --------------------------
     CTX_DIR   = os.path.join(BASE_CTX_DIR, active_class)
     INDEX_DIR = f"faiss_{active_class}"
+
+
+    # 1) file browser for current class -----------------------------------
+    with st.expander(f"📁 {active_class} files", expanded=False):
+        if not os.path.exists(CTX_DIR):
+            st.write("_Folder does not exist yet_")
+        else:
+            files = sorted(os.listdir(CTX_DIR))
+            if not files:
+                st.write("_Folder is empty_")
+            else:
+                st.markdown("<div class='file-list'>", unsafe_allow_html=True)
+                for fn in files:
+                    col1, col2, col3 = st.columns([4, 1, 1])
+                    col1.write(fn)
+
+                    with open(os.path.join(CTX_DIR, fn), "rb") as f:
+                        col2.download_button("⬇️", f, file_name=fn,
+                                             mime="application/octet-stream",
+                                             key=f"dl_{fn}")
+
+                    if col3.button("🗑️", key=f"del_{fn}"):
+                        os.remove(os.path.join(CTX_DIR, fn))
+                        shutil.rmtree(INDEX_DIR, ignore_errors=True)
+                        st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
+
             
     # ── Sidebar: add a new class folder ──────────────────────────────────────
     with st.sidebar.expander("➕  Add a new class", expanded=False):
@@ -266,32 +293,6 @@ with st.sidebar.container():
             st.rerun()                                     # ← add this
         else:
             st.info("No docs to save.")
-
-    # 1) file browser for current class -----------------------------------
-    with st.expander(f"📁 {active_class} files", expanded=False):
-        if not os.path.exists(CTX_DIR):
-            st.write("_Folder does not exist yet_")
-        else:
-            files = sorted(os.listdir(CTX_DIR))
-            if not files:
-                st.write("_Folder is empty_")
-            else:
-                st.markdown("<div class='file-list'>", unsafe_allow_html=True)
-                for fn in files:
-                    col1, col2, col3 = st.columns([4, 1, 1])
-                    col1.write(fn)
-
-                    with open(os.path.join(CTX_DIR, fn), "rb") as f:
-                        col2.download_button("⬇️", f, file_name=fn,
-                                             mime="application/octet-stream",
-                                             key=f"dl_{fn}")
-
-                    if col3.button("🗑️", key=f"del_{fn}"):
-                        os.remove(os.path.join(CTX_DIR, fn))
-                        shutil.rmtree(INDEX_DIR, ignore_errors=True)
-                        st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
-
 
     # --- Sidebar: narrow or prioritise docs ---------------------------------
     #            

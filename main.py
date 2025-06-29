@@ -167,105 +167,109 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 """, unsafe_allow_html=True)
 
 # ─── Sidebar: choose active class / module ───────────────────────────────
-class_folders = sorted(
-    d for d in os.listdir(BASE_CTX_DIR)
-    if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
-)
-if not class_folders:
-    st.sidebar.error(f"No folders found inside {BASE_CTX_DIR}.")
-    st.stop()
+with st.sidebar.container():
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("### Class controls")
 
-if "active_class" not in st.session_state:
-    st.session_state.active_class = class_folders[0]
+    class_folders = sorted(
+        d for d in os.listdir(BASE_CTX_DIR)
+        if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
+    )
+    if not class_folders:
+        st.sidebar.error(f"No folders found inside {BASE_CTX_DIR}.")
+        st.stop()
 
-active_class = st.sidebar.selectbox(
-    "🏷️  Select class / module",
-    class_folders,
-    index=class_folders.index(st.session_state.active_class)
-)
-if active_class != st.session_state.active_class:
-    st.session_state.active_class = active_class
-    st.rerun()                       # reload to pick up the new folder
+    if "active_class" not in st.session_state:
+        st.session_state.active_class = class_folders[0]
 
-# point the rest of the app at the chosen folder --------------------------
-CTX_DIR   = os.path.join(BASE_CTX_DIR, active_class)
-INDEX_DIR = f"faiss_{active_class}"
-         
-# ── Sidebar: add a new class folder ──────────────────────────────────────
-with st.sidebar.expander("➕  Add a new class", expanded=False):
-    new_name = st.text_input("Class name (letters, numbers, spaces):", key="new_class_name")
+    active_class = st.sidebar.selectbox(
+        "🏷️  Select class / module",
+        class_folders,
+        index=class_folders.index(st.session_state.active_class)
+    )
+    if active_class != st.session_state.active_class:
+        st.session_state.active_class = active_class
+        st.rerun()                       # reload to pick up the new folder
 
-    if st.button("Create class", key="create_class"):
-        clean   = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip().replace(" ", "_")
-        target  = os.path.join(BASE_CTX_DIR, clean)
-        seed_src = "giulia.txt"                           # ← location of your seed file
-        seed_dst = os.path.join(target, os.path.basename(seed_src))
+    # point the rest of the app at the chosen folder --------------------------
+    CTX_DIR   = os.path.join(BASE_CTX_DIR, active_class)
+    INDEX_DIR = f"faiss_{active_class}"
+            
+    # ── Sidebar: add a new class folder ──────────────────────────────────────
+    with st.sidebar.expander("➕  Add a new class", expanded=False):
+        new_name = st.text_input("Class name (letters, numbers, spaces):", key="new_class_name")
 
-        if not clean:
-            st.error("Please enter a name.")
-        elif clean in class_folders:
-            st.warning(f"“{clean}” already exists.")
-        else:
-            os.makedirs(target, exist_ok=True)            # make the class folder
+        if st.button("Create class", key="create_class"):
+            clean   = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip().replace(" ", "_")
+            target  = os.path.join(BASE_CTX_DIR, clean)
+            seed_src = "giulia.txt"                           # ← location of your seed file
+            seed_dst = os.path.join(target, os.path.basename(seed_src))
 
-            # ── copy the seed doc so the folder is never empty ───────────
-            try:
-                shutil.copy(seed_src, seed_dst)
-            except FileNotFoundError:
-                st.warning("Starter file giulia.txt not found – class created empty.")
-            # ----------------------------------------------------------------
-
-            st.success(f"Added “{clean}”. Select it in the list above.")
-            st.rerun()
-
-# ── delete-class workflow ──────────────────────────────────────────────
-if st.sidebar.button("🗑️ Delete this class", key="ask_delete"):
-    st.session_state.confirm_delete = True
-
-if st.session_state.get("confirm_delete"):
-    with st.sidebar.expander("⚠️ Confirm delete", expanded=True):
-        st.error(f"Really delete the class “{active_class}” and all its files?")
-        col_yes, col_no = st.columns(2)
-        if col_yes.button("Yes, delete", key="yes_delete"):
-            shutil.rmtree(os.path.join(BASE_CTX_DIR, active_class), ignore_errors=True)
-            shutil.rmtree(f"faiss_{active_class}",            ignore_errors=True)
-            st.session_state.confirm_delete = False
-            # pick a new active class (first alphabetically) or stop if none left
-            remaining = sorted(
-                d for d in os.listdir(BASE_CTX_DIR)
-                if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
-            )
-            if remaining:
-                st.session_state.active_class = remaining[0]
-                st.rerun()
+            if not clean:
+                st.error("Please enter a name.")
+            elif clean in class_folders:
+                st.warning(f"“{clean}” already exists.")
             else:
-                st.sidebar.success("All classes deleted. Add a new one!")
-                st.stop()
-        if col_no.button("Cancel", key="cancel_delete"):
-            st.session_state.confirm_delete = False
-            st.rerun()         
+                os.makedirs(target, exist_ok=True)            # make the class folder
 
-# ── Sidebar: upload files to the current class folder ────────────────────
-LOADER_MAP = {
-    "pdf":  PyPDFLoader,  "docx": Docx2txtLoader, "doc":  TextLoader,  # treat old .doc as plain text fallback
-    "pptx": UnstructuredPowerPointLoader, "csv":  CSVLoader, "txt":  TextLoader,
-}
+                # ── copy the seed doc so the folder is never empty ───────────
+                try:
+                    shutil.copy(seed_src, seed_dst)
+                except FileNotFoundError:
+                    st.warning("Starter file giulia.txt not found – class created empty.")
+                # ----------------------------------------------------------------
 
-uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
-if st.sidebar.button(f"💾 Save uploads to {active_class}"):
-    if uploaded_docs:
-        os.makedirs(CTX_DIR, exist_ok=True)
-        for uf in uploaded_docs:
-            with open(os.path.join(CTX_DIR, uf.name), "wb") as out:
-                out.write(uf.getbuffer())
+                st.success(f"Added “{clean}”. Select it in the list above.")
+                st.rerun()
 
-        shutil.rmtree(INDEX_DIR, ignore_errors=True)   # wipe stale FAISS
-        st.success("Files saved! Re-indexing…")
-        st.rerun()                                     # ← add this
-    else:
-        st.info("No docs to save.")
+    # ── delete-class workflow ──────────────────────────────────────────────
+    if st.sidebar.button("🗑️ Delete this class", key="ask_delete"):
+        st.session_state.confirm_delete = True
 
-# --- Sidebar: narrow or prioritise docs ---------------------------------
+    if st.session_state.get("confirm_delete"):
+        with st.sidebar.expander("⚠️ Confirm delete", expanded=True):
+            st.error(f"Really delete the class “{active_class}” and all its files?")
+            col_yes, col_no = st.columns(2)
+            if col_yes.button("Yes, delete", key="yes_delete"):
+                shutil.rmtree(os.path.join(BASE_CTX_DIR, active_class), ignore_errors=True)
+                shutil.rmtree(f"faiss_{active_class}",            ignore_errors=True)
+                st.session_state.confirm_delete = False
+                # pick a new active class (first alphabetically) or stop if none left
+                remaining = sorted(
+                    d for d in os.listdir(BASE_CTX_DIR)
+                    if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
+                )
+                if remaining:
+                    st.session_state.active_class = remaining[0]
+                    st.rerun()
+                else:
+                    st.sidebar.success("All classes deleted. Add a new one!")
+                    st.stop()
+            if col_no.button("Cancel", key="cancel_delete"):
+                st.session_state.confirm_delete = False
+                st.rerun()         
+
+    # ── Sidebar: upload files to the current class folder ────────────────────
+    LOADER_MAP = {
+        "pdf":  PyPDFLoader,  "docx": Docx2txtLoader, "doc":  TextLoader,  # treat old .doc as plain text fallback
+        "pptx": UnstructuredPowerPointLoader, "csv":  CSVLoader, "txt":  TextLoader,
+    }
+
+    uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
+    if st.sidebar.button(f"💾 Save uploads to {active_class}"):
+        if uploaded_docs:
+            os.makedirs(CTX_DIR, exist_ok=True)
+            for uf in uploaded_docs:
+                with open(os.path.join(CTX_DIR, uf.name), "wb") as out:
+                    out.write(uf.getbuffer())
+
+            shutil.rmtree(INDEX_DIR, ignore_errors=True)   # wipe stale FAISS
+            st.success("Files saved! Re-indexing…")
+            st.rerun()                                     # ← add this
+        else:
+            st.info("No docs to save.")
+    
+    st.markdown("</div>", unsafe_allow_html=True)  # close the card
 
 # ---------------- Sidebar: default_context browser -----------------
 with st.sidebar.container():
@@ -299,23 +303,19 @@ with st.sidebar.container():
 
     st.markdown("<div class='sidebar-gap'></div>", unsafe_allow_html=True)
    
-                    
+# --- Sidebar: narrow or prioritise docs ---------------------------------
+                   
 all_files = sorted(os.listdir(CTX_DIR)) if os.path.exists(CTX_DIR) else []
-
 sel_docs = st.sidebar.multiselect(
     "📑 Select docs to focus on (optional)", 
     all_files
 )
 
-with st.sidebar.container():
-    st.markdown("</div>", unsafe_allow_html=True)  # close the card
-
-    mode = st.sidebar.radio(
-        "↳ How should I use the selected docs?",
-        ["Prioritise (default)", "Only these docs"],
-        horizontal=True
-    )
-    st.markdown("<div class='sidebar-gap'></div>", unsafe_allow_html=True)
+mode = st.sidebar.radio(
+    "↳ How should I use the selected docs?",
+    ["Prioritise (default)", "Only these docs"],
+    horizontal=True
+)
 
 # --------------- Sidebar: light-hearted disclaimer -----------------
 with st.sidebar.expander("⚖️ Disclaimer", expanded=False):

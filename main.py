@@ -203,7 +203,7 @@ with st.sidebar.expander(f"📁 {active_class} files", expanded=False):
             for fn in files:
                 col1, col2, col3 = st.columns([4, 1, 1])
                 col1.write(fn)
-                # download link
+    
                 with open(os.path.join(CTX_DIR, fn), "rb") as f:
                     col2.download_button(
                         label="⬇️",
@@ -306,6 +306,98 @@ mode = st.sidebar.radio(
     ["Prioritise (default)", "Only these docs"],
     horizontal=True
 )
+
+
+# ───────────────── Sidebar : Class manager card ──────────────────────────
+with st.sidebar.container():
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+
+    # ① pick active class --------------------------------------------------
+    active_class = st.selectbox(
+        "🏷️  Select class / module",
+        class_folders,
+        index=class_folders.index(st.session_state.active_class),
+        label_visibility="visible",
+        key="class_picker",
+    )
+    if active_class != st.session_state.active_class:
+        st.session_state.active_class = active_class
+        st.rerun()
+
+    st.markdown("<div class='sidebar-gap'></div>", unsafe_allow_html=True)
+
+    # ② add a new class ----------------------------------------------------
+    with st.expander("➕  Add a new class", expanded=False):
+        new_name = st.text_input(
+            "Class name (letters, numbers, spaces):", key="new_class_name"
+        )
+
+        if st.button("Create class", key="create_class"):
+            clean   = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip().replace(" ", "_")
+            target  = os.path.join(BASE_CTX_DIR, clean)
+            seed_src = "giulia.txt"                       # starter file
+            seed_dst = os.path.join(target, os.path.basename(seed_src))
+
+            if not clean:
+                st.error("Please enter a name.")
+            elif clean in class_folders:
+                st.warning(f"“{clean}” already exists.")
+            else:
+                os.makedirs(target, exist_ok=True)
+                try:
+                    shutil.copy(seed_src, seed_dst)
+                except FileNotFoundError:
+                    st.warning("Starter file giulia.txt not found – class created empty.")
+
+                st.success(f"Added “{clean}”. Select it from the list above.")
+                st.rerun()
+
+    st.markdown("<div class='sidebar-gap'></div>", unsafe_allow_html=True)
+
+    # ③ delete current class (icon button) ---------------------------------
+    if st.button("🗑️", help="Delete this class", key="ask_delete",
+                 type="secondary", use_container_width=True):
+        st.session_state.confirm_delete = True
+
+    st.markdown("</div>", unsafe_allow_html=True)
+# ─────────────────────────────────────────────────────────────────────────
+
+# ── delete-class confirmation modal ──────────────────────────────────────
+if st.session_state.pop("confirm_delete", False):
+    with st.modal("⚠️  Delete class"):
+        st.error(f"Really delete “{active_class}” and all its files?")
+        col1, col2 = st.columns(2)
+
+        if col1.button("Yes, delete", type="primary"):
+            shutil.rmtree(os.path.join(BASE_CTX_DIR, active_class), ignore_errors=True)
+            shutil.rmtree(f"faiss_{active_class}",               ignore_errors=True)
+
+            remaining = sorted(
+                d for d in os.listdir(BASE_CTX_DIR)
+                if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
+            )
+            if remaining:
+                st.session_state.active_class = remaining[0]
+                st.success("Deleted. Switching class …")
+                st.rerun()
+            else:
+                st.warning("All classes deleted. Create a new one!")
+                st.stop()
+
+        if col2.button("Cancel", type="secondary"):
+            st.rerun()
+
+
+
+
+
+
+
+
+
+
+
+
 
 # --------------- Sidebar: light-hearted disclaimer -----------------
 with st.sidebar.expander("⚖️ Disclaimer", expanded=False):

@@ -262,7 +262,7 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
       </ul>
   </li>
 
-  <li><b>Images (beta)</b> – PNG / JPG diagrams are OCR’d. Very small or handwritten text may mis-read (Image mode in beta).</li>
+  <li><b>Images (beta)</b> – PNG / JPG diagrams are OCR’d. Very small or handwritten text may mis-read.</li>
 
   <li><b>Limits &amp; tips</b>
       <ul>

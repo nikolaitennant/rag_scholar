@@ -166,46 +166,39 @@ if st.sidebar.button("💾 Save uploads to default_context"):
     else: st.info("No docs to save.")
 
 st.markdown("""
-    <style>
-      .info-box {
-        margin-bottom: 24px;
-        padding: 26px 28px;
-        border-radius: 14px;
-        font-size: 1.08rem;
-        line-height: 1.7;
-      }
+<style>
+  .info-box{
+    margin:24px 0;padding:26px 28px;border-radius:14px;font-size:1.05rem;line-height:1.7
+  }
+  html[data-theme="light"] .info-box{
+    background:#e7f3fc;color:#184361;border-left:7px solid #2574a9;box-shadow:0 1px 8px #eef4fa
+  }
+  html[data-theme="dark"]  .info-box{
+    background:#2b2b2b;color:#ddd;border-left:7px solid #bb86fc;box-shadow:0 1px 8px rgba(0,0,0,.5)
+  }
+  html[data-theme="dark"]  .info-box b{color:#fff}
+  html[data-theme="dark"]  .info-box a{color:#a0d6ff}
+</style>
 
-      /* Light‐mode (Streamlit) */
-      html[data-theme="light"] .info-box {
-        background: #e7f3fc !important;
-        color: #184361 !important;
-        border-left: 7px solid #2574a9 !important;
-        box-shadow: 0 1px 8px #eef4fa !important;
-      }
-
-      /* Dark‐mode (Streamlit) */
-      html[data-theme="dark"] .info-box {
-        background: #2b2b2b !important;
-        color: #ddd !important;
-        border-left: 7px solid #bb86fc !important;
-        box-shadow: 0 1px 8px rgba(0,0,0,0.5) !important;
-      }
-      html[data-theme="dark"] .info-box b {
-        color: #fff !important;
-      }
-      html[data-theme="dark"] .info-box span {
-        color: #a0d6ff !important;
-      }
-    </style>
-
-<div class="info-box" style='margin:24px 0; padding:20px; background:#e7f3fc; border-left:7px solid #2574a9; color:#184361; border-radius:14px;'>
-  <b style='font-size:1.13rem;'>ℹ️ How this assistant works:</b>
-  <ul style='margin-left:1.1em; margin-top:12px;'>
-    <li>📄 <b>Only your documents:</b> I read and answer using just the files you upload plus any built-in context. I don’t look up anything on the web.</li>
-    <li>❓ <b>No surprises:</b> If the answer isn’t in your docs, I’ll tell you I don’t have enough information instead of making stuff up.</li>
-    <li>📂 <b>All your files:</b> You can upload as many PDFs, Word docs, slides, spreadsheets, or images as you need—I'll consider them all together.</li>
-  </ul>
-  <b>✨ Tip:</b> To get the best answers, upload any notes, reports, or visuals related to your question so I have the full picture.
+<div class="info-box">
+<b>ℹ️ How this assistant works</b>
+<ul style="margin-left:1.1em;margin-top:12px">
+  <li>📄 <b>Document-only answers</b> &nbsp;I reply <em>exclusively</em> from the PDFs, Word files, slides, CSVs or text you provide (plus anything stored with <code>remember:</code>). The web is <u>never</u> consulted.</li>
+  <li>🔍 <b>Exact citations</b> &nbsp;Every rule, fact, or conclusion ends with a snippet tag like <code>[#3]</code>. If no snippet supports it, I’ll say I don’t have enough information.</li>
+  <li>📂 <b>Two kinds of uploads</b>
+      <ul>
+        <li><b>Permanent</b> – drop files in <code>default_context/</code> or click “💾 Save uploads”. They persist across sessions and are index-cached.</li>
+        <li><b>Session-only</b> – upload via the sidebar and <em>don’t</em> save. I’ll cite them now, but they disappear on refresh.</li>
+      </ul></li>
+  <li>🖼 <b>Image support (beta)</b> – PNG/JPG diagrams are OCR-read and sent to GPT-4o. Vision is best-effort; complex labels may be mis-read.</li>
+  <li>🚦 <b>Limits & tips</b>
+      <ul>
+        <li>Up to ≈ 350 docs ≈ 4 000 chunks run comfortably on a laptop.</li>
+        <li>If you add new files and don’t see them cited, rebuild the index (delete <code>faiss_store/</code> or click “💾 Save uploads”).</li>
+        <li>Very long or scanned PDFs may need manual clean-up for reliable chunking.</li>
+      </ul></li>
+</ul>
+<b>Pro tip ✨</b>&nbsp;Ask follow-ups like “show the snippet you cited as [#2]” to verify context instantly.
 </div>
 """, unsafe_allow_html=True)
 

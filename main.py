@@ -238,31 +238,36 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
 
 <ul style="margin-left:1.1em;margin-top:12px">
 
-  <li><b>Document-only answers</b> – I rely <em>solely</em> on the files you upload or facts you store with remember/memo or user queries. No web searching!.</li>
+<!-- Core behaviour ---------------------------------------------------- -->
+  <li><b>Document-only answers</b> – I rely <em>solely</em> on the files you upload or the facts you store with <code>remember:</code>/<code>memo:</code>. No web searching.</li>
 
-  <li><b>Citations</b> – every legal rule or fact ends with a tag such as [#3].  
-      A yellow badge appears if something looks uncited.</li>
-      
+  <li><b>Citations</b> – every sentence that states a legal rule, date, or authority ends with <code>[#n]</code>. If I can’t cite it, I’ll say so.</li>
 
+  <li><b>Sources pill</b> – under each reply you’ll see “Sources used: #2, #7 …”. Click to preview which file each number came from.</li>
+
+  <li><b>Read the snippet</b> – type “<kbd>show snippet [#4]</kbd>” and I’ll reveal the exact passage.</li>
+
+  <!-- Uploads ----------------------------------------------------------- -->
   <li><b>Uploads</b>
       <ul>
         <li><b>Session-only</b> – drag files into the sidebar. They vanish when you refresh.</li>
-        <li><b>Keep forever</b> – after uploading, click <strong>“💾 Save uploads”</strong>.  
-            Need to remove one later? Use the <strong>🗑️</strong> icon in the sidebar list.</li>
+        <li><b>Keep forever</b> – after uploading, click <strong>“💾 Save uploads”</strong>. Need to delete one later? Hit <strong>🗑️</strong>.</li>
       </ul>
   </li>
 
-  <li><b>Images (beta)</b> – PNG / JPG diagrams are OCR’d. Very small or handwritten text may mis-read.</li>
-
-  <li><b>Limits &amp; tips</b>
-      <ul>
-        <li>Handles ≈ 4000 text chunks (about 350 average docs) comfortably.</li>
-      </ul>
+  <!-- Retrieval options -------------------------------------------------- -->
+  <li>📌 <b>Prioritise docs</b> – tick files in the sidebar to make me search them first, then widen the net.</li>
+  <li style="margin-top:6px;color:gray;font-size:0.95rem">
+      Tip: the “Prioritise / Only these docs” switch activates once at least one file is ticked.
   </li>
-  
-  <li>📌 <b>Prioritise docs</b> – use the sidebar checklist to tell the assistant which
-    files matter most for this question. I’ll look there first, then widen the net.</li>
-
+    <!-- Commands ---------------------------------------------------------- -->
+    <li><b>Commands</b>
+        <ul>
+            <li><code>remember:</code> – store a fact permanently, across sessions.</li>
+            <li><code>memo:</code> – store a fact for this session only.</li>
+            <li><code>role:</code> – set the assistant’s persona (e.g., “role: I’m a friendly law student”).</li>
+        </ul>
+    </li>
 </ul>
 </div>
         """,

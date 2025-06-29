@@ -87,7 +87,6 @@ def build_vectorstore(default_docs, default_index, session_docs):
         return FAISS.from_documents(default_docs + session_docs, embeddings)
     return default_index
 
-CITE_RE   = re.compile(r"\[\s*#\d+\s*\]$")
 INLINE_RE = re.compile(r"\[\s*#(\d+)\s*\]")
 
 def _split_sentences(text:str):
@@ -103,14 +102,6 @@ def _split_sentences(text:str):
     if buff: parts.append("".join(buff))
     return parts
 
-def highlight_missing_citations(text:str)->str:
-    out=[]
-    for sent in _split_sentences(text):
-        esc = html.escape(sent, quote=False)
-        out.append(esc if CITE_RE.search(sent.strip())
-                     else f"<span class='missing-cite'>{esc}</span>")
-    return "".join(out)
-
 def extract_citation_numbers(text:str)->list[int]:
     return sorted({int(n) for n in INLINE_RE.findall(text)})
 
@@ -121,13 +112,6 @@ st.markdown("""
 <style>
 /* stretch content edge-to-edge */
 section.main > div { max-width: 1200px; }
-
-/* ─── citation checker ─────────────────── */
-.missing-cite{
-  background:#fff9c4;         /* pale yellow */
-  padding:0 3px;
-  border-radius:4px;
-}
 
 /* info-panel look */
 .info-panel {
@@ -436,11 +420,6 @@ if user_input:
             # st.session_state.chat_history.append(("Assistant", resp.content))
             st.session_state.chat_history.append(
             {"speaker":"Assistant", "text": resp.content, "snippets": snippet_map})
-
-# ─── Render the chat history ──────────────────────────────────────────────
-# for speaker, text in st.session_state.chat_history:
-#     role = "user" if speaker == "User" else "assistant"
-#     st.chat_message(role).write(text)
 
 # ─── Render the chat history ──────────────────────────────────────────────
 for entry in st.session_state.chat_history:

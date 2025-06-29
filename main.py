@@ -10,7 +10,7 @@ from langchain_community.document_loaders import (
     CSVLoader,
     TextLoader,
     UnstructuredImageLoader,
-    PyPDFLoader
+    PyPDFLoader,
 )
 from langchain_core.messages import SystemMessage, HumanMessage
 import html, re, shutil, tempfile, os
@@ -21,12 +21,12 @@ api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────
-BASE_CTX_DIR = "classes_context"       # parent folder that holds the per-class folders
-CTX_DIR      = None                    # will be set after the user picks a class
-INDEX_DIR    = None
-FIRST_K   = 30
-FINAL_K   = 4
-LLM_MODEL   = "gpt-4o-mini"
+BASE_CTX_DIR = "classes_context"  # parent folder that holds the per-class folders
+CTX_DIR = None  # will be set after the user picks a class
+INDEX_DIR = None
+FIRST_K = 30
+FINAL_K = 4
+LLM_MODEL = "gpt-4o-mini"
 
 # ─── Streamlit session state ───────────────────────────────────────────────
 for key in ("memory_facts", "session_facts", "chat_history"):
@@ -35,6 +35,7 @@ for key in ("memory_facts", "session_facts", "chat_history"):
 if "persona" not in st.session_state:
     st.session_state.persona = None
 
+
 # ─── Helpers: load & index default docs ────────────────────────────────────
 @st.cache_resource(show_spinner=False)
 def load_and_index_defaults(folder: str):
@@ -42,15 +43,22 @@ def load_and_index_defaults(folder: str):
     if os.path.exists(folder):
         for fname in os.listdir(folder):
             lower = fname.lower()
-            path  = os.path.join(folder, fname)
+            path = os.path.join(folder, fname)
 
-            if   lower.endswith(".pdf"):   loader = PyPDFLoader(path)
-            elif lower.endswith(".docx"):  loader = Docx2txtLoader(path)
-            elif lower.endswith(".doc"):   loader = UnstructuredWordDocumentLoader(path)
-            elif lower.endswith(".pptx"):  loader = UnstructuredPowerPointLoader(path)
-            elif lower.endswith(".csv"):   loader = CSVLoader(path)
-            elif lower.endswith(".txt"):   loader = TextLoader(path)
-            else:                          continue
+            if lower.endswith(".pdf"):
+                loader = PyPDFLoader(path)
+            elif lower.endswith(".docx"):
+                loader = Docx2txtLoader(path)
+            elif lower.endswith(".doc"):
+                loader = UnstructuredWordDocumentLoader(path)
+            elif lower.endswith(".pptx"):
+                loader = UnstructuredPowerPointLoader(path)
+            elif lower.endswith(".csv"):
+                loader = CSVLoader(path)
+            elif lower.endswith(".txt"):
+                loader = TextLoader(path)
+            else:
+                continue
 
             docs.extend(loader.load())
 
@@ -60,8 +68,9 @@ def load_and_index_defaults(folder: str):
     # ────────────────────────────────────────────────────────
 
     embeddings = OpenAIEmbeddings(api_key=api_key)
-    index      = FAISS.from_documents(docs, embeddings)
+    index = FAISS.from_documents(docs, embeddings)
     return docs, index
+
 
 def load_uploaded_files(uploaded_files):
     if not uploaded_files:
@@ -70,7 +79,7 @@ def load_uploaded_files(uploaded_files):
     docs = []
     for f in uploaded_files:
         lower = f.name.lower()
-        if not lower.endswith((".pdf",".txt",".docx",".doc",".pptx",".csv")):
+        if not lower.endswith((".pdf", ".txt", ".docx", ".doc", ".pptx", ".csv")):
             continue
         fp = os.path.join(tmp, f.name)
         with open(fp, "wb") as out:
@@ -90,34 +99,46 @@ def load_uploaded_files(uploaded_files):
         docs.extend(loader.load())
     return docs
 
+
 def build_vectorstore(default_docs, default_index, session_docs):
     if session_docs:
         embeddings = OpenAIEmbeddings(api_key=api_key)
         return FAISS.from_documents(default_docs + session_docs, embeddings)
     return default_index
 
+
 INLINE_RE = re.compile(r"\[\s*#(\d+)\s*\]")
 
-def _split_sentences(text:str):
+
+def _split_sentences(text: str):
     parts, buff, in_code = [], [], False
     for line in text.splitlines(keepends=True):
         if line.strip().startswith("```"):
             in_code = not in_code
-            parts.append("".join(buff)); buff=[]
-            parts.append(line);          continue
-        if in_code: parts.append(line);  continue
+            parts.append("".join(buff))
+            buff = []
+            parts.append(line)
+            continue
+        if in_code:
+            parts.append(line)
+            continue
         for chunk in re.split(r"(?<=[.!?])\s+", line):
-            if chunk: parts.append(chunk)
-    if buff: parts.append("".join(buff))
+            if chunk:
+                parts.append(chunk)
+    if buff:
+        parts.append("".join(buff))
     return parts
 
-def extract_citation_numbers(text:str)->list[int]:
+
+def extract_citation_numbers(text: str) -> list[int]:
     return sorted({int(n) for n in INLINE_RE.findall(text)})
+
 
 # ─── Streamlit UI setup ───────────────────────────────────────────────────
 st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
- 
-st.markdown("""
+
+st.markdown(
+    """
 <style>
 
 /* info-panel look */
@@ -130,21 +151,26 @@ st.markdown("""
 
 </style>
 
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 st.title("⚖️ Giulia's Law AI Assistant!")
 
 # Sidebar
 st.sidebar.header("📂 Settings & Additional Info")
 with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
-    st.markdown("""
+    st.markdown(
+        """
 | **Command** | **What it Does**               | **Scope**           |
 |------------:|--------------------------------|---------------------|
 | `remember:` | Store a fact permanently       | Across sessions     |
 | `memo:`     | Store a fact this session only | Single session      |
 | `role:`     | Set the assistant’s persona    | Single session      |
 
-""", unsafe_allow_html=True)
+""",
+        unsafe_allow_html=True,
+    )
 
 
 # ─── Sidebar: choose active class / module ───────────────────────────────
@@ -153,7 +179,8 @@ with st.sidebar.container():
 
     # --- list available class folders -----------------------------------
     class_folders = sorted(
-        d for d in os.listdir(BASE_CTX_DIR)
+        d
+        for d in os.listdir(BASE_CTX_DIR)
         if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
     )
     if not class_folders:
@@ -168,14 +195,14 @@ with st.sidebar.container():
     active_class = st.sidebar.selectbox(
         "🏷️  Select class / module",
         class_folders,
-        index=class_folders.index(st.session_state.active_class)
+        index=class_folders.index(st.session_state.active_class),
     )
     if active_class != st.session_state.active_class:
         st.session_state.active_class = active_class
-        st.rerun()                       # reload to pick up the new folder
+        st.rerun()  # reload to pick up the new folder
 
     # --- paths that depend on active_class ------------------------------
-    CTX_DIR   = os.path.join(BASE_CTX_DIR, active_class)
+    CTX_DIR = os.path.join(BASE_CTX_DIR, active_class)
     INDEX_DIR = f"faiss_{active_class}"
 
     # 2️⃣  FILE-BROWSER EXPANDER (shown under the selector)
@@ -193,9 +220,13 @@ with st.sidebar.container():
                     col1.write(fn)
 
                     with open(os.path.join(CTX_DIR, fn), "rb") as f:
-                        col2.download_button("⬇️", f, file_name=fn,
-                                             mime="application/octet-stream",
-                                             key=f"dl_{fn}")
+                        col2.download_button(
+                            "⬇️",
+                            f,
+                            file_name=fn,
+                            mime="application/octet-stream",
+                            key=f"dl_{fn}",
+                        )
 
                     if col3.button("🗑️", key=f"del_{fn}"):
                         os.remove(os.path.join(CTX_DIR, fn))
@@ -205,14 +236,13 @@ with st.sidebar.container():
     # 3️⃣  ADD-NEW-CLASS EXPANDER (also under the selector)
     with st.expander("➕  Add a new class", expanded=False):
         new_name = st.text_input(
-            "Class name (letters, numbers, spaces):",
-            key="new_class_name"
+            "Class name (letters, numbers, spaces):", key="new_class_name"
         )
 
         if st.button("Create class", key="create_class"):
-            clean   = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip().replace(" ", "_")
-            target  = os.path.join(BASE_CTX_DIR, clean)
-            seed_src = "giulia.txt"                           # starter file
+            clean = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip().replace(" ", "_")
+            target = os.path.join(BASE_CTX_DIR, clean)
+            seed_src = "giulia.txt"  # starter file
             seed_dst = os.path.join(target, os.path.basename(seed_src))
 
             if not clean:
@@ -222,9 +252,11 @@ with st.sidebar.container():
             else:
                 os.makedirs(target, exist_ok=True)
                 try:
-                    shutil.copy(seed_src, seed_dst)           # make sure folder isn’t empty
+                    shutil.copy(seed_src, seed_dst)  # make sure folder isn’t empty
                 except FileNotFoundError:
-                    st.warning("Starter file giulia.txt not found – class created empty.")
+                    st.warning(
+                        "Starter file giulia.txt not found – class created empty."
+                    )
 
                 st.success(f"Added “{clean}”. Select it in the list above.")
                 st.rerun()
@@ -238,12 +270,15 @@ with st.sidebar.container():
             st.error(f"Really delete the class “{active_class}” and all its files?")
             col_yes, col_no = st.columns(2)
             if col_yes.button("Yes, delete", key="yes_delete"):
-                shutil.rmtree(os.path.join(BASE_CTX_DIR, active_class), ignore_errors=True)
-                shutil.rmtree(f"faiss_{active_class}",            ignore_errors=True)
+                shutil.rmtree(
+                    os.path.join(BASE_CTX_DIR, active_class), ignore_errors=True
+                )
+                shutil.rmtree(f"faiss_{active_class}", ignore_errors=True)
                 st.session_state.confirm_delete = False
                 # pick a new active class (first alphabetically) or stop if none left
                 remaining = sorted(
-                    d for d in os.listdir(BASE_CTX_DIR)
+                    d
+                    for d in os.listdir(BASE_CTX_DIR)
                     if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
                 )
                 if remaining:
@@ -254,20 +289,26 @@ with st.sidebar.container():
                     st.stop()
             if col_no.button("Cancel", key="cancel_delete"):
                 st.session_state.confirm_delete = False
-                st.rerun()         
+                st.rerun()
 
-# ---------------- Sidebar: default_context browser -----------------
-            
+# ---------------- Sidebar: Document Controls -----------------
+
 with st.sidebar.container():
     st.markdown("### 📄 Document controls")
 
-       # ── Sidebar: upload files to the current class folder ────────────────────
+    # ── Sidebar: upload files to the current class folder ────────────────────
     LOADER_MAP = {
-        "pdf":  PyPDFLoader,  "docx": Docx2txtLoader, "doc":  TextLoader,  # treat old .doc as plain text fallback
-        "pptx": UnstructuredPowerPointLoader, "csv":  CSVLoader, "txt":  TextLoader,
+        "pdf": PyPDFLoader,
+        "docx": Docx2txtLoader,
+        "doc": TextLoader,  # treat old .doc as plain text fallback
+        "pptx": UnstructuredPowerPointLoader,
+        "csv": CSVLoader,
+        "txt": TextLoader,
     }
 
-    uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
+    uploaded_docs = st.sidebar.file_uploader(
+        "Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True
+    )
     if st.sidebar.button(f"💾 Save uploads to {active_class}"):
         if uploaded_docs:
             os.makedirs(CTX_DIR, exist_ok=True)
@@ -275,24 +316,20 @@ with st.sidebar.container():
                 with open(os.path.join(CTX_DIR, uf.name), "wb") as out:
                     out.write(uf.getbuffer())
 
-            shutil.rmtree(INDEX_DIR, ignore_errors=True)   # wipe stale FAISS
+            shutil.rmtree(INDEX_DIR, ignore_errors=True)  # wipe stale FAISS
             st.success("Files saved! Re-indexing…")
-            st.rerun()                                     # ← add this
+            st.rerun()  # ← add this
         else:
             st.info("No docs to save.")
 
     # --- Sidebar: narrow or prioritise docs ---------------------------------
-    #            
     all_files = sorted(os.listdir(CTX_DIR)) if os.path.exists(CTX_DIR) else []
-    sel_docs = st.sidebar.multiselect(
-        "📑 Select docs to focus on (optional)", 
-        all_files
-    )
+    sel_docs = st.sidebar.multiselect("📑 Select docs to focus on (optional)", all_files)
 
     mode = st.sidebar.radio(
         "↳ How should I use the selected docs?",
         ["Prioritise (default)", "Only these docs"],
-        horizontal=True
+        horizontal=True,
     )
 
 
@@ -356,15 +393,17 @@ embeddings = OpenAIEmbeddings(api_key=api_key)
 faiss_bin = os.path.join(INDEX_DIR, f"{os.path.basename(INDEX_DIR)}.faiss")
 faiss_pkl = os.path.join(INDEX_DIR, f"{os.path.basename(INDEX_DIR)}.pkl")
 
+
 def index_files_exist() -> bool:
     return os.path.isfile(faiss_bin) and os.path.isfile(faiss_pkl)
+
 
 if index_files_exist():
     try:
         vector_store = FAISS.load_local(
             INDEX_DIR, embeddings, allow_dangerous_deserialization=True
         )
-    except Exception:              # corrupted ⇒ rebuild
+    except Exception:  # corrupted ⇒ rebuild
         shutil.rmtree(INDEX_DIR, ignore_errors=True)
         vector_store = None
 else:
@@ -372,8 +411,10 @@ else:
 
 if vector_store is None:
     # build from whatever we actually have right now
-    default_docs, default_index = load_and_index_defaults(CTX_DIR)   # <-- pass class folder
-    session_docs  = load_uploaded_files(uploaded_docs)
+    default_docs, default_index = load_and_index_defaults(
+        CTX_DIR
+    )  # <-- pass class folder
+    session_docs = load_uploaded_files(uploaded_docs)
 
     if default_index and session_docs:
         vector_store = build_vectorstore(default_docs, default_index, session_docs)
@@ -397,14 +438,12 @@ if user_input:
     low = txt.lower()
 
     # -------- choose retrieval strategy (sidebar controls) ----------------
-    full_retriever = vector_store.as_retriever(
-        search_kwargs={"k": FIRST_K}
-    )
+    full_retriever = vector_store.as_retriever(search_kwargs={"k": FIRST_K})
 
     if sel_docs:
         sel_set = set(sel_docs)
 
-        def _in_selection(meta: dict) -> bool:      # meta is a dict
+        def _in_selection(meta: dict) -> bool:  # meta is a dict
             src = meta.get("source") or meta.get("file_path") or ""
             return os.path.basename(src) in sel_set
 
@@ -414,15 +453,14 @@ if user_input:
     else:
         focus_retriever = None
 
-
-
     if mode == "Only these docs" and focus_retriever:
         docs = focus_retriever.invoke(txt)
 
     elif mode == "Prioritise (default)" and focus_retriever:
-        primary   = focus_retriever.invoke(txt)
-        secondary = [d for d in full_retriever.invoke(txt)
-                     if d not in primary][: max(0, FINAL_K - len(primary))]
+        primary = focus_retriever.invoke(txt)
+        secondary = [d for d in full_retriever.invoke(txt) if d not in primary][
+            : max(0, FINAL_K - len(primary))
+        ]
         docs = primary + secondary
     else:
         docs = full_retriever.invoke(txt)
@@ -446,24 +484,21 @@ if user_input:
     elif low.startswith("role:"):
         persona = txt.split(":", 1)[1].strip()
         st.session_state.persona = persona
-        st.session_state.chat_history.append(
-            ("Assistant", f"👤 Persona set: {persona}")
-        )
+        st.session_state.chat_history.append(("Assistant", f"👤 Persona set: {persona}"))
 
     # ─ RAG / LLM answer branch ───────────────────────────────────────────
     else:
         # number the retrieved docs and remember their metadata  ────────────────
-        snippet_map = {}                           # {id:int → dict}
+        snippet_map = {}  # {id:int → dict}
         context_parts = []
         for i, d in enumerate(docs, start=1):
-            context_parts.append(f"[#{i}]\n{d.page_content}")   # prepend marker
+            context_parts.append(f"[#{i}]\n{d.page_content}")  # prepend marker
             snippet_map[i] = {
                 "preview": re.sub(r"\s+", " ", d.page_content.strip())[:160] + "…",
-                "source":  os.path.basename(
-                                d.metadata.get("source")
-                                or d.metadata.get("file_path","-unknown-")
-                            ),
-                "page":    d.metadata.get("page", None),
+                "source": os.path.basename(
+                    d.metadata.get("source") or d.metadata.get("file_path", "-unknown-")
+                ),
+                "page": d.metadata.get("page", None),
             }
         context = "\n\n".join(context_parts)
 
@@ -511,15 +546,18 @@ if user_input:
 
         messages.append(HumanMessage(content=txt))
 
-        if not (docs or st.session_state.memory_facts or st.session_state.session_facts):
+        if not (
+            docs or st.session_state.memory_facts or st.session_state.session_facts
+        ):
             st.warning("⚠️ Not enough info to answer.")
         else:
             resp = chat_llm.invoke(messages)
             # st.session_state.chat_history.append(("User", txt))
-            st.session_state.chat_history.append({"speaker":"User", "text": txt})
+            st.session_state.chat_history.append({"speaker": "User", "text": txt})
             # st.session_state.chat_history.append(("Assistant", resp.content))
             st.session_state.chat_history.append(
-            {"speaker":"Assistant", "text": resp.content, "snippets": snippet_map})
+                {"speaker": "Assistant", "text": resp.content, "snippets": snippet_map}
+            )
 
 # ─── Render the chat history ──────────────────────────────────────────────
 for entry in st.session_state.chat_history:
@@ -530,7 +568,7 @@ for entry in st.session_state.chat_history:
 
     if entry["speaker"] == "Assistant":
         highlighted = entry["text"]
-        cites       = extract_citation_numbers(entry["text"])
+        cites = extract_citation_numbers(entry["text"])
 
         with st.chat_message("assistant"):
             st.markdown(highlighted, unsafe_allow_html=True)
@@ -544,13 +582,12 @@ for entry in st.session_state.chat_history:
                             st.write(f"• [#{n}] – (not in this context?)")
                             continue
                         label = f"**[#{n}]** – {info['preview']}"
-                        note  = info["source"]
+                        note = info["source"]
                         if info["page"] is not None:
                             note += f"  (p.{info['page']+1})"
                         st.markdown(
                             f"{label}<br/><span style='color:gray;font-size:0.85rem'>from <b>{note}</b></span>",
-                            unsafe_allow_html=True
+                            unsafe_allow_html=True,
                         )
     else:
         st.chat_message("user").write(entry["text"])
-

@@ -275,7 +275,6 @@ with st.sidebar.container():
                         st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='sidebar-gap'></div>", unsafe_allow_html=True)
 
     # --- Sidebar: narrow or prioritise docs ---------------------------------
     #            

@@ -49,8 +49,6 @@ def load_and_index_defaults(folder: str = "default_context"):
                 loader = UnstructuredPowerPointLoader(path)
             elif lower.endswith(".csv"):
                 loader = CSVLoader(path)
-            elif lower.endswith((".png", ".jpg", ".jpeg")):
-                loader = UnstructuredImageLoader(path)
             elif lower.endswith(".txt"):
                 loader = TextLoader(path)
             else:
@@ -67,7 +65,7 @@ def load_uploaded_files(uploaded_files):
     docs = []
     for f in uploaded_files:
         lower = f.name.lower()
-        if not lower.endswith((".pdf",".txt",".docx",".doc",".pptx",".csv",".png",".jpg",".jpeg")):
+        if not lower.endswith((".pdf",".txt",".docx",".doc",".pptx",".csv")):
             continue
         fp = os.path.join(tmp, f.name)
         with open(fp, "wb") as out:
@@ -82,8 +80,6 @@ def load_uploaded_files(uploaded_files):
             loader = UnstructuredPowerPointLoader(fp)
         elif lower.endswith(".csv"):
             loader = CSVLoader(fp)
-        elif lower.endswith((".png",".jpg",".jpeg")):
-            loader = UnstructuredImageLoader(fp)
         else:
             loader = TextLoader(fp)
         docs.extend(loader.load())
@@ -96,8 +92,38 @@ def build_vectorstore(default_docs, default_index, session_docs):
     return default_index
 
 # ─── Streamlit UI setup ───────────────────────────────────────────────────
-st.set_page_config(page_title="Giulia's AI Law Assistant", page_icon="🤖")
-st.title("🤖 Giulia's AI Law Assistant")
+
+# ── UI ───────────────────────────────────────────────────────────────────────
+st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
+ 
+st.markdown("""
+<style>
+/* stretch content edge-to-edge */
+section.main > div { max-width: 1200px; }
+
+/* info-panel look */
+.info-panel {
+  padding:24px 28px;
+  border-radius:14px;
+  font-size:1.05rem;
+  line-height:1.7;
+}
+html[data-theme="light"] .info-panel{
+  background:#e7f3fc; color:#184361;
+  border-left:7px solid #2574a9;
+  box-shadow:0 1px 8px #eef4fa;
+}
+html[data-theme="dark"]  .info-panel{
+  background:#2b2b2b; color:#ddd;
+  border-left:7px solid #bb86fc;
+  box-shadow:0 1px 8px rgba(0,0,0,.5);
+}
+html[data-theme="dark"]  .info-panel b{color:#fff}
+html[data-theme="dark"]  .info-panel a{color:#a0d6ff}
+</style>
+""", unsafe_allow_html=True)
+
+st.title("⚖️ Giulia's Law AI Assistant!")
 
 # Sidebar
 st.sidebar.header("📂 File Uploads & Additional Info")
@@ -110,65 +136,234 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 | `role:`     | Set the assistant’s persona    | Single session      |
 """, unsafe_allow_html=True)
 
-upload_mode = st.sidebar.radio("Save conversation for later?:", ("No, this session only", "Yes, remember for next time"), index=0)
-mode = st.sidebar.radio("Media Type:", ("Text only", "Image/Chart"), index=0)
-inline_files = st.sidebar.file_uploader("Upload document:", type=["pdf","txt","docx","doc","pptx","csv"], accept_multiple_files=True)
-image_file = st.sidebar.file_uploader("Upload image/chart:", type=["png","jpg","jpeg"])
+# ---------------- Sidebar: default_context browser -----------------
+with st.sidebar.expander("📁 default_context files", expanded=False):
+    if not os.path.exists(CTX_DIR):
+        st.write("_Folder does not exist yet_")
+    else:
+        files = sorted(os.listdir(CTX_DIR))
+        if not files:
+            st.write("_Folder is empty_")
+        else:
+            for fn in files:
+                col1, col2, col3 = st.columns([4, 1, 1])
+                col1.write(fn)
+                # download link
+                with open(os.path.join(CTX_DIR, fn), "rb") as f:
+                    col2.download_button(
+                        label="⬇️",
+                        data=f,
+                        file_name=fn,
+                        mime="application/octet-stream",
+                        key=f"dl_{fn}",
+                    )
+                # delete button
+                if col3.button("🗑️", key=f"del_{fn}"):
+                    os.remove(os.path.join(CTX_DIR, fn))
+                    # drop the index so it's rebuilt without the file
+                    shutil.rmtree(INDEX_DIR, ignore_errors=True)
+                    st.experimental_rerun()
 
-if upload_mode == "Yes, remember for next time" and inline_files:
-    os.makedirs("default_context", exist_ok=True)
-    for f in inline_files:
-        dest = os.path.join("default_context", f.name)
-        if not os.path.exists(dest):
-            with open(dest, "wb") as out:
-                out.write(f.getbuffer())
-    st.sidebar.success("✅ Documents saved for future sessions.")
 
+uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
+if st.sidebar.button("💾 Save uploads to default_context"):
+    if uploaded_docs:
+        os.makedirs(CTX_DIR, exist_ok=True)
+        for uf in uploaded_docs:
+            dest = os.path.join(CTX_DIR, uf.name)
+            with open(dest,"wb") as out: out.write(uf.getbuffer())
+        shutil.rmtree(INDEX_DIR, ignore_errors=True)
+        st.success("Files saved! Reload to re-index.")
+    else: st.info("No docs to save.")
 
+# --- Sidebar: narrow or prioritise docs ---------------------------------
+all_files = sorted(os.listdir(CTX_DIR)) if os.path.exists(CTX_DIR) else []
 
-st.markdown("""
-    <style>
-      .info-box {
-        margin-bottom: 24px;
-        padding: 26px 28px;
-        border-radius: 14px;
-        font-size: 1.08rem;
-        line-height: 1.7;
-      }
+sel_docs = st.sidebar.multiselect(
+    "📑 Select docs to focus on (optional)", 
+    all_files
+)
 
-      /* Light‐mode (Streamlit) */
-      html[data-theme="light"] .info-box {
-        background: #e7f3fc !important;
-        color: #184361 !important;
-        border-left: 7px solid #2574a9 !important;
-        box-shadow: 0 1px 8px #eef4fa !important;
-      }
+mode = st.sidebar.radio(
+    "↳ How should I use the selected docs?",
+    ["Prioritise (default)", "Only these docs"],
+    horizontal=True
+)
 
-      /* Dark‐mode (Streamlit) */
-      html[data-theme="dark"] .info-box {
-        background: #2b2b2b !important;
-        color: #ddd !important;
-        border-left: 7px solid #bb86fc !important;
-        box-shadow: 0 1px 8px rgba(0,0,0,0.5) !important;
-      }
-      html[data-theme="dark"] .info-box b {
-        color: #fff !important;
-      }
-      html[data-theme="dark"] .info-box span {
-        color: #a0d6ff !important;
-      }
-    </style>
+# ---------- live resource meter ------------------------------------------
+proc = psutil.Process(os.getpid())
+rss_mb = proc.memory_info().rss / 1024**2         # RAM in MB
+vm      = psutil.virtual_memory()
 
-<div class="info-box" style='margin:24px 0; padding:20px; background:#e7f3fc; border-left:7px solid #2574a9; color:#184361; border-radius:14px;'>
-  <b style='font-size:1.13rem;'>ℹ️ How this assistant works:</b>
-  <ul style='margin-left:1.1em; margin-top:12px;'>
-    <li>📄 <b>Only your documents:</b> I read and answer using just the files you upload plus any built-in context. I don’t look up anything on the web.</li>
-    <li>❓ <b>No surprises:</b> If the answer isn’t in your docs, I’ll tell you I don’t have enough information instead of making stuff up.</li>
-    <li>📂 <b>All your files:</b> You can upload as many PDFs, Word docs, slides, spreadsheets, or images as you need—I'll consider them all together.</li>
-  </ul>
-  <b>✨ Tip:</b> To get the best answers, upload any notes, reports, or visuals related to your question so I have the full picture.
+# size of default_context + faiss_store
+def folder_size(path):
+    return sum(f.stat().st_size for f in os.scandir(path) if f.is_file())
+
+ctx_bytes  = folder_size(CTX_DIR)   if os.path.exists(CTX_DIR)   else 0
+idx_bytes  = folder_size(INDEX_DIR) if os.path.exists(INDEX_DIR) else 0
+disk_total, disk_used, _ = shutil.disk_usage(".")
+
+st.sidebar.markdown("## 📊 Resource usage")
+st.sidebar.write(
+    f"**RAM** {rss_mb:,.0f} MB ({vm.percent:.0f} %)")
+st.sidebar.write(
+    f"**Docs** {humanize.naturalsize(ctx_bytes)}  \n"
+    f"**Index** {humanize.naturalsize(idx_bytes)}")
+st.sidebar.write(
+    f"**Disk used** {humanize.naturalsize(disk_used)} "
+    f"of {humanize.naturalsize(disk_total)}")
+
+# --------------- Sidebar: light-hearted disclaimer -----------------
+with st.sidebar.expander("⚖️ Disclaimer", expanded=False):
+    st.markdown(
+        """
+I’m an AI study buddy, **not** your solicitor or lecturer.  
+By using this tool you agree that:
+
+* I might be wrong, out-of-date, or miss a key authority.
+* Your exam results remain **your** responsibility.
+* If you flunk, you’ve implicitly waived all claims in tort, contract,
+  equity, and any other jurisdiction you can think of&nbsp;😉
+
+In short: double-check everything before relying on it.
+""",
+        unsafe_allow_html=True,
+    )
+
+with st.expander("ℹ️  How this assistant works", expanded=True):
+    st.markdown(
+        """
+<div class="info-panel">
+
+**📚 Quick overview**
+
+<ul style="margin-left:1.1em;margin-top:12px">
+
+  <li><b>Document-only answers</b> – I rely <em>solely</em> on the files you upload or facts you store with remember/memo or user queries. No web searching!.</li>
+
+  <li><b>Citations</b> – every legal rule or fact ends with a tag such as [#3].  
+      A yellow badge appears if something looks uncited.</li>
+      
+
+  <li><b>Uploads</b>
+      <ul>
+        <li><b>Session-only</b> – drag files into the sidebar. They vanish when you refresh.</li>
+        <li><b>Keep forever</b> – after uploading, click <strong>“💾 Save uploads”</strong>.  
+            Need to remove one later? Use the <strong>🗑️</strong> icon in the sidebar list.</li>
+      </ul>
+  </li>
+
+  <li><b>Images (beta)</b> – PNG / JPG diagrams are OCR’d. Very small or handwritten text may mis-read.</li>
+
+  <li><b>Limits &amp; tips</b>
+      <ul>
+        <li>Handles ≈ 4000 text chunks (about 350 average docs) comfortably.</li>
+      </ul>
+  </li>
+  
+  <li>📌 <b>Prioritise docs</b> – use the sidebar checklist to tell the assistant which
+    files matter most for this question. I’ll look there first, then widen the net.</li>
+
+</ul>
+
+**Pro tip ✨**  Type "show snippet [#2]" and I’ll reveal the exact passage I used.
+
 </div>
-""", unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True,
+    )
+
+query = st.chat_input("Ask anything")
+
+for k, d in {
+    "perm": [], "sess": [], "persona": None,
+    "hist": [], "user_snips": []        
+}.items():
+    st.session_state.setdefault(k, d)
+
+
+
+
+
+
+
+
+
+
+
+# st.set_page_config(page_title="Giulia's AI Law Assistant", page_icon="🤖")
+# st.title("🤖 Giulia's AI Law Assistant")
+
+# # Sidebar
+# st.sidebar.header("📂 File Uploads & Additional Info")
+# with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
+#     st.markdown("""
+# | **Command** | **What it Does**               | **Scope**           |
+# |------------:|--------------------------------|---------------------|
+# | `remember:` | Store a fact permanently       | Across sessions     |
+# | `memo:`     | Store a fact this session only | Single session      |
+# | `role:`     | Set the assistant’s persona    | Single session      |
+# """, unsafe_allow_html=True)
+
+# upload_mode = st.sidebar.radio("Save conversation for later?:", ("No, this session only", "Yes, remember for next time"), index=0)
+# mode = st.sidebar.radio("Media Type:", ("Text only", "Image/Chart"), index=0)
+# inline_files = st.sidebar.file_uploader("Upload document:", type=["pdf","txt","docx","doc","pptx","csv"], accept_multiple_files=True)
+# image_file = st.sidebar.file_uploader("Upload image/chart:", type=["png","jpg","jpeg"])
+
+# if upload_mode == "Yes, remember for next time" and inline_files:
+#     os.makedirs("default_context", exist_ok=True)
+#     for f in inline_files:
+#         dest = os.path.join("default_context", f.name)
+#         if not os.path.exists(dest):
+#             with open(dest, "wb") as out:
+#                 out.write(f.getbuffer())
+#     st.sidebar.success("✅ Documents saved for future sessions.")
+
+
+
+# st.markdown("""
+#     <style>
+#       .info-box {
+#         margin-bottom: 24px;
+#         padding: 26px 28px;
+#         border-radius: 14px;
+#         font-size: 1.08rem;
+#         line-height: 1.7;
+#       }
+
+#       /* Light‐mode (Streamlit) */
+#       html[data-theme="light"] .info-box {
+#         background: #e7f3fc !important;
+#         color: #184361 !important;
+#         border-left: 7px solid #2574a9 !important;
+#         box-shadow: 0 1px 8px #eef4fa !important;
+#       }
+
+#       /* Dark‐mode (Streamlit) */
+#       html[data-theme="dark"] .info-box {
+#         background: #2b2b2b !important;
+#         color: #ddd !important;
+#         border-left: 7px solid #bb86fc !important;
+#         box-shadow: 0 1px 8px rgba(0,0,0,0.5) !important;
+#       }
+#       html[data-theme="dark"] .info-box b {
+#         color: #fff !important;
+#       }
+#       html[data-theme="dark"] .info-box span {
+#         color: #a0d6ff !important;
+#       }
+#     </style>
+
+# <div class="info-box" style='margin:24px 0; padding:20px; background:#e7f3fc; border-left:7px solid #2574a9; color:#184361; border-radius:14px;'>
+#   <b style='font-size:1.13rem;'>ℹ️ How this assistant works:</b>
+#   <ul style='margin-left:1.1em; margin-top:12px;'>
+#     <li>📄 <b>Only your documents:</b> I read and answer using just the files you upload plus any built-in context. I don’t look up anything on the web.</li>
+#     <li>❓ <b>No surprises:</b> If the answer isn’t in your docs, I’ll tell you I don’t have enough information instead of making stuff up.</li>
+#     <li>📂 <b>All your files:</b> You can upload as many PDFs, Word docs, slides, spreadsheets, or images as you need—I'll consider them all together.</li>
+#   </ul>
+#   <b>✨ Tip:</b> To get the best answers, upload any notes, reports, or visuals related to your question so I have the full picture.
+# </div>
+# """, unsafe_allow_html=True)
 
 # ─── Build or update RAG index ────────────────────────────────────────────
 default_docs, default_index = load_and_index_defaults()
@@ -183,38 +378,8 @@ if user_input:
     txt = user_input.strip()
     low = txt.lower()
 
-    # ─ Vision branch ─────────────────────────
-    if mode == "Image/Chart" and image_file:
-        img_bytes = image_file.read()
-        b64 = base64.b64encode(img_bytes).decode()
-        ext = image_file.name.split('.')[-1]
-        data_url = f"data:image/{ext};base64,{b64}"
-
-        payload = {
-            "model": "gpt-4o-mini",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text",      "text": txt},
-                        {"type": "image_url", "image_url": {"url": data_url}}
-                    ]
-                }
-            ],
-            "max_tokens": 300
-        }
-        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-        resp = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-        if resp.status_code != 200:
-            assistant_msg = f"⚠️ Vision API error {resp.status_code}: {resp.text}"
-        else:
-            assistant_msg = resp.json()["choices"][0]["message"]["content"]
-
-        st.session_state.chat_history.append(("User", txt))
-        st.session_state.chat_history.append(("Assistant", assistant_msg))
-
     # ─ Command branches ───────────────────────
-    elif low.startswith("remember:"):
+    if low.startswith("remember:"):
         fact = txt.split(":", 1)[1].strip()
         st.session_state.memory_facts.append(fact)
         # only the assistant confirmation goes into chat_history:

@@ -141,7 +141,6 @@ html[data-theme="dark"]  .info-panel{
 }
 html[data-theme="dark"]  .info-panel b{color:#fff}
 html[data-theme="dark"]  .info-panel a{color:#a0d6ff}
-</style>
 
 /* ── sidebar polish ──────────────────────────────────────── */
 .card          {background:rgba(0,0,0,.03);padding:12px 16px;border-radius:10px;}
@@ -149,6 +148,7 @@ html[data-theme="dark"]  .info-panel a{color:#a0d6ff}
 .file-list     {max-height:160px;overflow-y:auto;}
 /* tighten default vertical spacing inside sidebar */
 section[data-testid="stSidebar"] .block-container > div{margin-bottom:0.6rem;}
+</style>
 
 """, unsafe_allow_html=True)
 

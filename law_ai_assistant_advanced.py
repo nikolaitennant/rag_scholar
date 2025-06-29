@@ -323,10 +323,14 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
         <li>Handles ≈ 4000 text chunks (about 350 average docs) comfortably.</li>
       </ul>
   </li>
+  
+  <li>📌 <b>Prioritise docs</b> – use the sidebar checklist to tell the assistant which
+    files matter most for this question. I’ll look there first, then widen the net.</li>
 
 </ul>
 
 **Pro tip ✨**  Type "show snippet [#2]" and I’ll reveal the exact passage I used.
+
 </div>
         """,
         unsafe_allow_html=True,
@@ -428,7 +432,21 @@ if query:
         else:                                 # search the full index
             base_retriever = vs.as_retriever(search_kwargs={"k": FIRST_K})
 
-        docs = rerank(txt, base_retriever.invoke(txt))
+        # ─── 1️⃣ first look only at the files the user ticked ───────────────
+        if sel_docs:
+            filt = lambda m: m.get("source_file") in sel_docs
+            pri_retriever = vs.as_retriever(search_kwargs={"k": FIRST_K, "filter": filt})
+            primary_hits  = pri_retriever.invoke(txt)
+        else:
+            primary_hits = []
+
+        # ─── 2️⃣ then run the usual search over the whole index ─────────────
+        base_hits = base_retriever.invoke(txt)
+
+        # merge, keeping prioritised hits at the top, no duplicates
+        all_hits = primary_hits + [d for d in base_hits if d not in primary_hits]
+
+        docs = rerank(txt, all_hits)[:FINAL_K]     # final trim
 
         # snippet build
         snippets=[]

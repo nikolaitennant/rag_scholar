@@ -117,8 +117,6 @@ def extract_citation_numbers(text:str)->list[int]:
 # ─── Streamlit UI setup ───────────────────────────────────────────────────
 st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
  
-
-
 st.markdown("""
 <style>
 /* stretch content edge-to-edge */
@@ -151,7 +149,7 @@ html[data-theme="dark"]  .info-panel a{color:#a0d6ff}
 st.title("⚖️ Giulia's Law AI Assistant!")
 
 # Sidebar
-st.sidebar.header("📂 File Uploads & Additional Info")
+st.sidebar.header("📂 Settings & Additional Info")
 with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
     st.markdown("""
 | **Command** | **What it Does**               | **Scope**           |

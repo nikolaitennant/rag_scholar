@@ -203,7 +203,7 @@ CTX_DIR = os.path.join(BASE_CTX_DIR, active_class)
 INDEX_DIR = f"faiss_{active_class}"
 
 # 2️⃣  FILE-BROWSER EXPANDER (shown under the selector)
-with st.expander(f"📁 {active_class} files", expanded=False):
+with st.sidebar.expander(f"📁 {active_class} files", expanded=False):
     if not os.path.exists(CTX_DIR):
         st.write("_Folder does not exist yet_")
     else:
@@ -231,7 +231,7 @@ with st.expander(f"📁 {active_class} files", expanded=False):
                     st.rerun()
 
 # 3️⃣  ADD-NEW-CLASS EXPANDER (also under the selector)
-with st.expander("➕  Add a new class", expanded=False):
+with st.sidebar.expander("➕  Add a new class", expanded=False):
     new_name = st.text_input(
         "Class name (letters, numbers, spaces):", key="new_class_name"
     )

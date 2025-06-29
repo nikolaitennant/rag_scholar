@@ -117,34 +117,34 @@ def extract_citation_numbers(text:str)->list[int]:
 # ─── Streamlit UI setup ───────────────────────────────────────────────────
 st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
  
-st.markdown("""
-<style>
-/* stretch content edge-to-edge */
-section.main > div { max-width: 1200px; }
+# st.markdown("""
+# <style>
+# /* stretch content edge-to-edge */
+# section.main > div { max-width: 1200px; }
 
-/* info-panel look */
-.info-panel {
-  padding:24px 28px;
-  border-radius:14px;
-  font-size:1.05rem;
-  line-height:1.7;
-}
-html[data-theme="light"] .info-panel{
-  background:#e7f3fc; color:#184361;
-  border-left:7px solid #2574a9;
-  box-shadow:0 1px 8px #eef4fa;
-}
-html[data-theme="dark"]  .info-panel{
-  background:#2b2b2b; color:#ddd;
-  border-left:7px solid #bb86fc;
-  box-shadow:0 1px 8px rgba(0,0,0,.5);
-}
-html[data-theme="dark"]  .info-panel b{color:#fff}
-html[data-theme="dark"]  .info-panel a{color:#a0d6ff}
+# /* info-panel look */
+# .info-panel {
+#   padding:24px 28px;
+#   border-radius:14px;
+#   font-size:1.05rem;
+#   line-height:1.7;
+# }
+# html[data-theme="light"] .info-panel{
+#   background:#e7f3fc; color:#184361;
+#   border-left:7px solid #2574a9;
+#   box-shadow:0 1px 8px #eef4fa;
+# }
+# html[data-theme="dark"]  .info-panel{
+#   background:#2b2b2b; color:#ddd;
+#   border-left:7px solid #bb86fc;
+#   box-shadow:0 1px 8px rgba(0,0,0,.5);
+# }
+# html[data-theme="dark"]  .info-panel b{color:#fff}
+# html[data-theme="dark"]  .info-panel a{color:#a0d6ff}
 
-</style>
+# </style>
 
-""", unsafe_allow_html=True)
+# """, unsafe_allow_html=True)
 
 st.title("⚖️ Giulia's Law AI Assistant!")
 

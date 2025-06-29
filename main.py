@@ -285,13 +285,22 @@ if user_input:
         search_kwargs={"k": FIRST_K}
     )
 
-    focus_retriever = None
     if sel_docs:
+        sel_set = set(sel_docs)             # cache once
+
         def _in_selection(doc):
-            return os.path.basename(doc.metadata["source"]) in sel_docs
+            # grab whatever path key the loader provided, else ""
+            src = doc.metadata.get("source") or doc.metadata.get("file_path") or ""
+            return os.path.basename(src) in sel_set
+
         focus_retriever = vector_store.as_retriever(
             search_kwargs={"k": FIRST_K, "filter": _in_selection}
         )
+    else:
+        focus_retriever = None
+
+
+
 
     if mode == "Only these docs" and focus_retriever:
         docs = focus_retriever.invoke(txt)

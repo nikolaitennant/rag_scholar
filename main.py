@@ -264,8 +264,6 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
         unsafe_allow_html=True,
     )
 
-query = st.chat_input("Ask anything")
-
 for k, d in {
     "perm": [], "sess": [], "persona": None,
     "hist": [], "user_snips": []        

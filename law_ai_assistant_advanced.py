@@ -248,10 +248,13 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
 
 <ul style="margin-left:1.1em;margin-top:12px">
 
-  <li><b>Document-only answers</b> – I rely <em>solely</em> on the files you upload or facts you store with <code>remember:</code>. No web searches.</li>
+  <li><b>Document-only answers</b> – I rely <em>solely</em> on the files you upload or facts you store with remember/memo or user queries. No web searching!.</li>
+
+    <li><b>Snippets</b> – I extract key passages from your files and user queries, numbered [#1], [#2], etc.
 
   <li><b>Citations</b> – every legal rule or fact ends with a tag such as <code>[#3]</code>.  
       A yellow badge appears if something looks uncited.</li>
+      
 
   <li><b>Uploads</b>
       <ul>
@@ -261,18 +264,17 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
       </ul>
   </li>
 
-  <li><b>Images (beta)</b> – PNG / JPG diagrams are OCR’d. Very small or handwritten text may mis-read.</li>
+  <li><b>Images (beta)</b> – PNG / JPG diagrams are OCR’d. Very small or handwritten text may mis-read (Image mode in beta).</li>
 
   <li><b>Limits &amp; tips</b>
       <ul>
-        <li>Handles ≈ 4 000 text chunks (about 350 average docs) comfortably.</li>
-        <li>If a new file isn’t cited, click <strong>“🔄 Rebuild index”</strong> in the sidebar.</li>
+        <li>Handles ≈ 4000 text chunks (about 350 average docs) comfortably.</li>
       </ul>
   </li>
 
 </ul>
 
-**Pro tip ✨**  Type <code>show snippet [#2]</code> and I’ll reveal the exact passage I used.
+**Pro tip ✨**  Type "show snippet [#2]" and I’ll reveal the exact passage I used.
 </div>
         """,
         unsafe_allow_html=True,

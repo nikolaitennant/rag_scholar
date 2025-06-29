@@ -119,40 +119,119 @@ st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
  
 st.markdown("""
 <style>
-/* stretch content edge-to-edge */
-section.main > div { max-width: 1200px; }
+:root{
+  --radius:12px;
+  --shadow:0 2px 6px rgba(0,0,0,.05);
+  --primary:#2563eb;
+  --primary-dark:#1e40af;
+  --card-bg:rgba(0,0,0,.03);
+}
 
-/* info-panel look */
-.info-panel {
-  padding:24px 28px;
-  border-radius:14px;
-  font-size:1.05rem;
-  line-height:1.7;
+/* ╭──────────────────────────────────────────────╮
+   │ Sidebar                                       │
+   ╰──────────────────────────────────────────────╯ */
+section[data-testid="stSidebar"] .block-container{
+     padding:1rem 1rem 2rem !important;
 }
-html[data-theme="light"] .info-panel{
-  background:#e7f3fc; color:#184361;
-  border-left:7px solid #2574a9;
-  box-shadow:0 1px 8px #eef4fa;
+section[data-testid="stSidebar"]{
+     border-right:1px solid #e5e7eb;
 }
-html[data-theme="dark"]  .info-panel{
-  background:#2b2b2b; color:#ddd;
-  border-left:7px solid #bb86fc;
-  box-shadow:0 1px 8px rgba(0,0,0,.5);
-}
-html[data-theme="dark"]  .info-panel b{color:#fff}
-html[data-theme="dark"]  .info-panel a{color:#a0d6ff}
 
-/* ── sidebar polish ──────────────────────────────────────── */
-.card          {background:rgba(0,0,0,.03);padding:12px 16px;border-radius:10px;}
-.sidebar-gap   {height:1px;background:#d0d0d0;margin:0.8rem 0;}
-.file-list     {max-height:160px;overflow-y:auto;}
-/* tighten default vertical spacing inside sidebar */
-section[data-testid="stSidebar"] .block-container > div{margin-bottom:0.6rem;}
+/* cards used throughout sidebar */
+.card{
+     background:var(--card-bg);
+     padding:14px 18px;
+     border-radius:var(--radius);
+     box-shadow:var(--shadow);
+     margin-bottom:1rem;
+}
+.sidebar-gap{display:none;}  /* replaced by margin-bottoms above */
+
+/* nicer buttons */
+button[kind="secondary"], div.stButton > button{
+     background:var(--primary);
+     color:#fff;
+     border:none;
+     border-radius:var(--radius);
+     font-weight:600;
+     padding:0.45rem 0.9rem;
+}
+button[kind="secondary"]:hover,
+div.stButton > button:hover{
+     background:var(--primary-dark);
+}
+
+/* squeeze long selectboxes a bit */
+.stSelectbox, .stFileUploader{
+     border-radius:var(--radius);
+}
+
+/* slim scroll bar for long file lists */
+.file-list{
+     max-height:160px;
+     overflow-y:auto;
+}
+.file-list::-webkit-scrollbar{
+     width:6px;
+}
+.file-list::-webkit-scrollbar-thumb{
+     background:#cbd5e1;
+     border-radius:3px;
+}
+
+/* ╭──────────────────────────────────────────────╮
+   │ Info panel (blue or dark-mode purple strip)   │
+   ╰──────────────────────────────────────────────╯ */
+.info-panel{
+     padding:22px 26px;
+     border-left:6px solid var(--primary);
+     background:#e7f3fc;
+     border-radius:var(--radius);
+     box-shadow:var(--shadow);
+     font-size:1.05rem;
+     line-height:1.66;
+}
+html[data-theme="dark"] .info-panel{
+     background:#2b2b2b;
+     border-left-color:#bb86fc;
+     color:#ddd;
+}
 </style>
-
 """, unsafe_allow_html=True)
 
+# ─── Streamlit app title and sidebar header ────────────────────────────────
 st.title("⚖️ Giulia's Law AI Assistant!")
+
+st.set_page_config("Demo Law Assistant", "⚖️")
+# ⤵︎ bring in the CSS block from step 2 right here
+# …
+
+st.title("⚖️  Giulia's Law AI Assistant")
+
+st.sidebar.header("📂 File Uploads & Additional Info")
+
+# === Card: Class controls =============================================
+with st.sidebar.container():
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("### Class controls")
+    st.selectbox("🏷️  Select class / module", ["PA", "EU Law", "Crim"])
+    with st.expander("➕  Add a new class"):
+        st.text_input("Class name")
+        st.button("Create class")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# === Card: Document controls ===========================================
+with st.sidebar.container():
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("### 📄 Document controls")
+    with st.expander("📁 PA files"):
+        st.write("List of files…")
+    st.file_uploader("Upload legal docs", type=["pdf","docx","txt"])
+    st.button("💾 Save uploads to PA")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with st.sidebar.expander("⚖️ Disclaimer"):
+    st.write("Light-hearted disclaimer…")
 
 # Sidebar
 st.sidebar.header("📂 File Uploads & Additional Info")

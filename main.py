@@ -168,7 +168,7 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 
 # ─── Sidebar: choose active class / module ───────────────────────────────
 with st.sidebar.container():
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    # st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("### Class controls")
 
     class_folders = sorted(

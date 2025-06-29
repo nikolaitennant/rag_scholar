@@ -210,6 +210,33 @@ with st.sidebar.expander("➕  Add a new class", expanded=False):
             st.success(f"Added “{clean}”. Select it in the list above.")
             st.rerun()
 
+# ── delete-class workflow ──────────────────────────────────────────────
+if st.sidebar.button("🗑️ Delete this class", key="ask_delete"):
+    st.session_state.confirm_delete = True
+
+if st.session_state.get("confirm_delete"):
+    with st.sidebar.expander("⚠️ Confirm delete", expanded=True):
+        st.error(f"Really delete the class “{active_class}” and all its files?")
+        col_yes, col_no = st.columns(2)
+        if col_yes.button("Yes, delete", key="yes_delete"):
+            shutil.rmtree(os.path.join(BASE_CTX_DIR, active_class), ignore_errors=True)
+            shutil.rmtree(f"faiss_{active_class}",            ignore_errors=True)
+            st.session_state.confirm_delete = False
+            # pick a new active class (first alphabetically) or stop if none left
+            remaining = sorted(
+                d for d in os.listdir(BASE_CTX_DIR)
+                if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
+            )
+            if remaining:
+                st.session_state.active_class = remaining[0]
+                st.rerun()
+            else:
+                st.sidebar.success("All classes deleted. Add a new one!")
+                st.stop()
+        if col_no.button("Cancel", key="cancel_delete"):
+            st.session_state.confirm_delete = False
+            st.experimental_rerun()
+            
 # ---------------- Sidebar: default_context browser -----------------
 with st.sidebar.expander(f"📁 {active_class} files", expanded=False):
     if not os.path.exists(CTX_DIR):

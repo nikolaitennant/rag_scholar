@@ -511,25 +511,41 @@ if query:
     if missing:
         st.warning("⚠️ Sentences without citations: " + " | ".join(missing[:3]))
 
-    # ── Update history (cap at MAX_TURNS) ───────────────────────────────
-    st.session_state.hist.extend([("user", txt), ("assistant", answer)])
+
+    # ── Update history (dict style) ─────────────────────────────────────
+    #   → one dict per bubble so every assistant reply carries its own sources
+    st.session_state.hist.append(
+        {"role": "user", "msg": txt, "sources": []}
+    )
+
+    st.session_state.hist.append(
+        {
+            "role":    "assistant",
+            "msg":     answer,
+            # attach snippets only if the reply actually cited them
+            "sources": snippets if CITE_PAT.search(answer) else [],
+        }
+    )
+
+    # keep at most the last N turns  (N × 2 bubbles)
     st.session_state.hist = st.session_state.hist[-MAX_TURNS * 2:]
 
-    # ── Render chat ─────────────────────────────────────────────────────
-    for role, msg in st.session_state.hist:
-        st.chat_message(role).write(msg)
-        if st.session_state.hist and st.session_state.hist[-1][0] == "assistant":
-            answer_text = st.session_state.hist[-1][1]
-            used_tags = re.findall(r"\[#(\d+|U\d+)\]", answer_text)
-            if used_tags:
+    # ── Render chat bubbles ─────────────────────────────────────────────
+    for entry in st.session_state.hist:
+        with st.chat_message(entry["role"]):
+            st.write(entry["msg"])
+
+            # show “Sources used” only for assistant bubbles that have sources
+            if entry["role"] == "assistant" and entry["sources"]:
                 legend = []
-                for tag in used_tags:
-                    idx = int(tag.lstrip("U")) - 1
+                for sn in entry["sources"]:
+                    # sn looks like "[#3] (my_doc.pdf) …"
+                    tag = sn.split("]", 1)[0][2:]                # "3" / "U1" / "F2"
                     try:
-                        src_line = snippets[idx]
-                        legend.append(f"**[{tag}]** → {src_line.split(')',1)[0].split('(',1)[-1]}")
+                        file_name = sn.split("(", 1)[1].split(")", 1)[0]  # "my_doc.pdf"
                     except IndexError:
-                        continue
-                if legend:
-                    with st.expander("📑 Sources used"):
-                        st.markdown("\n\n".join(legend))
+                        file_name = "source"
+                    legend.append(f"**[{tag}]** → {file_name}")
+
+                with st.expander("📑 Sources used"):
+                    st.markdown("\n\n".join(legend))

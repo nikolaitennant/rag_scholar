@@ -253,22 +253,23 @@ ALPHA_PAT  = re.compile(r"[A-Za-z]")          # ignore empty punctuation blobs
 
 def uncited_substantive(text: str) -> list[str]:
     """
-    Return sentences that (a) look substantive and (b) lack a [#n] citation.
-    Uses NLTK's Punkt tokenizer for reasonably accurate segmentation.
+    Flag sentences that look like real legal content but have no [#] citation.
+    • Legal keyword  → must cite
+    • Long sentence (>25 words) → must cite
+    Casual greetings or short factual bios no longer trigger a warning.
     """
     from nltk.tokenize import sent_tokenize
 
     offenders = []
     for sent in sent_tokenize(text):
-        s_clean = sent.strip()
-        if not ALPHA_PAT.search(s_clean):          # skip whitespace / emoji only
+        s = sent.strip()
+        if not ALPHA_PAT.search(s):                 # punctuation / emoji only
             continue
-        if CITE_PAT.search(s_clean):               # already cited
+        if CITE_PAT.search(s):                      # already cited
             continue
-        # substantiveness heuristic: any legal keyword or > 12 words
-        word_count = len(s_clean.split())
-        if word_count > 12 or any(k in s_clean.lower() for k in LEGAL_KEYWORDS):
-            offenders.append(s_clean)
+        words = len(s.split())
+        if words > 25 or any(k in s.lower() for k in LEGAL_KEYWORDS):
+            offenders.append(s)
     return offenders
 
 # ── MAIN LOOP ──────────────────────────────────────────────────────────────
@@ -339,7 +340,6 @@ if query:
     1. Begin with one conversational line that restates the user’s question.  
     2. Give a detailed, logically structured answer (IRAC only if the user asks).  
     3. Explain legal jargon in plain English.  
-    4. Close with a short exam tip where helpful.  
     5. Keep tone peer-to-peer, confident, concise.
 
     (NO CITATION ⇒ NO CLAIM.)
@@ -376,12 +376,14 @@ if query:
 
     answer = res.choices[0].message.content.strip()
 
+    if snippets and len(snippets) == 1 and not CITE_PAT.search(answer):
+        # snippets[0] is like "[#3] (source) …", so we pull out "#3"
+        answer += f" [{snippets[0].split(']')[0][1:]}]"
+
     # ── Citation check & refusal ────────────────────────────────────────
-    # missing = uncited_substantive(answer)
-    # if missing:
-    #     st.warning("⚠️ Sentences without citations: " + " | ".join(missing[:3]))
-    #     answer = ("I don’t have enough information in the provided material to answer that. "
-    #             "Please upload a source or restate with supporting documents.")
+    missing = uncited_substantive(answer)
+    if missing:
+        st.warning("⚠️ Sentences without citations: " + " | ".join(missing[:3]))
 
     # ── Update history (cap at MAX_TURNS) ───────────────────────────────
     st.session_state.hist.extend([("user", txt), ("assistant", answer)])

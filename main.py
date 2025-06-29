@@ -260,10 +260,13 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
 embeddings = OpenAIEmbeddings(api_key=api_key)
 
 if os.path.exists(INDEX_DIR):
-    # fast path: load a saved index
-    vector_store = FAISS.load_local(INDEX_DIR, embeddings)
+    # fast path: load a saved index you created earlier
+    vector_store = FAISS.load_local(
+        INDEX_DIR,
+        embeddings,
+        allow_dangerous_deserialization=True
+    )
 else:
-    # first run (or INDEX_DIR was wiped) → build then save
     default_docs, default_index = load_and_index_defaults()
     session_docs  = load_uploaded_files(uploaded_docs)
     vector_store  = build_vectorstore(default_docs, default_index, session_docs)

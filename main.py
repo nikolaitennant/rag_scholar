@@ -185,21 +185,28 @@ INDEX_DIR = f"faiss_{active_class}"
 
 # ── Sidebar: add a new class folder ──────────────────────────────────────
 with st.sidebar.expander("➕  Add a new class", expanded=False):
-    new_name = st.text_input(
-        "Class name (letters, numbers, spaces):", 
-        key="new_class_name"
-    )
+    new_name = st.text_input("Class name (letters, numbers, spaces):", key="new_class_name")
+
     if st.button("Create class", key="create_class"):
-        clean = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip()
-        clean = clean.replace(" ", "_")          # turn spaces into underscores
-        target = os.path.join(BASE_CTX_DIR, clean)
+        clean   = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip().replace(" ", "_")
+        target  = os.path.join(BASE_CTX_DIR, clean)
+        seed_src = "giulia.txt"                           # ← location of your seed file
+        seed_dst = os.path.join(target, os.path.basename(seed_src))
 
         if not clean:
             st.error("Please enter a name.")
         elif clean in class_folders:
             st.warning(f"“{clean}” already exists.")
         else:
-            os.makedirs(target, exist_ok=True)   # make the folder
+            os.makedirs(target, exist_ok=True)            # make the class folder
+
+            # ── copy the seed doc so the folder is never empty ───────────
+            try:
+                shutil.copy(seed_src, seed_dst)
+            except FileNotFoundError:
+                st.warning("Starter file giulia.txt not found – class created empty.")
+            # ----------------------------------------------------------------
+
             st.success(f"Added “{clean}”. Select it in the list above.")
             st.rerun()
 
@@ -238,15 +245,6 @@ LOADER_MAP = {
 
 uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
 if st.sidebar.button(f"💾 Save uploads to {active_class}"):
-#     if uploaded_docs:
-#         os.makedirs(CTX_DIR, exist_ok=True)
-#         for uf in uploaded_docs:
-#             dest = os.path.join(CTX_DIR, uf.name)
-#             with open(dest,"wb") as out: out.write(uf.getbuffer())
-#         shutil.rmtree(INDEX_DIR, ignore_errors=True)
-#         st.success("Files saved! Reload to re-index.")
-#     else: st.info("No docs to save.")
-
     if uploaded_docs:
         os.makedirs(CTX_DIR, exist_ok=True)
         for uf in uploaded_docs:

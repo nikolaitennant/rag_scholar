@@ -312,6 +312,7 @@ mode = st.sidebar.radio(
     ["Prioritise (default)", "Only these docs"],
     horizontal=True
 )
+st.markdown("<div class='sidebar-gap'></div>", unsafe_allow_html=True)
 
 # --------------- Sidebar: light-hearted disclaimer -----------------
 with st.sidebar.expander("⚖️ Disclaimer", expanded=False):

@@ -160,10 +160,12 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 
 """, unsafe_allow_html=True)
 
+
 # ─── Sidebar: choose active class / module ───────────────────────────────
 with st.sidebar.container():
     st.markdown("### Class controls")
 
+    # --- list available class folders -----------------------------------
     class_folders = sorted(
         d for d in os.listdir(BASE_CTX_DIR)
         if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
@@ -172,9 +174,11 @@ with st.sidebar.container():
         st.sidebar.error(f"No folders found inside {BASE_CTX_DIR}.")
         st.stop()
 
+    # --- pick default active class in session state ---------------------
     if "active_class" not in st.session_state:
         st.session_state.active_class = class_folders[0]
 
+    # 1️⃣  CLASS SELECTOR (must come before any file-browser widgets)
     active_class = st.sidebar.selectbox(
         "🏷️  Select class / module",
         class_folders,
@@ -184,12 +188,11 @@ with st.sidebar.container():
         st.session_state.active_class = active_class
         st.rerun()                       # reload to pick up the new folder
 
-    # point the rest of the app at the chosen folder --------------------------
+    # --- paths that depend on active_class ------------------------------
     CTX_DIR   = os.path.join(BASE_CTX_DIR, active_class)
     INDEX_DIR = f"faiss_{active_class}"
 
-
-    # 1) file browser for current class -----------------------------------
+    # 2️⃣  FILE-BROWSER EXPANDER (shown under the selector)
     with st.expander(f"📁 {active_class} files", expanded=False):
         if not os.path.exists(CTX_DIR):
             st.write("_Folder does not exist yet_")
@@ -212,17 +215,18 @@ with st.sidebar.container():
                         os.remove(os.path.join(CTX_DIR, fn))
                         shutil.rmtree(INDEX_DIR, ignore_errors=True)
                         st.rerun()
-               
 
-            
-    # ── Sidebar: add a new class folder ──────────────────────────────────────
-    with st.sidebar.expander("➕  Add a new class", expanded=False):
-        new_name = st.text_input("Class name (letters, numbers, spaces):", key="new_class_name")
+    # 3️⃣  ADD-NEW-CLASS EXPANDER (also under the selector)
+    with st.expander("➕  Add a new class", expanded=False):
+        new_name = st.text_input(
+            "Class name (letters, numbers, spaces):",
+            key="new_class_name"
+        )
 
         if st.button("Create class", key="create_class"):
             clean   = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip().replace(" ", "_")
             target  = os.path.join(BASE_CTX_DIR, clean)
-            seed_src = "giulia.txt"                           # ← location of your seed file
+            seed_src = "giulia.txt"                           # starter file
             seed_dst = os.path.join(target, os.path.basename(seed_src))
 
             if not clean:
@@ -230,17 +234,96 @@ with st.sidebar.container():
             elif clean in class_folders:
                 st.warning(f"“{clean}” already exists.")
             else:
-                os.makedirs(target, exist_ok=True)            # make the class folder
-
-                # ── copy the seed doc so the folder is never empty ───────────
+                os.makedirs(target, exist_ok=True)
                 try:
-                    shutil.copy(seed_src, seed_dst)
+                    shutil.copy(seed_src, seed_dst)           # make sure folder isn’t empty
                 except FileNotFoundError:
                     st.warning("Starter file giulia.txt not found – class created empty.")
-                # ----------------------------------------------------------------
 
                 st.success(f"Added “{clean}”. Select it in the list above.")
                 st.rerun()
+
+# # ─── Sidebar: choose active class / module ───────────────────────────────
+# with st.sidebar.container():
+#     st.markdown("### Class controls")
+
+#     class_folders = sorted(
+#         d for d in os.listdir(BASE_CTX_DIR)
+#         if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
+#     )
+#     if not class_folders:
+#         st.sidebar.error(f"No folders found inside {BASE_CTX_DIR}.")
+#         st.stop()
+
+#     if "active_class" not in st.session_state:
+#         st.session_state.active_class = class_folders[0]
+
+#     active_class = st.sidebar.selectbox(
+#         "🏷️  Select class / module",
+#         class_folders,
+#         index=class_folders.index(st.session_state.active_class)
+#     )
+#     if active_class != st.session_state.active_class:
+#         st.session_state.active_class = active_class
+#         st.rerun()                       # reload to pick up the new folder
+
+#     # point the rest of the app at the chosen folder --------------------------
+#     CTX_DIR   = os.path.join(BASE_CTX_DIR, active_class)
+#     INDEX_DIR = f"faiss_{active_class}"
+
+
+#     # 1) file browser for current class -----------------------------------
+#     with st.expander(f"📁 {active_class} files", expanded=False):
+#         if not os.path.exists(CTX_DIR):
+#             st.write("_Folder does not exist yet_")
+#         else:
+#             files = sorted(os.listdir(CTX_DIR))
+#             if not files:
+#                 st.write("_Folder is empty_")
+#             else:
+#                 st.markdown("<div class='file-list'>", unsafe_allow_html=True)
+#                 for fn in files:
+#                     col1, col2, col3 = st.columns([4, 1, 1])
+#                     col1.write(fn)
+
+#                     with open(os.path.join(CTX_DIR, fn), "rb") as f:
+#                         col2.download_button("⬇️", f, file_name=fn,
+#                                              mime="application/octet-stream",
+#                                              key=f"dl_{fn}")
+
+#                     if col3.button("🗑️", key=f"del_{fn}"):
+#                         os.remove(os.path.join(CTX_DIR, fn))
+#                         shutil.rmtree(INDEX_DIR, ignore_errors=True)
+#                         st.rerun()
+               
+
+            
+#     # ── Sidebar: add a new class folder ──────────────────────────────────────
+#     with st.sidebar.expander("➕  Add a new class", expanded=False):
+#         new_name = st.text_input("Class name (letters, numbers, spaces):", key="new_class_name")
+
+#         if st.button("Create class", key="create_class"):
+#             clean   = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip().replace(" ", "_")
+#             target  = os.path.join(BASE_CTX_DIR, clean)
+#             seed_src = "giulia.txt"                           # ← location of your seed file
+#             seed_dst = os.path.join(target, os.path.basename(seed_src))
+
+#             if not clean:
+#                 st.error("Please enter a name.")
+#             elif clean in class_folders:
+#                 st.warning(f"“{clean}” already exists.")
+#             else:
+#                 os.makedirs(target, exist_ok=True)            # make the class folder
+
+#                 # ── copy the seed doc so the folder is never empty ───────────
+#                 try:
+#                     shutil.copy(seed_src, seed_dst)
+#                 except FileNotFoundError:
+#                     st.warning("Starter file giulia.txt not found – class created empty.")
+#                 # ----------------------------------------------------------------
+
+#                 st.success(f"Added “{clean}”. Select it in the list above.")
+#                 st.rerun()
 
     # ── delete-class workflow ──────────────────────────────────────────────
     if st.sidebar.button("🗑️ Delete this class", key="ask_delete"):

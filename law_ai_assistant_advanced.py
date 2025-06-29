@@ -243,32 +243,36 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
     st.markdown(
         """
 <div class="info-panel">
-<b>📚 What you should know</b>
+
+**📚 Quick overview**
+
 <ul style="margin-left:1.1em;margin-top:12px">
-  <li>📄 <b>Document-only answers</b> – I draw <em>only</em> on the files you upload or facts you store with <code>remember:</code>. No internet look-ups.</li>
 
-  <li>🔍 <b>Citations matter</b> – each legal rule or fact ends with a tag such as <code>[#3]</code>.  
-      A yellow badge warns you if something looks uncited.</li>
+  <li><b>Document-only answers</b> – I rely <em>solely</em> on the files you upload or facts you store with <code>remember:</code>. No web searches.</li>
 
-  <li>📂 <b>Uploads</b>
+  <li><b>Citations</b> – every legal rule or fact ends with a tag such as <code>[#3]</code>.  
+      A yellow badge appears if something looks uncited.</li>
+
+  <li><b>Uploads</b>
       <ul>
-        <li><b>Session-only</b> – just drop files in the sidebar. They disappear when you refresh.</li>
-        <li><b>Keep forever</b> – after uploading, click <strong>“💾 Save uploads”</strong>. I’ll remember them in future sessions.<br>
-            (Need to remove one later? Use the 🗑️ icon in the sidebar list.)</li>
-      </ul></li>
+        <li><b>Session-only</b> – drag files into the sidebar. They vanish when you refresh.</li>
+        <li><b>Keep forever</b> – after uploading, click <strong>“💾 Save uploads”</strong>.  
+            Need to remove one later? Use the <strong>🗑️</strong> icon in the sidebar list.</li>
+      </ul>
+  </li>
 
-  <li>🖼 <b>Images (beta)</b> – PNG/JPG diagrams go through OCR. Handwritten or tiny text may be mis-read.</li>
+  <li><b>Images (beta)</b> – PNG / JPG diagrams are OCR’d. Very small or handwritten text may mis-read.</li>
 
-  <li>🚦 <b>Limits & tips</b>
+  <li><b>Limits &amp; tips</b>
       <ul>
-        <li>Up to ~4 000 chunks (≈ 350 docs) runs smoothly on a typical laptop or Streamlit Cloud.</li>
+        <li>Handles ≈ 4 000 text chunks (about 350 average docs) comfortably.</li>
         <li>If a new file isn’t cited, click <strong>“🔄 Rebuild index”</strong> in the sidebar.</li>
-      </ul></li>
+      </ul>
+  </li>
 
-  <li>⚖️ <b>Disclaimer</b> – I’m an AI study buddy, not your solicitor. Double-check everything before you rely on it!</li>
 </ul>
 
-<b>Pro tip ✨</b> Type <code>show snippet [#2]</code> and I’ll reveal the exact passage I used.
+**Pro tip ✨**  Type <code>show snippet [#2]</code> and I’ll reveal the exact passage I used.
 </div>
         """,
         unsafe_allow_html=True,

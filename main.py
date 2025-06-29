@@ -37,29 +37,30 @@ if "persona" not in st.session_state:
 
 # ─── Helpers: load & index default docs ────────────────────────────────────
 @st.cache_resource(show_spinner=False)
-def load_and_index_defaults(folder: str = "default_context"):
+def load_and_index_defaults(folder: str):
     docs = []
     if os.path.exists(folder):
         for fname in os.listdir(folder):
             lower = fname.lower()
-            path = os.path.join(folder, fname)
-            if lower.endswith(".pdf"):
-                loader = PyPDFLoader(path)
-            elif lower.endswith(".docx"):
-                loader = Docx2txtLoader(path)
-            elif lower.endswith(".doc"):
-                loader = UnstructuredWordDocumentLoader(path)
-            elif lower.endswith(".pptx"):
-                loader = UnstructuredPowerPointLoader(path)
-            elif lower.endswith(".csv"):
-                loader = CSVLoader(path)
-            elif lower.endswith(".txt"):
-                loader = TextLoader(path)
-            else:
-                continue
+            path  = os.path.join(folder, fname)
+
+            if   lower.endswith(".pdf"):   loader = PyPDFLoader(path)
+            elif lower.endswith(".docx"):  loader = Docx2txtLoader(path)
+            elif lower.endswith(".doc"):   loader = UnstructuredWordDocumentLoader(path)
+            elif lower.endswith(".pptx"):  loader = UnstructuredPowerPointLoader(path)
+            elif lower.endswith(".csv"):   loader = CSVLoader(path)
+            elif lower.endswith(".txt"):   loader = TextLoader(path)
+            else:                          continue
+
             docs.extend(loader.load())
+
+    # ── guard: nothing to index ─────────────────────────────
+    if not docs:
+        return [], None
+    # ────────────────────────────────────────────────────────
+
     embeddings = OpenAIEmbeddings(api_key=api_key)
-    index = FAISS.from_documents(docs, embeddings)
+    index      = FAISS.from_documents(docs, embeddings)
     return docs, index
 
 def load_uploaded_files(uploaded_files):

@@ -162,9 +162,8 @@ with st.sidebar.expander("📁 default_context files", expanded=False):
                 # delete button
                 if col3.button("🗑️", key=f"del_{fn}"):
                     os.remove(os.path.join(CTX_DIR, fn))
-                    # drop the index so it's rebuilt without the file
                     shutil.rmtree(INDEX_DIR, ignore_errors=True)
-                    st.experimental_rerun()
+                    st.rerun()                 # ← was st.experimental_rerun()
 
 
 LOADER_MAP = {

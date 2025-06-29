@@ -199,39 +199,9 @@ html[data-theme="dark"] .info-panel{
 </style>
 """, unsafe_allow_html=True)
 
+
 # ─── Streamlit app title and sidebar header ────────────────────────────────
 st.title("⚖️ Giulia's Law AI Assistant!")
-
-st.set_page_config("Demo Law Assistant", "⚖️")
-# ⤵︎ bring in the CSS block from step 2 right here
-# …
-
-st.title("⚖️  Giulia's Law AI Assistant")
-
-st.sidebar.header("📂 File Uploads & Additional Info")
-
-# === Card: Class controls =============================================
-with st.sidebar.container():
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.markdown("### Class controls")
-    st.selectbox("🏷️  Select class / module", ["PA", "EU Law", "Crim"])
-    with st.expander("➕  Add a new class"):
-        st.text_input("Class name")
-        st.button("Create class")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# === Card: Document controls ===========================================
-with st.sidebar.container():
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.markdown("### 📄 Document controls")
-    with st.expander("📁 PA files"):
-        st.write("List of files…")
-    st.file_uploader("Upload legal docs", type=["pdf","docx","txt"])
-    st.button("💾 Save uploads to PA")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-with st.sidebar.expander("⚖️ Disclaimer"):
-    st.write("Light-hearted disclaimer…")
 
 # Sidebar
 st.sidebar.header("📂 File Uploads & Additional Info")

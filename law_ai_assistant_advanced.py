@@ -181,18 +181,6 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 | `role:`     | Set the assistant’s persona    | Single session      |
 """, unsafe_allow_html=True)
 
-uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
-image_file    = st.sidebar.file_uploader("Optional image / chart", type=["png","jpg","jpeg"])
-if st.sidebar.button("💾 Save uploads to default_context"):
-    if uploaded_docs:
-        os.makedirs(CTX_DIR, exist_ok=True)
-        for uf in uploaded_docs:
-            dest = os.path.join(CTX_DIR, uf.name)
-            with open(dest,"wb") as out: out.write(uf.getbuffer())
-        shutil.rmtree(INDEX_DIR, ignore_errors=True)
-        st.success("Files saved! Reload to re-index.")
-    else: st.info("No docs to save.")
-
 # ---------------- Sidebar: default_context browser -----------------
 with st.sidebar.expander("📁 default_context files", expanded=False):
     if not os.path.exists(CTX_DIR):
@@ -221,15 +209,18 @@ with st.sidebar.expander("📁 default_context files", expanded=False):
                     shutil.rmtree(INDEX_DIR, ignore_errors=True)
                     st.experimental_rerun()
 
-with st.sidebar.expander("📁 default_context contents"):
-    if os.path.exists(CTX_DIR):
-        files = os.listdir(CTX_DIR)
-        if files:
-            st.write("\n".join(f"• {fn}" for fn in files))
-        else:
-            st.write("_folder is empty_")
-    else:
-        st.write("_folder does not exist yet_")
+
+uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
+image_file    = st.sidebar.file_uploader("Optional image / chart", type=["png","jpg","jpeg"])
+if st.sidebar.button("💾 Save uploads to default_context"):
+    if uploaded_docs:
+        os.makedirs(CTX_DIR, exist_ok=True)
+        for uf in uploaded_docs:
+            dest = os.path.join(CTX_DIR, uf.name)
+            with open(dest,"wb") as out: out.write(uf.getbuffer())
+        shutil.rmtree(INDEX_DIR, ignore_errors=True)
+        st.success("Files saved! Reload to re-index.")
+    else: st.info("No docs to save.")
 
 with st.expander("ℹ️  How this assistant works", expanded=True):
     st.markdown(

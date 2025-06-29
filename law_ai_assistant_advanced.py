@@ -528,23 +528,23 @@
 #     if missing:
 #         st.warning("⚠️ Sentences without citations: " + " | ".join(missing[:3]))
 
-# ─────────────────── law_ai_assistant_fast.py (v2.0 – lean) ───────────────────
+# ────────────────── law_ai_assistant_fast.py (v2.1 – lean) ──────────────────
 """
-Speed‑optimised version of Giulia's Law‑exam assistant.
-Cuts cold‑start RAM & latency by ~60‑90 % versus v1.6 by:
-• No heavy model downloads (CrossEncoder, BM25 removed)
+Speed-optimised version of Giulia's Law-exam assistant.
+Cuts cold-start RAM & latency by ~60-90 % versus v1.6 by:
+• No heavyweight downloads (BM25 & CrossEncoder removed)
 • Conditional NLTK download
 • Larger chunk size / smaller overlap
 • Smaller K parameters
 • Streaming responses
-• Append‑only FAISS saves (no index rebuild)
+• Append-only FAISS saves (no index rebuild)
 """
 
-import os, io, re, base64, tempfile, zipfile, gc, ssl, time
+import os, io, re, base64, tempfile, zipfile, gc, ssl
 from typing import List, Union
 
 import streamlit as st
-import psutil, humanize, shutil
+import psutil, humanize, shutil  # humanize kept for possible future use
 from dotenv import load_dotenv
 from PIL import Image
 import pytesseract
@@ -560,17 +560,18 @@ from langchain_community.document_loaders import (
 from langchain_core.documents import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.messages import SystemMessage, HumanMessage
+from langchain.docstore import InMemoryDocstore
 
-# ── SSL fix for some hosts ────────────────────────────────────────────────
+# ── SSL fix for some hosts ────────────────────────────────────────────────
 ssl._create_default_https_context = ssl._create_unverified_context
 
-# ── Lightweight NLTK bootstrap (≈ 0.5 s if already cached) ────────────────
+# ── Lightweight NLTK bootstrap (≈ 0.5 s if already cached) ────────────────
 try:
     nltk.data.find("tokenizers/punkt")
 except LookupError:
     nltk.download("punkt", quiet=True)
 
-# ── Keys & constants ─────────────────────────────────────────────────────
+# ── Keys & constants ─────────────────────────────────────────────────────
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
@@ -588,7 +589,7 @@ FIRST_K   = 12                   # search fewer candidates
 FINAL_K   = 4
 MAX_TURNS = 30
 
-# ── Helpers ──────────────────────────────────────────────────────────────
+# ── Helpers ──────────────────────────────────────────────────────────────
 SEC_PAT = re.compile(r"^(Section|Article|Clause|§)\s+\d+[\w.\-]*", re.I)
 CITE_PAT   = re.compile(r"\[#\d+\]")
 ALPHA_PAT  = re.compile(r"[A-Za-z]")
@@ -601,7 +602,7 @@ LEGAL_KEYWORDS = {
 }
 
 def split_legal(text: str) -> List[str]:
-    """Section‑aware splitter with recursive fallback."""
+    """Section-aware splitter with recursive fallback."""
     lines, buf, out = text.splitlines(), [], []
     for ln in lines:
         if SEC_PAT.match(ln) and buf:
@@ -647,24 +648,29 @@ def load_and_split(path: str) -> List[Document]:
             out.append(Document(page_content=chunk, metadata=meta))
     return out
 
+# ── Embeddings & vector store ────────────────────────────────────────────
 @st.cache_resource(show_spinner=False)
 def embeddings():
     return OpenAIEmbeddings(model=EMBED_MODEL)
 
 @st.cache_resource(show_spinner=False)
 def build_or_load_index() -> FAISS:
-    """Load FAISS index if it exists; create otherwise."""
+    """Load persistent FAISS index or create an empty one."""
+    emb = embeddings()
     if os.path.exists(INDEX_DIR):
         try:
-            return FAISS.load_local(INDEX_DIR, embeddings(), allow_dangerous_deserialization=True)
+            return FAISS.load_local(INDEX_DIR, emb, allow_dangerous_deserialization=True)
         except Exception:
-            pass
-    vs = FAISS.new_flat_l2(embeddings().embedding_size)
-    return FAISS(embeddings(), vs, {})
+            pass  # fall through to fresh index
+    # Create empty FAISS index
+    dim = len(emb.embed_query("dimension check"))  # single tiny API call
+    empty_index = faiss.IndexFlatL2(dim)
+    docstore = InMemoryDocstore({})
+    return FAISS(embeddings=emb, index=empty_index, docstore=docstore, index_to_docstore_id={})
 
 vs = build_or_load_index()
 
-# ── OCR helper ─────────────────────────────────────────────────────────––
+# ── OCR helper ─────────────────────────────────────────────────────────––
 
 def ocr_bytes(b: bytes) -> str:
     try:
@@ -672,12 +678,12 @@ def ocr_bytes(b: bytes) -> str:
     except Exception:
         return ""
 
-# ── Streamlit UI setup ──────────────────────────────────────────────────
+# ── Streamlit UI setup ──────────────────────────────────────────────────
 st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
 
-st.title("⚖️ Giulia's Law AI Assistant – ⚡ Fast mode")
+st.title("⚖️ Giulia's Law AI Assistant – ⚡ Fast mode")
 
-# Sidebar – uploads / options
+# Sidebar – uploads / options
 st.sidebar.header("📂 Files & options")
 
 uploaded_docs = st.sidebar.file_uploader("Upload legal docs", type=list(LOADER_MAP.keys()), accept_multiple_files=True)
@@ -688,11 +694,11 @@ FAST_MODE = st.sidebar.toggle("Skip rerank & BM25 (fast)", value=True)
 # Resource meter
 proc = psutil.Process(os.getpid())
 rss_mb = proc.memory_info().rss / 1024 ** 2
-st.sidebar.write(f"**RAM** {rss_mb:,.0f} MB")
+st.sidebar.write(f"**RAM** {rss_mb:,.0f} MB")
 
 query = st.chat_input("Ask anything")
 
-# ── Document ingestion (append‑only) ─────────────────────────────────────
+# ── Document ingestion (append-only) ─────────────────────────────────────
 if uploaded_docs:
     tmp = tempfile.mkdtemp()
     new_docs: List[Document] = []
@@ -708,32 +714,32 @@ if uploaded_docs:
         gc.collect()
         st.success("Docs added to index! Ask away.")
 
-# ── Main loop ───────────────────────────────────────────────────────────
+# ── Main loop ───────────────────────────────────────────────────────────
 if query:
     hits = vs.similarity_search_with_score(query, k=FIRST_K)
-    docs = [d for d, _ in hits][:FINAL_K]   # drop scores, trim
+    docs = [d for d, _ in hits][:FINAL_K]
 
-    # ── Snippet build (truncate to 400 chars) ───────────────────────────
+    # ── Snippet build (truncate to 400 chars) ───────────────────────────
     snippets = [
         f"[#{i}] ({d.metadata.get('source_file', 'doc')}) {re.sub(r'\\s+',' ', d.page_content)[:400]}"
         for i, d in enumerate(docs, 1)
     ]
 
-    # ── Image OCR (optional) ────────────────────────────────────────────
+    # ── Image OCR (optional) ────────────────────────────────────────────
     img_payload = None
     if image_file is not None:
         b = image_file.getvalue()
         ocr_text = ocr_bytes(b)
         if ocr_text.strip():
-            snippets.append(f"[#F1] (image‑ocr) {ocr_text[:400]}")
+            snippets.append(f"[#F1] (image-ocr) {ocr_text[:400]}")
         img_payload = {
             "type": "image_url",
             "image_url": {"url": f"data:image/png;base64,{base64.b64encode(b).decode()}"},
         }
 
-    # ── Prompt construction ────────────────────────────────────────────
+    # ── Prompt construction ────────────────────────────────────────────
     system_prompt = (
-        "You are Giulia’s meticulous law‑exam assistant. Use only the provided "
+        "You are Giulia’s meticulous law-exam assistant. Use only the provided "
         "snippets and stored facts. Cite each legal proposition [#n]. If not enough "
         "info respond: 'I don’t have enough information in the provided material to answer that.'"
     )
@@ -745,7 +751,7 @@ if query:
     user_payload = [{"type": "text", "text": query}, img_payload] if img_payload else query
     msgs.append(HumanMessage(content=user_payload))
 
-    # ── LLM call (streaming) ─────────────────────────────────────────––
+    # ── LLM call (streaming) ─────────────────────────────────────────––
     with st.chat_message("assistant"):
         placeholder = st.empty()
         answer_parts = []
@@ -761,7 +767,7 @@ if query:
             placeholder.markdown("".join(answer_parts))
         answer = "".join(answer_parts)
 
-    # ── Citation check ──────────────────────────────────────────────────
+    # ── Citation check ──────────────────────────────────────────────────
     from nltk.tokenize import sent_tokenize
 
     uncited = []
@@ -775,16 +781,6 @@ if query:
             uncited.append(s)
     if uncited:
         st.warning("⚠️ Sentences without citations: " + " | ".join(uncited[:3]))
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -276,6 +276,24 @@ with st.sidebar.container():
                 st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='sidebar-gap'></div>", unsafe_allow_html=True)
+
+    # --- Sidebar: narrow or prioritise docs ---------------------------------
+    #            
+    all_files = sorted(os.listdir(CTX_DIR)) if os.path.exists(CTX_DIR) else []
+    sel_docs = st.sidebar.multiselect(
+        "📑 Select docs to focus on (optional)", 
+        all_files
+    )
+
+    mode = st.sidebar.radio(
+        "↳ How should I use the selected docs?",
+        ["Prioritise (default)", "Only these docs"],
+        horizontal=True
+    )
+
+    st.markdown("</div>", unsafe_allow_html=True)  # close the card
+
+
    
    # ── Sidebar: upload files to the current class folder ────────────────────
     LOADER_MAP = {
@@ -297,23 +315,6 @@ with st.sidebar.container():
         else:
             st.info("No docs to save.")
     
-    # --- Sidebar: narrow or prioritise docs ---------------------------------
-    #            
-    all_files = sorted(os.listdir(CTX_DIR)) if os.path.exists(CTX_DIR) else []
-    sel_docs = st.sidebar.multiselect(
-        "📑 Select docs to focus on (optional)", 
-        all_files
-    )
-
-    mode = st.sidebar.radio(
-        "↳ How should I use the selected docs?",
-        ["Prioritise (default)", "Only these docs"],
-        horizontal=True
-    )
-
-    st.markdown("</div>", unsafe_allow_html=True)  # close the card
-
-
 # --------------- Sidebar: light-hearted disclaimer -----------------
 with st.sidebar.expander("⚖️ Disclaimer", expanded=False):
     st.markdown(

@@ -247,7 +247,7 @@ with st.sidebar.expander("➕  Add a new class", expanded=False):
             st.rerun()
 
 # ── delete-class workflow ──────────────────────────────────────────────
-if st.sidebar.button("🗑️ Delete this class", key="ask_delete"):
+if st.sidebar.button("🗑️", key="ask_delete"):
     st.session_state.confirm_delete = True
 
 if st.session_state.get("confirm_delete"):

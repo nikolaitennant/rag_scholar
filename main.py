@@ -1,19 +1,16 @@
 import streamlit as st
-import requests
-import json
-import base64
 from dotenv import load_dotenv
 from openai import OpenAI
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_community.document_loaders import PyPDFLoader
-from langchain.document_loaders import (
+from langchain_community.document_loaders import (
     Docx2txtLoader,
     UnstructuredWordDocumentLoader,
     UnstructuredPowerPointLoader,
     CSVLoader,
     TextLoader,
-    UnstructuredImageLoader
+    UnstructuredImageLoader,
+    PyPDFLoader
 )
 from langchain_core.messages import SystemMessage, HumanMessage
 import os
@@ -134,16 +131,11 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 | `role:`     | Set the assistant’s persona    | Single session      |
 """, unsafe_allow_html=True)
 
-EMBED_MODEL = "text-embedding-3-small"
 LLM_MODEL   = "gpt-4o-mini"
-
 CTX_DIR   = "default_context"
 INDEX_DIR = "faiss_store"
-CHUNK_SZ  = 600
-CHUNK_OV  = 100
 FIRST_K   = 30
 FINAL_K   = 4
-MAX_TURNS = 30  # keep chat history light
 
 # ---------------- Sidebar: default_context browser -----------------
 with st.sidebar.expander("📁 default_context files", expanded=False):
@@ -264,18 +256,20 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
         unsafe_allow_html=True,
     )
 
-for k, d in {
-    "perm": [], "sess": [], "persona": None,
-    "hist": [], "user_snips": []        
-}.items():
-    st.session_state.setdefault(k, d)
+# ─── Build or load FAISS index ────────────────────────────────────────────
+embeddings = OpenAIEmbeddings(api_key=api_key)
 
-# ─── Build or update RAG index ────────────────────────────────────────────
-default_docs, default_index = load_and_index_defaults()
-session_docs = load_uploaded_files(uploaded_docs)
-vector_store = build_vectorstore(default_docs, default_index, session_docs)
-retriever = vector_store.as_retriever()
-chat_llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini", temperature=0.0)
+if os.path.exists(INDEX_DIR):
+    # fast path: load a saved index
+    vector_store = FAISS.load_local(INDEX_DIR, embeddings)
+else:
+    # first run (or INDEX_DIR was wiped) → build then save
+    default_docs, default_index = load_and_index_defaults()
+    session_docs  = load_uploaded_files(uploaded_docs)
+    vector_store  = build_vectorstore(default_docs, default_index, session_docs)
+    vector_store.save_local(INDEX_DIR)
+
+chat_llm = ChatOpenAI(api_key=api_key, model=LLM_MODEL, temperature=0.0)
 
 # ─── Chat handler ─────────────────────────────────────────────────────────
 user_input = st.chat_input("Ask anything")
@@ -283,26 +277,55 @@ if user_input:
     txt = user_input.strip()
     low = txt.lower()
 
-    # ─ Command branches ───────────────────────
+    # -------- choose retrieval strategy (sidebar controls) ----------------
+    full_retriever = vector_store.as_retriever(
+        search_kwargs={"k": FIRST_K}
+    )
+
+    focus_retriever = None
+    if sel_docs:
+        def _in_selection(doc):
+            return os.path.basename(doc.metadata["source"]) in sel_docs
+        focus_retriever = vector_store.as_retriever(
+            search_kwargs={"k": FIRST_K, "filter": _in_selection}
+        )
+
+    if mode == "Only these docs" and focus_retriever:
+        docs = focus_retriever.invoke(txt)
+
+    elif mode == "Prioritise (default)" and focus_retriever:
+        primary   = focus_retriever.invoke(txt)
+        secondary = [d for d in full_retriever.invoke(txt)
+                     if d not in primary][: max(0, FINAL_K - len(primary))]
+        docs = primary + secondary
+    else:
+        docs = full_retriever.invoke(txt)
+    # ---------------------------------------------------------------------
+
+    # ─ Command branches ──────────────────────────────────────────────────
     if low.startswith("remember:"):
         fact = txt.split(":", 1)[1].strip()
         st.session_state.memory_facts.append(fact)
-        # only the assistant confirmation goes into chat_history:
-        st.session_state.chat_history.append(("Assistant", "✅ Fact remembered permanently."))
+        st.session_state.chat_history.append(
+            ("Assistant", "✅ Fact remembered permanently.")
+        )
 
     elif low.startswith("memo:"):
         fact = txt.split(":", 1)[1].strip()
         st.session_state.session_facts.append(fact)
-        st.session_state.chat_history.append(("Assistant", "ℹ️ Session-only fact added."))
+        st.session_state.chat_history.append(
+            ("Assistant", "ℹ️ Session-only fact added.")
+        )
 
     elif low.startswith("role:"):
         persona = txt.split(":", 1)[1].strip()
         st.session_state.persona = persona
-        st.session_state.chat_history.append(("Assistant", f"👤 Persona set: {persona}"))
+        st.session_state.chat_history.append(
+            ("Assistant", f"👤 Persona set: {persona}")
+        )
 
-    # ─ RAG / LLM branch ───────────────────────
+    # ─ RAG / LLM answer branch ───────────────────────────────────────────
     else:
-        docs = retriever.invoke(txt)
         context = "\n\n".join(d.page_content for d in docs)
 
         # sys_prompt = (
@@ -333,17 +356,20 @@ if user_input:
 
         (NO CITATION ⇒ NO CLAIM.)
         """.strip()
-        
+
         if st.session_state.persona:
             sys_prompt += f" Adopt persona: {st.session_state.persona}."
 
         messages = [SystemMessage(content=sys_prompt)]
+
         if context:
             messages.append(SystemMessage(content=f"Context:\n{context}"))
+
         for f in st.session_state.memory_facts:
             messages.append(SystemMessage(content=f"Remembered fact: {f}"))
         for f in st.session_state.session_facts:
             messages.append(SystemMessage(content=f"Session fact: {f}"))
+
         messages.append(HumanMessage(content=txt))
 
         if not (docs or st.session_state.memory_facts or st.session_state.session_facts):
@@ -353,7 +379,7 @@ if user_input:
             st.session_state.chat_history.append(("User", txt))
             st.session_state.chat_history.append(("Assistant", resp.content))
 
-# ─── Render the chat history ───────────────────────────────────────────────
+# ─── Render the chat history ──────────────────────────────────────────────
 for speaker, text in st.session_state.chat_history:
     role = "user" if speaker == "User" else "assistant"
     st.chat_message(role).write(text)

@@ -20,6 +20,14 @@ load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
 
+# ─── CONFIG ───────────────────────────────────────────────────────────────
+BASE_CTX_DIR = "classes_context"       # parent folder that holds the per-class folders
+CTX_DIR      = None                    # will be set after the user picks a class
+INDEX_DIR    = None
+FIRST_K   = 30
+FINAL_K   = 4
+LLM_MODEL   = "gpt-4o-mini"
+
 # ─── Streamlit session state ───────────────────────────────────────────────
 for key in ("memory_facts", "session_facts", "chat_history"):
     if key not in st.session_state:
@@ -146,16 +154,35 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 | `remember:` | Store a fact permanently       | Across sessions     |
 | `memo:`     | Store a fact this session only | Single session      |
 | `role:`     | Set the assistant’s persona    | Single session      |
-""", unsafe_allow_html=True)
 
-LLM_MODEL   = "gpt-4o-mini"
-CTX_DIR   = "default_context"
-INDEX_DIR = "faiss_store"
-FIRST_K   = 30
-FINAL_K   = 4
+""", unsafe_allow_html=True)
+# ─── Sidebar: choose active class / module ───────────────────────────────
+class_folders = sorted(
+    d for d in os.listdir(BASE_CTX_DIR)
+    if os.path.isdir(os.path.join(BASE_CTX_DIR, d))
+)
+if not class_folders:
+    st.sidebar.error(f"No folders found inside {BASE_CTX_DIR}.")
+    st.stop()
+
+if "active_class" not in st.session_state:
+    st.session_state.active_class = class_folders[0]
+
+active_class = st.sidebar.selectbox(
+    "🏷️  Select class / module",
+    class_folders,
+    index=class_folders.index(st.session_state.active_class)
+)
+if active_class != st.session_state.active_class:
+    st.session_state.active_class = active_class
+    st.rerun()                       # reload to pick up the new folder
+
+# point the rest of the app at the chosen folder --------------------------
+CTX_DIR   = os.path.join(BASE_CTX_DIR, active_class)
+INDEX_DIR = f"faiss_{active_class}"
 
 # ---------------- Sidebar: default_context browser -----------------
-with st.sidebar.expander("📁 default_context files", expanded=False):
+with st.sidebar.expander(f"📁 {active_class} files", expanded=False):
     if not os.path.exists(CTX_DIR):
         st.write("_Folder does not exist yet_")
     else:

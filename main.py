@@ -268,31 +268,37 @@ if st.sidebar.button(f"💾 Save uploads to {active_class}"):
 # --- Sidebar: narrow or prioritise docs ---------------------------------
 
 # ---------------- Sidebar: default_context browser -----------------
-with st.sidebar.expander(f"📁 {active_class} files", expanded=False):
-    if not os.path.exists(CTX_DIR):
-        st.write("_Folder does not exist yet_")
-    else:
-        files = sorted(os.listdir(CTX_DIR))
-        if not files:
-            st.write("_Folder is empty_")
+with st.sidebar.container():
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("### 📄 Document controls")
+
+    # 1) file browser for current class -----------------------------------
+    with st.expander(f"📁 {active_class} files", expanded=False):
+        if not os.path.exists(CTX_DIR):
+            st.write("_Folder does not exist yet_")
         else:
-            for fn in files:
-                col1, col2, col3 = st.columns([4, 1, 1])
-                col1.write(fn)
-    
-                with open(os.path.join(CTX_DIR, fn), "rb") as f:
-                    col2.download_button(
-                        label="⬇️",
-                        data=f,
-                        file_name=fn,
-                        mime="application/octet-stream",
-                        key=f"dl_{fn}",
-                    )
-                # delete button
-                if col3.button("🗑️", key=f"del_{fn}"):
-                    os.remove(os.path.join(CTX_DIR, fn))
-                    shutil.rmtree(INDEX_DIR, ignore_errors=True)
-                    st.rerun()       
+            files = sorted(os.listdir(CTX_DIR))
+            if not files:
+                st.write("_Folder is empty_")
+            else:
+                st.markdown("<div class='file-list'>", unsafe_allow_html=True)
+                for fn in files:
+                    col1, col2, col3 = st.columns([4, 1, 1])
+                    col1.write(fn)
+
+                    with open(os.path.join(CTX_DIR, fn), "rb") as f:
+                        col2.download_button("⬇️", f, file_name=fn,
+                                             mime="application/octet-stream",
+                                             key=f"dl_{fn}")
+
+                    if col3.button("🗑️", key=f"del_{fn}"):
+                        os.remove(os.path.join(CTX_DIR, fn))
+                        shutil.rmtree(INDEX_DIR, ignore_errors=True)
+                        st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='sidebar-gap'></div>", unsafe_allow_html=True)
+   
                     
 all_files = sorted(os.listdir(CTX_DIR)) if os.path.exists(CTX_DIR) else []
 

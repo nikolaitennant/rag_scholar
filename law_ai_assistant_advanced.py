@@ -9,7 +9,8 @@ Changes v1.6
 """
 
 import os, io, re, base64, tempfile, shutil
-from typing import List, Dict, Union
+from typing import List, Dict, Union───────────────────────────────────────
+import gc  
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -246,6 +247,10 @@ if st.sidebar.button("💾 Save uploads to default_context"):
         st.success("Files saved! Reload to re-index.")
     else: st.info("No docs to save.")
 
+# ─── 1. Sidebar – “limit search to docs” control ─────────────────────────
+all_files = sorted(os.listdir(CTX_DIR)) if os.path.exists(CTX_DIR) else []
+sel_docs  = st.sidebar.multiselect("🔎 Search only these docs (optional)", all_files)
+
 # ---------- live resource meter ------------------------------------------
 import psutil, shutil, humanize, os, time
 
@@ -403,13 +408,27 @@ if query:
         # merge uploaded docs (session-only unless saved)
         extra_docs=[]
         if uploaded_docs:
-            tmp=tempfile.mkdtemp()
+            tmp = tempfile.mkdtemp()
+            extra_docs = []
             for uf in uploaded_docs:
-                p=os.path.join(tmp,uf.name); open(p,"wb").write(uf.getbuffer())
+                p = os.path.join(tmp, uf.name)
+                open(p, "wb").write(uf.getbuffer())
                 extra_docs.extend(load_and_split(p))
-            vs.add_documents(extra_docs); base_docs.extend(extra_docs)
 
-        docs=rerank(txt, hybrid_retriever(vs, base_docs).invoke(txt))
+            # --- add vectors then free RAM ---------------------------------------
+            vs.add_documents(extra_docs)          # vectors stay inside FAISS
+            del extra_docs
+            gc.collect()
+
+        if sel_docs:                          # user ticked filenames in sidebar
+            filt = lambda m: m.get("source_file") in sel_docs
+            base_retriever = vs.as_retriever(
+                search_kwargs={"k": FIRST_K, "filter": filt}
+            )
+        else:                                 # search the full index
+            base_retriever = vs.as_retriever(search_kwargs={"k": FIRST_K})
+
+        docs = rerank(txt, base_retriever.invoke(txt))
 
         # snippet build
         snippets=[]
@@ -499,3 +518,18 @@ if query:
     # ── Render chat ─────────────────────────────────────────────────────
     for role, msg in st.session_state.hist:
         st.chat_message(role).write(msg)
+        if st.session_state.hist and st.session_state.hist[-1][0] == "assistant":
+            answer_text = st.session_state.hist[-1][1]
+            used_tags = re.findall(r"\[#(\d+|U\d+)\]", answer_text)
+            if used_tags:
+                legend = []
+                for tag in used_tags:
+                    idx = int(tag.lstrip("U")) - 1
+                    try:
+                        src_line = snippets[idx]
+                        legend.append(f"**[{tag}]** → {src_line.split(')',1)[0].split('(',1)[-1]}")
+                    except IndexError:
+                        continue
+                if legend:
+                    with st.expander("📑 Sources used"):
+                        st.markdown("\n\n".join(legend))

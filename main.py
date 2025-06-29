@@ -272,90 +272,6 @@ for k, d in {
 }.items():
     st.session_state.setdefault(k, d)
 
-
-
-
-
-
-
-
-
-
-
-# st.set_page_config(page_title="Giulia's AI Law Assistant", page_icon="🤖")
-# st.title("🤖 Giulia's AI Law Assistant")
-
-# # Sidebar
-# st.sidebar.header("📂 File Uploads & Additional Info")
-# with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
-#     st.markdown("""
-# | **Command** | **What it Does**               | **Scope**           |
-# |------------:|--------------------------------|---------------------|
-# | `remember:` | Store a fact permanently       | Across sessions     |
-# | `memo:`     | Store a fact this session only | Single session      |
-# | `role:`     | Set the assistant’s persona    | Single session      |
-# """, unsafe_allow_html=True)
-
-# upload_mode = st.sidebar.radio("Save conversation for later?:", ("No, this session only", "Yes, remember for next time"), index=0)
-# mode = st.sidebar.radio("Media Type:", ("Text only", "Image/Chart"), index=0)
-# inline_files = st.sidebar.file_uploader("Upload document:", type=["pdf","txt","docx","doc","pptx","csv"], accept_multiple_files=True)
-# image_file = st.sidebar.file_uploader("Upload image/chart:", type=["png","jpg","jpeg"])
-
-# if upload_mode == "Yes, remember for next time" and inline_files:
-#     os.makedirs("default_context", exist_ok=True)
-#     for f in inline_files:
-#         dest = os.path.join("default_context", f.name)
-#         if not os.path.exists(dest):
-#             with open(dest, "wb") as out:
-#                 out.write(f.getbuffer())
-#     st.sidebar.success("✅ Documents saved for future sessions.")
-
-
-
-# st.markdown("""
-#     <style>
-#       .info-box {
-#         margin-bottom: 24px;
-#         padding: 26px 28px;
-#         border-radius: 14px;
-#         font-size: 1.08rem;
-#         line-height: 1.7;
-#       }
-
-#       /* Light‐mode (Streamlit) */
-#       html[data-theme="light"] .info-box {
-#         background: #e7f3fc !important;
-#         color: #184361 !important;
-#         border-left: 7px solid #2574a9 !important;
-#         box-shadow: 0 1px 8px #eef4fa !important;
-#       }
-
-#       /* Dark‐mode (Streamlit) */
-#       html[data-theme="dark"] .info-box {
-#         background: #2b2b2b !important;
-#         color: #ddd !important;
-#         border-left: 7px solid #bb86fc !important;
-#         box-shadow: 0 1px 8px rgba(0,0,0,0.5) !important;
-#       }
-#       html[data-theme="dark"] .info-box b {
-#         color: #fff !important;
-#       }
-#       html[data-theme="dark"] .info-box span {
-#         color: #a0d6ff !important;
-#       }
-#     </style>
-
-# <div class="info-box" style='margin:24px 0; padding:20px; background:#e7f3fc; border-left:7px solid #2574a9; color:#184361; border-radius:14px;'>
-#   <b style='font-size:1.13rem;'>ℹ️ How this assistant works:</b>
-#   <ul style='margin-left:1.1em; margin-top:12px;'>
-#     <li>📄 <b>Only your documents:</b> I read and answer using just the files you upload plus any built-in context. I don’t look up anything on the web.</li>
-#     <li>❓ <b>No surprises:</b> If the answer isn’t in your docs, I’ll tell you I don’t have enough information instead of making stuff up.</li>
-#     <li>📂 <b>All your files:</b> You can upload as many PDFs, Word docs, slides, spreadsheets, or images as you need—I'll consider them all together.</li>
-#   </ul>
-#   <b>✨ Tip:</b> To get the best answers, upload any notes, reports, or visuals related to your question so I have the full picture.
-# </div>
-# """, unsafe_allow_html=True)
-
 # ─── Build or update RAG index ────────────────────────────────────────────
 default_docs, default_index = load_and_index_defaults()
 session_docs = load_uploaded_files(inline_files)
@@ -364,7 +280,7 @@ retriever = vector_store.as_retriever()
 chat_llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini", temperature=0.0)
 
 # ─── Chat handler ─────────────────────────────────────────────────────────
-user_input = st.chat_input("Type a question or use `remember:`, `memo:`, `role:`…")
+user_input = st.chat_input("Ask anything")
 if user_input:
     txt = user_input.strip()
     low = txt.lower()
@@ -391,10 +307,35 @@ if user_input:
         docs = retriever.invoke(txt)
         context = "\n\n".join(d.page_content for d in docs)
 
-        sys_prompt = (
-            "You are a helpful legal assistant. Answer using provided context, remembered facts, "
-            "and session facts. Do not invent information."
-        )
+        # sys_prompt = (
+        #     "You are a helpful legal assistant. Answer using provided context, remembered facts, "
+        #     "and session facts. Do not invent information."
+        # )
+
+        prompt = """
+        You are Giulia’s friendly but meticulous law-exam assistant.
+
+        GROUND RULES
+        • Your knowledge source hierarchy, in order of authority:  
+        1. **Provided Snippets** (numbered [#n]).  
+        2. **Stored facts** added with remember:/memo:.  
+        3. Generally known public facts *only* if obviously harmless
+            (e.g., “LSE stands for London School of Economics”).  
+        • Every sentence that states a legal rule, holding, statute section, date,
+        or anything that might be challenged in an exam answer must end with its
+        citation [#n].  
+        • If the necessary information is not present in 1 or 2, respond exactly with:  
+        “I don’t have enough information in the provided material to answer that.”
+
+        STYLE
+        1. Begin with one conversational line that restates the user’s question.  
+        2. Give a detailed, logically structured answer (IRAC only if the user asks).  
+        3. Explain legal jargon in plain English.  
+        5. Keep tone peer-to-peer, confident, concise.
+
+        (NO CITATION ⇒ NO CLAIM.)
+        """.strip()
+        
         if st.session_state.persona:
             sys_prompt += f" Adopt persona: {st.session_state.persona}."
 

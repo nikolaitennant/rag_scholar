@@ -345,48 +345,48 @@ if query:
     (NO CITATION ⇒ NO CLAIM.)
     """.strip()
 
-# ── Final prompt (add persona if any) ───────────────────────────────
-if st.session_state.persona:
-    prompt += f" Adopt persona: {st.session_state.persona}."
+    # ── Final prompt (add persona if any) ───────────────────────────────
+    if st.session_state.persona:
+        prompt += f" Adopt persona: {st.session_state.persona}."
 
-# ── Build message list ──────────────────────────────────────────────
-msgs: List[Union[SystemMessage, HumanMessage]] = [SystemMessage(content=prompt)]
+    # ── Build message list ──────────────────────────────────────────────
+    msgs: List[Union[SystemMessage, HumanMessage]] = [SystemMessage(content=prompt)]
 
-if snippets:
-    msgs.append(SystemMessage(content="Snippets:\n" + "\n\n".join(snippets)))
+    if snippets:
+        msgs.append(SystemMessage(content="Snippets:\n" + "\n\n".join(snippets)))
 
-for fact in st.session_state.perm + st.session_state.sess:
-    msgs.append(SystemMessage(content=f"Fact: {fact}"))
+    for fact in st.session_state.perm + st.session_state.sess:
+        msgs.append(SystemMessage(content=f"Fact: {fact}"))
 
-if ocr.strip():
-    msgs.append(SystemMessage(content=f"OCR:\n{ocr.strip()}"))
+    if ocr.strip():
+        msgs.append(SystemMessage(content=f"OCR:\n{ocr.strip()}"))
 
-# user message (multimodal if image present)
-user_payload = [{"type": "text", "text": txt}, img_payload] if img_payload else txt
-msgs.append(HumanMessage(content=user_payload))
+    # user message (multimodal if image present)
+    user_payload = [{"type": "text", "text": txt}, img_payload] if img_payload else txt
+    msgs.append(HumanMessage(content=user_payload))
 
-# ── Call the model ──────────────────────────────────────────────────
-with st.spinner("Thinking …"):
-    res = client.chat.completions.create(
-        model       = LLM_MODEL,
-        messages    = [to_dict(m) for m in msgs],
-        temperature = 0.0,
-        max_tokens  = 800,
-    )
+    # ── Call the model ──────────────────────────────────────────────────
+    with st.spinner("Thinking …"):
+        res = client.chat.completions.create(
+            model       = LLM_MODEL,
+            messages    = [to_dict(m) for m in msgs],
+            temperature = 0.0,
+            max_tokens  = 800,
+        )
 
-answer = res.choices[0].message.content.strip()
+    answer = res.choices[0].message.content.strip()
 
-# ── Citation check & refusal ────────────────────────────────────────
-missing = uncited_substantive(answer)
-if missing:
-    st.warning("⚠️ Sentences without citations: " + " | ".join(missing[:3]))
-    answer = ("I don’t have enough information in the provided material to answer that. "
-              "Please upload a source or restate with supporting documents.")
+    # ── Citation check & refusal ────────────────────────────────────────
+    missing = uncited_substantive(answer)
+    if missing:
+        st.warning("⚠️ Sentences without citations: " + " | ".join(missing[:3]))
+        answer = ("I don’t have enough information in the provided material to answer that. "
+                "Please upload a source or restate with supporting documents.")
 
-# ── Update history (cap at MAX_TURNS) ───────────────────────────────
-st.session_state.hist.extend([("user", txt), ("assistant", answer)])
-st.session_state.hist = st.session_state.hist[-MAX_TURNS * 2:]
+    # ── Update history (cap at MAX_TURNS) ───────────────────────────────
+    st.session_state.hist.extend([("user", txt), ("assistant", answer)])
+    st.session_state.hist = st.session_state.hist[-MAX_TURNS * 2:]
 
-# ── Render chat ─────────────────────────────────────────────────────
-for role, msg in st.session_state.hist:
-    st.chat_message(role).write(msg)
+    # ── Render chat ─────────────────────────────────────────────────────
+    for role, msg in st.session_state.hist:
+        st.chat_message(role).write(msg)

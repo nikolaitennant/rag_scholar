@@ -250,9 +250,7 @@ with st.expander("ℹ️  How this assistant works", expanded=True):
 
   <li><b>Document-only answers</b> – I rely <em>solely</em> on the files you upload or facts you store with remember/memo or user queries. No web searching!.</li>
 
-    <li><b>Snippets</b> – I extract key passages from your files and user queries, numbered [#1], [#2], etc.
-
-  <li><b>Citations</b> – every legal rule or fact ends with a tag such as <code>[#3]</code>.  
+  <li><b>Citations</b> – every legal rule or fact ends with a tag such as [#3].  
       A yellow badge appears if something looks uncited.</li>
       
 

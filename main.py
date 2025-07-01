@@ -520,8 +520,7 @@ if user_input:
         citation [#n].  
         • If the necessary information is not present in 1 or 2, respond exactly with:  
         “I don’t have enough information in the provided material to answer that.”
-        • Cite ONLY when the statement relies on a numbered snippet [#n]  
-        (those come from the uploaded documents).  
+        • Cite ONLY when the statement relies on a numbered snippet [#n] (those come from the uploaded documents).  
         Do NOT cite user chat, remembered facts, or general knowledge.
 
         STYLE
@@ -566,23 +565,27 @@ if user_input:
         else:
             resp = chat_llm.invoke(messages)
 
-            # save the response to the rolling memory and summary memory
-            st.session_state.window_memory.save_context(
-                inputs={"input": txt},
-                outputs={"output": resp.content},
-            )
-            st.session_state.summary_memory.save_context(
-                inputs={"input": txt},
-                outputs={"output": resp.content},
-            )
-            
-            # still push to chat_history so your UI can render it as before
-            st.session_state.chat_history.append({"speaker": "User", "text": txt})
-            st.session_state.chat_history.append({
-                "speaker": "Assistant",
-                "text": resp.content,
-                "snippets": snippet_map,
-            })
+            bad = [n for n in extract_citation_numbers(resp.content) if n not in snippet_map]
+            if bad:
+                resp.content = "I can’t find the sources for some citations, so I can’t answer that."
+            else:
+                # save the response to the rolling memory and summary memory
+                st.session_state.window_memory.save_context(
+                    inputs={"input": txt},
+                    outputs={"output": resp.content},
+                )
+                st.session_state.summary_memory.save_context(
+                    inputs={"input": txt},
+                    outputs={"output": resp.content},
+                )
+                
+                # still push to chat_history so your UI can render it as before
+                st.session_state.chat_history.append({"speaker": "User", "text": txt})
+                st.session_state.chat_history.append({
+                    "speaker": "Assistant",
+                    "text": resp.content,
+                    "snippets": snippet_map,
+                })
 
 
 # ─── Render the chat history ──────────────────────────────────────────────

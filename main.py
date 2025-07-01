@@ -500,31 +500,25 @@ if user_input:
         snippet_map = {}  # {id:int → dict}
         context_parts = []    # {cid:int → dict}
 
-        for d in docs:
-            # ① identify the page we’re citing
+        for chunk_i, d in enumerate(docs, start=1):
+            # ── identify this passage ────────────────────────────────
             file_name = os.path.basename(
                 d.metadata.get("source") or d.metadata.get("file_path", "-unknown-")
             )
-            page_num = d.metadata.get("page", None)   # may be None
+            page_num = d.metadata.get("page", None)
 
-            # ② look up or assign a stable citation id
-            key = (file_name, page_num)
+            # ── assign / reuse a stable citation ID ─────────────────
+            key = (file_name, page_num, chunk_i)        # unique per passage
             if key not in st.session_state.global_ids:
                 st.session_state.global_ids[key] = st.session_state.next_id
                 st.session_state.next_id += 1
-            cid = st.session_state.global_ids[key]        # ← stable [#id]
+            cid = st.session_state.global_ids[key]      # ← stable [#id]
 
-            # ③ build context & map
+            # ── build context and snippet map ───────────────────────
             context_parts.append(f"[#{cid}]\n{d.page_content}")
-            # snippet_map[cid] = {
-            #     "preview": re.sub(r"\s+", " ", d.page_content.strip())[:160] + "…",
-            #     "source": file_name,
-            #     "page": page_num,
-            # }
-
             snippet_map[cid] = {
                 "preview": re.sub(r"\s+", " ", d.page_content.strip())[:160] + "…",
-                "full": d.page_content.strip(),          # ← store the whole snippet
+                "full": d.page_content.strip(),
                 "source": file_name,
                 "page": page_num,
             }

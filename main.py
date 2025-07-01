@@ -11,9 +11,11 @@ from langchain_community.document_loaders import (
     TextLoader,
     PyPDFLoader,
 )
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 from langchain.memory import ConversationBufferWindowMemory
-import html, re, shutil, tempfile, os
+import re, shutil, tempfile, os
+from langchain.memory import ConversationSummaryBufferMemory
+
 
 # ─── Load environment variables ─────────────────────────────────────────────
 load_dotenv()
@@ -29,6 +31,7 @@ FINAL_K = 4
 LLM_MODEL = "gpt-4.1-mini"
 INLINE_RE = re.compile(r"\[\s*#(\d+)\s*\]")
 SESSION_WINDOW = 8
+MAX_TOKEN_LIMIT = 800  # for the summary memory
 
 # ─── Streamlit session state ───────────────────────────────────────────────
 for key in ("memory_facts", "session_facts", "chat_history"):
@@ -36,12 +39,31 @@ for key in ("memory_facts", "session_facts", "chat_history"):
         st.session_state[key] = []
 if "persona" not in st.session_state:
     st.session_state.persona = None
-# rolling in‑session memory for chat continuity
-if "session_memory" not in st.session_state:
-    st.session_state.session_memory = ConversationBufferWindowMemory(
+
+
+# ① short verbatim window
+if "window_memory" not in st.session_state:
+    st.session_state.window_memory = ConversationBufferWindowMemory(
         k=SESSION_WINDOW,
         return_messages=True,
     )
+
+# ② long summary memory
+if "summary_memory" not in st.session_state:
+    st.session_state.summary_memory = ConversationSummaryBufferMemory(
+        llm=ChatOpenAI(api_key=api_key,
+                    model="gpt-3.5-turbo-0125",
+                    temperature=0.0),
+        max_token_limit=MAX_TOKEN_LIMIT,
+        return_messages=True,
+        human_prefix="Human",
+        ai_prefix="AI",
+        summary_prompt=(
+            "Provide a concise running summary of the conversation so far, "
+            "excluding the most recent 8 messages."
+        ),
+    )
+
 
 # ─── Helpers: load & index default docs ────────────────────────────────────
 @st.cache_resource(show_spinner=False)
@@ -509,13 +531,18 @@ if user_input:
         """.strip()
 
         if st.session_state.persona:
-            sys_prompt += f" Adopt persona: {st.session_state.persona}."
+            sys_prompt += f" Adopt persona: {st.session_state.persona}."        
 
         messages = [SystemMessage(content=sys_prompt)]
 
-        # 1️⃣  rolling session memory (AI + user turns, lower authority)
-        historical = st.session_state.session_memory.load_memory_variables({}).get("history", [])
-        messages.extend(historical)
+
+        # ① last 8 turns verbatim  (higher fidelity)
+        win_hist = st.session_state.window_memory.load_memory_variables({}).get("history", [])
+        messages.extend(win_hist)
+
+        # ② long-term summary      (older context, no duplication risk)
+        sum_hist = st.session_state.summary_memory.load_memory_variables({}).get("history", [])
+        messages.extend(sum_hist)
 
         # 2️⃣  retrieved document context
         if context:
@@ -536,9 +563,16 @@ if user_input:
         else:
             resp = chat_llm.invoke(messages)
 
-            # save this turn to rolling session memory
-            st.session_state.session_memory.save_context({"input": txt}, {"output": resp.content})
-
+            # save the response to the rolling memory and summary memory
+            st.session_state.window_memory.save_context(
+                inputs={"input": txt},
+                outputs={"output": resp.content},
+            )
+            st.session_state.summary_memory.save_context(
+                inputs={"input": txt},
+                outputs={"output": resp.content},
+            )
+            
             # still push to chat_history so your UI can render it as before
             st.session_state.chat_history.append({"speaker": "User", "text": txt})
             st.session_state.chat_history.append({

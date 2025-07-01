@@ -520,6 +520,9 @@ if user_input:
         citation [#n].  
         • If the necessary information is not present in 1 or 2, respond exactly with:  
         “I don’t have enough information in the provided material to answer that.”
+        • Cite ONLY when the statement relies on a numbered snippet [#n]  
+        (those come from the uploaded documents).  
+        Do NOT cite user chat, remembered facts, or general knowledge.
 
         STYLE
         1. Begin with one conversational line that restates the user’s question.  

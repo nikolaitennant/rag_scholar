@@ -9,10 +9,10 @@ from langchain_community.document_loaders import (
     UnstructuredPowerPointLoader,
     CSVLoader,
     TextLoader,
-    UnstructuredImageLoader,
     PyPDFLoader,
 )
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain.memory import ConversationBufferWindowMemory
 import html, re, shutil, tempfile, os
 
 # ─── Load environment variables ─────────────────────────────────────────────
@@ -28,6 +28,7 @@ FIRST_K = 30
 FINAL_K = 4
 LLM_MODEL = "gpt-4.1-mini"
 INLINE_RE = re.compile(r"\[\s*#(\d+)\s*\]")
+SESSION_WINDOW = 8
 
 # ─── Streamlit session state ───────────────────────────────────────────────
 for key in ("memory_facts", "session_facts", "chat_history"):
@@ -35,7 +36,12 @@ for key in ("memory_facts", "session_facts", "chat_history"):
         st.session_state[key] = []
 if "persona" not in st.session_state:
     st.session_state.persona = None
-
+# rolling in‑session memory for chat continuity
+if "session_memory" not in st.session_state:
+    st.session_state.session_memory = ConversationBufferWindowMemory(
+        k=SESSION_WINDOW,
+        return_messages=True,
+    )
 
 # ─── Helpers: load & index default docs ────────────────────────────────────
 @st.cache_resource(show_spinner=False)
@@ -106,26 +112,6 @@ def build_vectorstore(default_docs, default_index, session_docs):
         embeddings = OpenAIEmbeddings(api_key=api_key)
         return FAISS.from_documents(default_docs + session_docs, embeddings)
     return default_index
-
-
-def _split_sentences(text: str):
-    parts, buff, in_code = [], [], False
-    for line in text.splitlines(keepends=True):
-        if line.strip().startswith("```"):
-            in_code = not in_code
-            parts.append("".join(buff))
-            buff = []
-            parts.append(line)
-            continue
-        if in_code:
-            parts.append(line)
-            continue
-        for chunk in re.split(r"(?<=[.!?])\s+", line):
-            if chunk:
-                parts.append(chunk)
-    if buff:
-        parts.append("".join(buff))
-    return parts
 
 
 def extract_citation_numbers(text: str) -> list[int]:
@@ -527,26 +513,40 @@ if user_input:
 
         messages = [SystemMessage(content=sys_prompt)]
 
+        # 1️⃣  rolling session memory (AI + user turns, lower authority)
+        historical = st.session_state.session_memory.load_memory_variables({}).get("history", [])
+        messages.extend(historical)
+
+        # 2️⃣  retrieved document context
         if context:
             messages.append(SystemMessage(content=f"Context:\n{context}"))
 
+        # 3️⃣  stored permanent / session facts
         for f in st.session_state.memory_facts:
             messages.append(SystemMessage(content=f"Remembered fact: {f}"))
         for f in st.session_state.session_facts:
             messages.append(SystemMessage(content=f"Session fact: {f}"))
 
+        # 4️⃣  current user turn
         messages.append(HumanMessage(content=txt))
 
-        if not (
-            docs or st.session_state.memory_facts or st.session_state.session_facts
-        ):
+        # ── Guard: empty knowledge ------------------------------------------------
+        if not (docs or st.session_state.memory_facts or st.session_state.session_facts):
             st.warning("⚠️ Not enough info to answer.")
         else:
             resp = chat_llm.invoke(messages)
+
+            # save this turn to rolling session memory
+            st.session_state.session_memory.save_context({"input": txt}, {"output": resp.content})
+
+            # still push to chat_history so your UI can render it as before
             st.session_state.chat_history.append({"speaker": "User", "text": txt})
-            st.session_state.chat_history.append(
-                {"speaker": "Assistant", "text": resp.content, "snippets": snippet_map}
-            )
+            st.session_state.chat_history.append({
+                "speaker": "Assistant",
+                "text": resp.content,
+                "snippets": snippet_map,
+            })
+
 
 # ─── Render the chat history ──────────────────────────────────────────────
 for entry in st.session_state.chat_history:

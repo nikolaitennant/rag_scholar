@@ -516,21 +516,19 @@ if user_input:
 
             # ③ build context & map
             context_parts.append(f"[#{cid}]\n{d.page_content}")
+            # snippet_map[cid] = {
+            #     "preview": re.sub(r"\s+", " ", d.page_content.strip())[:160] + "…",
+            #     "source": file_name,
+            #     "page": page_num,
+            # }
+
             snippet_map[cid] = {
                 "preview": re.sub(r"\s+", " ", d.page_content.strip())[:160] + "…",
+                "full": d.page_content.strip(),          # ← store the whole snippet
                 "source": file_name,
                 "page": page_num,
             }
         
-        # for i, d in enumerate(docs, start=1):
-        #     context_parts.append(f"[#{i}]\n{d.page_content}")  # prepend marker
-        #     snippet_map[i] = {
-        #         "preview": re.sub(r"\s+", " ", d.page_content.strip())[:160] + "…",
-        #         "source": os.path.basename(
-        #             d.metadata.get("source") or d.metadata.get("file_path", "-unknown-")
-        #         ),
-        #         "page": d.metadata.get("page", None),
-        #     }
         context = "\n\n".join(context_parts)
 
         sys_prompt = """
@@ -642,7 +640,16 @@ for entry in st.session_state.chat_history:
                         if not info:
                             st.write(f"• [#{n}] – (not in this context?)")
                             continue
-                        label = f"**[#{n}]** – {info['preview']}"
+                        label = f"**[#{n}]** – {info['source']}"
+                        quote = info["full"].replace("\n", " ")[:550]  # clip very long pages
+                        st.markdown(
+                            f"{label}<br>"
+                            f"<span style='color:gray;font-size:0.85rem'>p.{info['page']+1 if info['page'] is not None else '-'} "
+                            f"</span><br>"
+                            f"<blockquote style='margin-top:6px'>{quote}</blockquote>",
+                            unsafe_allow_html=True,
+                        )
+                        # label = f"**[#{n}]** – {info['preview']}"
                         note = info["source"]
                         if info["page"] is not None:
                             note += f"  (p.{info['page']+1})"

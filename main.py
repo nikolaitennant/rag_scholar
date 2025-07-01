@@ -500,25 +500,31 @@ if user_input:
         snippet_map = {}  # {id:int → dict}
         context_parts = []    # {cid:int → dict}
 
-        for chunk_i, d in enumerate(docs, start=1):
-            # ── identify this passage ────────────────────────────────
+        for d in docs:
+            # ① identify the page we’re citing
             file_name = os.path.basename(
                 d.metadata.get("source") or d.metadata.get("file_path", "-unknown-")
             )
-            page_num = d.metadata.get("page", None)
+            page_num = d.metadata.get("page", None)   # may be None
 
-            # ── assign / reuse a stable citation ID ─────────────────
-            key = (file_name, page_num, chunk_i)        # unique per passage
+            # ② look up or assign a stable citation id
+            key = (file_name, page_num)
             if key not in st.session_state.global_ids:
                 st.session_state.global_ids[key] = st.session_state.next_id
                 st.session_state.next_id += 1
-            cid = st.session_state.global_ids[key]      # ← stable [#id]
+            cid = st.session_state.global_ids[key]        # ← stable [#id]
 
-            # ── build context and snippet map ───────────────────────
+            # ③ build context & map
             context_parts.append(f"[#{cid}]\n{d.page_content}")
+            # snippet_map[cid] = {
+            #     "preview": re.sub(r"\s+", " ", d.page_content.strip())[:160] + "…",
+            #     "source": file_name,
+            #     "page": page_num,
+            # }
+
             snippet_map[cid] = {
                 "preview": re.sub(r"\s+", " ", d.page_content.strip())[:160] + "…",
-                "full": d.page_content.strip(),
+                "full": d.page_content.strip(),          # ← store the whole snippet
                 "source": file_name,
                 "page": page_num,
             }
@@ -537,7 +543,6 @@ if user_input:
         • Every sentence that states a legal rule, holding, statute section, date,
         or anything that might be challenged in an exam answer must end with its
         citation [#n].  
-        • Place the [#n] tag **immediately after the sentence it supports, not just at the end of a paragraph**.
         • If the necessary information is not present in 1 or 2, respond exactly with:  
         “I don’t have enough information in the provided material to answer that.”
         • Cite ONLY when the statement relies on a numbered snippet [#n] (those come from the uploaded documents).  
@@ -644,7 +649,6 @@ for entry in st.session_state.chat_history:
                             f"<blockquote style='margin-top:6px'>{quote}</blockquote>",
                             unsafe_allow_html=True,
                         )
-                        # label = f"**[#{n}]** – {info['preview']}"
                         note = info["source"]
                         if info["page"] is not None:
                             note += f"  (p.{info['page']+1})"

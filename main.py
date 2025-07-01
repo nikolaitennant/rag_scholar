@@ -494,16 +494,39 @@ if user_input:
     else:
         # number the retrieved docs and remember their metadata  ────────────────
         snippet_map = {}  # {id:int → dict}
-        context_parts = []
-        for i, d in enumerate(docs, start=1):
-            context_parts.append(f"[#{i}]\n{d.page_content}")  # prepend marker
-            snippet_map[i] = {
+        context_parts = []    # {cid:int → dict}
+
+        for d in docs:
+            # ① identify the page we’re citing
+            file_name = os.path.basename(
+                d.metadata.get("source") or d.metadata.get("file_path", "-unknown-")
+            )
+            page_num = d.metadata.get("page", None)   # may be None
+
+            # ② look up or assign a stable citation id
+            key = (file_name, page_num)
+            if key not in st.session_state.global_ids:
+                st.session_state.global_ids[key] = st.session_state.next_id
+                st.session_state.next_id += 1
+            cid = st.session_state.global_ids[key]        # ← stable [#id]
+
+            # ③ build context & map
+            context_parts.append(f"[#{cid}]\n{d.page_content}")
+            snippet_map[cid] = {
                 "preview": re.sub(r"\s+", " ", d.page_content.strip())[:160] + "…",
-                "source": os.path.basename(
-                    d.metadata.get("source") or d.metadata.get("file_path", "-unknown-")
-                ),
-                "page": d.metadata.get("page", None),
+                "source": file_name,
+                "page": page_num,
             }
+        
+        # for i, d in enumerate(docs, start=1):
+        #     context_parts.append(f"[#{i}]\n{d.page_content}")  # prepend marker
+        #     snippet_map[i] = {
+        #         "preview": re.sub(r"\s+", " ", d.page_content.strip())[:160] + "…",
+        #         "source": os.path.basename(
+        #             d.metadata.get("source") or d.metadata.get("file_path", "-unknown-")
+        #         ),
+        #         "page": d.metadata.get("page", None),
+        #     }
         context = "\n\n".join(context_parts)
 
         sys_prompt = """
@@ -535,6 +558,11 @@ if user_input:
         if st.session_state.persona:
             sys_prompt += f" Adopt persona: {st.session_state.persona}."        
 
+        # ─── session-wide citation IDs ────────────────────────────────────────────
+        if "global_ids" not in st.session_state:
+            st.session_state.global_ids = {}   # {(file, page) → stable int}
+            st.session_state.next_id = 1       # next unused number
+            
         messages = [SystemMessage(content=sys_prompt)]
 
 

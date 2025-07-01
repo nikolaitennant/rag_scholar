@@ -39,6 +39,10 @@ for key in ("memory_facts", "session_facts", "chat_history"):
         st.session_state[key] = []
 if "persona" not in st.session_state:
     st.session_state.persona = None
+# ─── session-wide citation IDs ────────────────────────────────────────────
+if "global_ids" not in st.session_state:
+    st.session_state.global_ids = {}   # {(file, page) → stable int}
+    st.session_state.next_id = 1       # next unused citation number
 
 
 # ① short verbatim window

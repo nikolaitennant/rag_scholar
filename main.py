@@ -635,7 +635,11 @@ for entry in st.session_state.chat_history:
             if cites:
                 pill = ", ".join(f"#{n}" for n in cites)
                 with st.expander(f"Sources used: {pill}", expanded=False):
+                    seen = set()
                     for n in cites:
+                        if n in seen:
+                            continue          # skip duplicates
+                        seen.add(n)
                         info = entry.get("snippets", {}).get(n)
                         if not info:
                             st.write(f"• [#{n}] – (not in this context?)")

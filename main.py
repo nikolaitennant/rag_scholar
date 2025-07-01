@@ -579,13 +579,13 @@ if user_input:
                     outputs={"output": resp.content},
                 )
                 
-                # still push to chat_history so your UI can render it as before
-                st.session_state.chat_history.append({"speaker": "User", "text": txt})
-                st.session_state.chat_history.append({
-                    "speaker": "Assistant",
-                    "text": resp.content,
-                    "snippets": snippet_map,
-                })
+            # still push to chat_history so your UI can render it as before
+            st.session_state.chat_history.append({"speaker": "User", "text": txt})
+            st.session_state.chat_history.append({
+                "speaker": "Assistant",
+                "text": resp.content,
+                "snippets": snippet_map,
+            })
 
 
 # ─── Render the chat history ──────────────────────────────────────────────

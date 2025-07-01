@@ -543,6 +543,7 @@ if user_input:
         • Every sentence that states a legal rule, holding, statute section, date,
         or anything that might be challenged in an exam answer must end with its
         citation [#n].  
+        • Place the [#n] tag **immediately after the sentence it supports, not just at the end of a paragraph**.
         • If the necessary information is not present in 1 or 2, respond exactly with:  
         “I don’t have enough information in the provided material to answer that.”
         • Cite ONLY when the statement relies on a numbered snippet [#n] (those come from the uploaded documents).  

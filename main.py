@@ -395,7 +395,7 @@ In short: double-check everything before relying on it.
         unsafe_allow_html=True,
     )
 
-with st.expander("ℹ️  How this assistant works", expanded=True):
+with st.expander("ℹ️  How this assistant works", expanded=False):
     st.markdown(
         """
 <div class="info-panel">

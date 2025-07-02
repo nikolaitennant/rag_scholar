@@ -325,6 +325,62 @@ with st.sidebar.container():
                         shutil.rmtree(INDEX_DIR, ignore_errors=True)
                         st.rerun()
 
+    with st.expander(f"🗄️ {active_class} File Browser", expanded=False):
+        if not os.path.exists(CTX_DIR):
+            st.write("_Folder does not exist yet_")
+        else:
+            files = sorted(os.listdir(CTX_DIR))
+            if not files:
+                st.write("_Folder is empty_")
+            else:
+                # "Download all" zip button
+                import io, zipfile
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+                    for fn in files:
+                        zf.write(os.path.join(CTX_DIR, fn), arcname=fn)
+                st.download_button(
+                    "⬇️ Download all as .zip",
+                    data=zip_buffer.getvalue(),
+                    file_name=f"{active_class}_files.zip",
+                    mime="application/zip",
+                    key="zip_all_files",
+                )
+                st.markdown("<div class='file-list'>", unsafe_allow_html=True)
+                for fn in files:
+                    col1, col2, col3 = st.columns([4, 1, 1])
+                    col1.write(fn)
+                    with open(os.path.join(CTX_DIR, fn), "rb") as f:
+                        col2.download_button(
+                            "⬇️",
+                            f,
+                            file_name=fn,
+                            mime="application/octet-stream",
+                            key=f"dl_{fn}",
+                        )
+                    if col3.button("🗑️", key=f"del_{fn}"):
+                        os.remove(os.path.join(CTX_DIR, fn))
+                        shutil.rmtree(INDEX_DIR, ignore_errors=True)
+                        st.rerun()
+
+                    col1, col2, col3 = st.columns([4, 1, 1])
+                    col1.write(fn)
+
+                    with open(os.path.join(CTX_DIR, fn), "rb") as f:
+                        col2.download_button(
+                            "⬇️",
+                            f,
+                            file_name=fn,
+                            mime="application/octet-stream",
+                            key=f"dl_{fn}",
+                        )
+
+                    if col3.button("🗑️", key=f"del_{fn}"):
+                        os.remove(os.path.join(CTX_DIR, fn))
+                        shutil.rmtree(INDEX_DIR, ignore_errors=True)
+                        st.rerun()
+
+
     # 3️⃣  ADD-NEW-CLASS EXPANDER (also under the selector)
     with st.sidebar.expander("➕  Add a new class", expanded=False):
         new_name = st.text_input(

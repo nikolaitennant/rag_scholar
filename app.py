@@ -11,8 +11,6 @@ import os, re, shutil
 from typing import List
 
 import streamlit as st
-from streamlit_modal import Modal
-print(st.__version__)
 from dotenv import load_dotenv
 
 # ── local modules ─────────────────────────────────────────────────────
@@ -81,77 +79,60 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
     ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
 
 
-        # ----- file browser --------------------------------------------
-        # ------------------------------------------------------------
-    # 🗄️  File Browser expander
-    # (requires: from streamlit_modal import Modal  ← add at top)
-    # ------------------------------------------------------------
-    delete_modal = Modal(
-    "Delete file?",            # title still used for a11y
-    key="delete_modal",
-    padding=0,                 # let our CSS handle spacing
-)
-
+    # ----- file browser --------------------------------------------
     with st.expander(f"🗄️ {active_class} File Browser", expanded=False):
         if not os.path.exists(ctx_dir):
             st.write("_Folder does not exist yet_")
         else:
             files = sorted(os.listdir(ctx_dir))
+
             if not files:
                 st.write("_Folder is empty_")
             else:
-                st.markdown("<div class='file-list'>", unsafe_allow_html=True)
+                # --- ZIP-all button -----------------------------------
+                import io, zipfile
+                zip_buf = io.BytesIO()
+                with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+                    for fn in files:
+                        zf.write(os.path.join(ctx_dir, fn), arcname=fn)
 
-                # ---------- list every file row --------------------------
-                for fn in files:
-                    key_base = fn.replace(" ", "_")   # safe part for widget keys
+                st.download_button(
+                    "⬇️ Download all as .zip",
+                    data=zip_buf.getvalue(),
+                    file_name=f"{active_class}_files.zip",
+                    mime="application/zip",
+                    key="download_all_zip",
+                )
+                st.divider()
 
-                    col_name, col_dl, col_trash = st.columns([4, 1, 1])
-                    col_name.write(fn)
+                # --- per-file rows ------------------------------------
+                for idx, fn in enumerate(files, start=1):
+                    key_base = fn.replace(" ", "_")  # safe for widget keys
+
+                    col_name, col_dl, col_tr = st.columns([5, 1, 1])
+                    col_name.write(f"{idx}.  {fn}")
 
                     # download button
                     with open(os.path.join(ctx_dir, fn), "rb") as f:
                         col_dl.download_button(
-                            "⬇️", f,
+                            "⬇️",
+                            f,
                             file_name=fn,
                             mime="application/octet-stream",
                             key=f"dl_{key_base}",
                         )
 
-                    # trash button → opens modal
-                    if col_trash.button("🗑️", key=f"ask_del_{key_base}", help="Delete this file"):
-                        st.session_state.file_to_delete = fn
-                        delete_modal.open()
-                        st.rerun()   # immediately render modal
-
-                # ---------- modal confirmation --------------------------
-                if delete_modal.is_open():
-                    with delete_modal.container():
-                        st.markdown("<h4>Delete file</h4>", unsafe_allow_html=True)
-                        st.markdown(f"<p>Really delete<br><b>{fn}</b>?</p>", unsafe_allow_html=True)
-
-                        st.markdown("<div class='confirm-row'>", unsafe_allow_html=True)
-
-                        yes = st.button("✅", key="modal_yes", help="Delete file", type="primary")
-                        no  = st.button("❌", key="modal_no",  help="Cancel",      type="secondary")
-
-                        st.markdown("</div>", unsafe_allow_html=True)
-
-                        if yes:
-                            os.remove(os.path.join(ctx_dir, fn))
-                            shutil.rmtree(idx_dir, ignore_errors=True)
-                            delete_modal.close()
-                            st.session_state.file_to_delete = None
-                            st.rerun()
-
-                        if no:
-                            delete_modal.close()
-                            st.session_state.file_to_delete = None
-                            st.rerun()
-                    st.markdown("</div>", unsafe_allow_html=True)            
+                    # instant delete button
+                    if col_tr.button("🗑️", key=f"del_{key_base}", help="Delete this file"):
+                        # remove the file
+                        os.remove(os.path.join(ctx_dir, fn))
+                        # wipe the FAISS index so it rebuilds next prompt
+                        shutil.rmtree(idx_dir, ignore_errors=True)
+                        # refresh sidebar + index
+                        st.rerun()
 
     # ----- add new class -------------------------------------------
-    with st.expander("➕  Add a new class", expanded=False):
+    with st.expander("➕  Add a new class", expanded=False): 
         new_name = st.text_input("Class name (letters, numbers, spaces):", key="new_class_name")
         if st.button("Create class", key="create_class"):
             clean = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip().replace(" ", "_")

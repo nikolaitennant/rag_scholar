@@ -12,4 +12,3 @@ unstructured[all-docs,powerpoint]
 docx2txt
 langchain-community
 humanize
-streamlit-modal

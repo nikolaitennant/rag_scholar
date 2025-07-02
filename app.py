@@ -53,7 +53,6 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
         unsafe_allow_html=True,
     )
 
-
 # 1.2 class controls
 with st.sidebar.expander("🗂️ Class controls", expanded=False):
 
@@ -66,7 +65,7 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
     if "active_class" not in st.session_state:
         st.session_state.active_class = class_folders[0]
 
-    active_class = st.sidebar.selectbox(
+    active_class = st.selectbox(
         "Select class / module",
         class_folders,
         index=class_folders.index(st.session_state.active_class),
@@ -78,8 +77,6 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
 
     ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
 
-
-    
 
     # ----- file browser --------------------------------------------
     with st.expander(f"🗄️ {active_class} File Browser", expanded=False):

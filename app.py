@@ -1,13 +1,7 @@
-# Giulia's Law AI Assistant – full-feature UI wrapper
-# ------------------------------------------------------
-# This Streamlit entry-point wires together the OOP backend (in
-# science/…) with the original rich sidebar (class browser, uploads,
-# prioritise/only-these toggle, disclaimers, etc.) and the polished UI
-# helpers in ui/ui_helpers.py.
-#
+"""Giulia's Law AI Assistant – full-feature UI wrapper"""
 
 from __future__ import annotations
-import os, re, shutil, random, time, tempfile
+import os, re, shutil
 from typing import List
 
 import streamlit as st
@@ -101,11 +95,21 @@ with st.sidebar.expander("➕  Add a new class", expanded=False):
     if st.button("Create class", key="create_class"):
         clean = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip().replace(" ", "_")
         target = os.path.join(cfg.BASE_CTX_DIR, clean)
+
         if not clean:
             st.error("Please enter a name.")
         elif clean in class_folders:
             st.warning(f"“{clean}” already exists.")
         else:
+            # ---------- seed file (optional) ----------
+            seed_src = "giulia.txt"
+            seed_dst = os.path.join(target, os.path.basename(seed_src))
+            try:
+                shutil.copy(seed_src, seed_dst)
+            except FileNotFoundError:
+                st.warning("Starter file giulia.txt not found – class created empty.")
+            # ------------------------------------------
+
             os.makedirs(target, exist_ok=True)
             st.success(f"Added “{clean}”. Select it in the list above.")
             st.rerun()

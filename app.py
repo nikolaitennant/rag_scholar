@@ -90,37 +90,33 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
             else:
                 st.markdown("<div class='file-list'>", unsafe_allow_html=True)
 
-                # ── 1. list rows ───────────────────────────────────────────
                 for fn in files:
+                    key_base = fn.replace(" ", "_")  # safe part for keys
                     col1, col2, col3 = st.columns([4, 1, 1])
                     col1.write(fn)
-                    with open(os.path.join(ctx_dir, fn), "rb") as f:
-                        col2.download_button("⬇️", f, file_name=fn,
-                                            mime="application/octet-stream",
-                                            key=f"dl_{fn}")
-                    # first-click → set state only
-                    if col3.button("🗑️", key=f"ask_del_{fn}"):
-                        st.session_state.file_to_delete = fn
-                        st.session_state.show_delete_confirm = True
-                        st.rerun()
 
-                # ── 2. single confirm dialog (outside loop) ───────────────
-                if st.session_state.get("show_delete_confirm"):
-                    fn = st.session_state.get("file_to_delete")
-                    if fn:
-                        with st.expander(f"⚠️ Delete {fn}?", expanded=True):
-                            st.error(f"Really delete {fn}?")
-                            col_yes, col_no = st.columns(2)
-                            if col_yes.button("Yes, delete", key=f"yes_del_{fn}"):
+                    with open(os.path.join(ctx_dir, fn), "rb") as f:
+                        col2.download_button("⬇️", f,
+                            file_name=fn, mime="application/octet-stream",
+                            key=f"dl_{key_base}")
+
+                    # ── first click: ask for confirmation ───────────────
+                    if col3.button("🗑️", key=f"ask_del_{key_base}"):
+                        st.session_state.file_to_delete = fn
+
+                    # ── show confirm row *only* for the chosen file ─────
+                    if st.session_state.get("file_to_delete") == fn:
+                        col_yes, col_no = st.columns([1, 1])
+                        with col_yes:
+                            if st.button("✅ Yes", key=f"yes_del_{key_base}"):
                                 os.remove(os.path.join(ctx_dir, fn))
                                 shutil.rmtree(idx_dir, ignore_errors=True)
-                                st.session_state.show_delete_confirm = False
                                 st.session_state.file_to_delete = None
                                 st.rerun()
-                            if col_no.button("Cancel", key=f"cancel_del_{fn}"):
-                                st.session_state.show_delete_confirm = False
+                        with col_no:
+                            if st.button("❌ No", key=f"no_del_{key_base}"):
                                 st.session_state.file_to_delete = None
-                                st.rerun()
+                                st.experimental_rerun()
 
     # ----- add new class -------------------------------------------
     with st.expander("➕  Add a new class", expanded=False):

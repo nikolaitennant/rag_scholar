@@ -148,7 +148,7 @@ def extract_citation_numbers(text: str) -> list[int]:
 st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
 
 
-GREETING_COOLDOWN = 3600          # 1 hour
+GREETING_COOLDOWN = 3          # 1 hour
 TONES = ["funny", "snarky", "nice"]
 openai_client = OpenAI(api_key=api_key)
 

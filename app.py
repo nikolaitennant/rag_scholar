@@ -49,6 +49,7 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 | `remember:` | Store a fact permanently       | Across sessions     |
 | `memo:`     | Store a fact this session only | Single session      |
 | `role:`     | Set the assistant’s persona    | Single session      |
+| `background:` | Allow background info from the model (not document based)    | Single session      |
 """,
         unsafe_allow_html=True,
     )

@@ -33,26 +33,35 @@ class ChatAssistant:
     # ------------------------------------------------------------------ #
     # Public API                                                         #
     # ------------------------------------------------------------------ #
+      
+    # ------------------------------------------------------------------ #
+    # NEW helper for “background:” turns
+    # ------------------------------------------------------------------ #
+    def _handle_background(self, text: str) -> Dict:
+        """
+        Respond with general knowledge.  No citations expected.
+        """
+        system = (
+            "Background mode: you may answer from your general knowledge. "
+            "Begin your response with **“Background (uncited):”**."
+        )
+        messages = [SystemMessage(content=system), HumanMessage(content=text)]
+        response = self.llm.invoke(messages).content
+        return {"speaker": "Assistant", "text": response, "snippets": {}}
+
+
+    # ------------------------------------------------------------------ #
+    # Replacement for handle_turn (add background support)
+    # ------------------------------------------------------------------ #
     def handle_turn(
         self,
         user_text: str,
         sel_docs: List[str] | None = None,
         mode: str = "Prioritise (default)",
     ) -> Dict:
-        """
-        Main entry: process a user message.
-
-        Returns a dict ready to append to `st.session_state.chat_history`::
-
-            {
-              "speaker": "Assistant",
-              "text": "... response ...",
-              "snippets": {id: {...}}
-            }
-        """
         low = user_text.lower()
 
-        # .........................................
+        # 1️⃣ prefix commands ------------------------------------------------
         if low.startswith("remember:"):
             self._remember_fact(user_text, permanent=True)
             return {"speaker": "Assistant", "text": "✅ Fact remembered permanently."}
@@ -66,12 +75,25 @@ class ChatAssistant:
             st.session_state.persona = persona
             return {"speaker": "Assistant", "text": f"👤 Persona set: {persona}"}
 
-        # .........................................
-        # Retrieval + LLM branch
-        docs, snippet_map = self._retrieve(user_text, sel_docs or [], mode)
-        if not (docs or st.session_state.memory_facts or st.session_state.session_facts):
-            return {"speaker": "Assistant", "text": "I don’t have enough information in the provided material to answer that."}
+        if low.startswith("background:"):
+            stripped = user_text.split(":", 1)[1].strip()
+            return self._handle_background(stripped)
 
+        # 2️⃣ strict-RAG retrieval ------------------------------------------
+        docs, snippet_map = self._retrieve(user_text, sel_docs or [], mode)
+
+        # guard when nothing to cite
+        if not (docs or st.session_state.memory_facts or st.session_state.session_facts):
+            return {
+                "speaker": "Assistant",
+                "text": (
+                    "I don’t have enough information in the provided material to answer that.\n\n"
+                    "(If you’d like general background on this topic, "
+                    "type “background:” before your question.)"
+                ),
+            }
+
+        # 3️⃣ build prompt & call LLM ---------------------------------------
         messages = self._build_messages(
             user_text=user_text,
             docs=docs,
@@ -80,12 +102,13 @@ class ChatAssistant:
         )
 
         response = self.llm.invoke(messages).content
-        bad_cites = [n for n in self._extract_citation_numbers(response) if n not in snippet_map]
-        if bad_cites:
-            response = "I can’t find the sources for some citations, so I can’t answer that."
 
-        # push to memories
-        self.memory.save_turn(user_text, response)
+        # 4️⃣ citation sanity check -----------------------------------------
+        bad_cites = [n for n in self._extract_citation_numbers(response) if n not in snippet_map]
+        if bad_cites or "[#]" in response:
+            response = "I don’t have enough information in the provided material to answer that."
+        else:
+            self.memory.save_turn(user_text, response)
 
         return {
             "speaker": "Assistant",

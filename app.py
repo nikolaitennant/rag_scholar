@@ -115,13 +115,16 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                                 with st.expander(f"⚠️ Delete {fn}?", expanded=True):
                                     st.error(f"Really delete {fn}?")
                                     col_yes, col_no = st.columns(2)
-                                    if col_yes.button("Yes, delete", key="yes_del_file"):
+
+                                    # note the f-strings ↓↓↓
+                                    if col_yes.button("Yes, delete", key=f"yes_del_{fn}"):
                                         os.remove(os.path.join(ctx_dir, fn))
                                         shutil.rmtree(idx_dir, ignore_errors=True)
                                         st.session_state.confirm_file_delete = False
                                         st.session_state.file_to_delete = None
                                         st.rerun()
-                                    if col_no.button("Cancel", key="cancel_del_file"):
+
+                                    if col_no.button("Cancel", key=f"cancel_del_{fn}"):
                                         st.session_state.confirm_file_delete = False
                                         st.session_state.file_to_delete = None
                                         st.rerun()

@@ -104,32 +104,38 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                     if col3.button("🗑️", key=f"ask_del_{key_base}"):
                         st.session_state.file_to_delete = fn
 
-                        # inside the file loop, after the trash-can button -----------------
                         if st.session_state.get("file_to_delete") == fn:
-                            # pill fills the two-column area
-                            col1, col2 = st.columns([4, 2])
-                            with col1:
-                                st.write("")   # keep vertical alignment
 
-                            with col2:
-                                st.markdown("<div class='confirm-pill'>", unsafe_allow_html=True)
+                            # two columns that share the same “pill” style
+                            txt_col, btn_col = st.columns([5, 2])
 
-                                # label + icons in one horizontal flex row
-                                txt, yes_col, no_col = st.columns([4, 1, 1])
+                            # ---- text column ----
+                            with txt_col:
+                                st.markdown(
+                                    "<div class='confirm-text'><b>Are&nbsp;you&nbsp;sure?</b></div>",
+                                    unsafe_allow_html=True,
+                                )
 
-                                txt.markdown("**Are&nbsp;you&nbsp;sure?**", unsafe_allow_html=True)
+                            # ---- button column ----
+                            with btn_col:
+                                # wrap the two buttons in the same styled div
+                                st.markdown("<div class='confirm-buttons'>", unsafe_allow_html=True)
 
-                                if yes_col.button("✅", key=f"yes_{key_base}", help="Delete file", use_container_width=True):
-                                    os.remove(os.path.join(ctx_dir, fn))
-                                    shutil.rmtree(idx_dir, ignore_errors=True)
-                                    st.session_state.file_to_delete = None
-                                    st.rerun()
-
-                                if no_col.button("❌", key=f"no_{key_base}", help="Cancel", use_container_width=True):
-                                    st.session_state.file_to_delete = None
-                                    st.rerun()
+                                yes_clicked = st.button("✅", key=f"yes_{key_base}", help="Delete file", use_container_width=True)
+                                no_clicked  = st.button("❌", key=f"no_{key_base}",  help="Cancel",      use_container_width=True)
 
                                 st.markdown("</div>", unsafe_allow_html=True)
+
+                            # ---- handle clicks ----
+                            if yes_clicked:
+                                os.remove(os.path.join(ctx_dir, fn))
+                                shutil.rmtree(idx_dir, ignore_errors=True)
+                                st.session_state.file_to_delete = None
+                                st.rerun()
+
+                            if no_clicked:
+                                st.session_state.file_to_delete = None
+                                st.rerun()
                                                                                 
              
 

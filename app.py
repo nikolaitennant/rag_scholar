@@ -116,7 +116,7 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                         with col_no:
                             if st.button("❌ No", key=f"no_del_{key_base}"):
                                 st.session_state.file_to_delete = None
-                                st.experimental_rerun()
+                                st.rerun()
 
     # ----- add new class -------------------------------------------
     with st.expander("➕  Add a new class", expanded=False):

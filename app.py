@@ -105,32 +105,23 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                         st.session_state.file_to_delete = fn
 
                     # ── show confirm row *only* for the chosen file ─────
-                    # show confirm inline for the chosen file
+            # ── show confirm inline for the chosen file ───────────────────────────
                     if st.session_state.get("file_to_delete") == fn:
-                        colA, colB = st.columns([1, 5])
-                        with colA:
-                            st.write("")          # spacer
-                        with colB:
-                            # draw a rounded pill with 2 buttons side-by-side
-                            confirm_col1, confirm_col2 = st.columns(2)
-                            with confirm_col1:
-                                st.markdown(
-                                    "<div style='text-align:center;'>✅</div>",
-                                    unsafe_allow_html=True,
-                                )
-                                if st.button("", key=f"yes_del_{key_base}", help="Delete file"):
-                                    os.remove(os.path.join(ctx_dir, fn))
-                                    shutil.rmtree(idx_dir, ignore_errors=True)
-                                    st.session_state.file_to_delete = None
-                                    st.rerun()
-                            with confirm_col2:
-                                st.markdown(
-                                    "<div style='text-align:center;'>❌</div>",
-                                    unsafe_allow_html=True,
-                                )
-                                if st.button("", key=f"no_del_{key_base}", help="Cancel"):
-                                    st.session_state.file_to_delete = None
-                                    st.rerun()
+                        # put everything in the *same* three-column layout
+                        col1, col2, col3 = st.columns([4, 1, 1])
+                        col1.write("")  # keeps alignment
+
+                        # ✅ button (green)
+                        if col2.button("✅", key=f"yes_del_{key_base}", help="Delete this file"):
+                            os.remove(os.path.join(ctx_dir, fn))
+                            shutil.rmtree(idx_dir, ignore_errors=True)
+                            st.session_state.file_to_delete = None
+                            st.rerun()
+
+                        # ❌ button (red)
+                        if col3.button("❌", key=f"no_del_{key_base}", help="Cancel delete"):
+                            st.session_state.file_to_delete = None
+                            st.experimental_rerun()
 
     # ----- add new class -------------------------------------------
     with st.expander("➕  Add a new class", expanded=False):

@@ -104,40 +104,33 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                     if col3.button("🗑️", key=f"ask_del_{key_base}"):
                         st.session_state.file_to_delete = fn
 
+                        # inside the file loop, after the trash-can button -----------------
                         if st.session_state.get("file_to_delete") == fn:
+                            # pill fills the two-column area
+                            col1, col2 = st.columns([4, 2])
+                            with col1:
+                                st.write("")   # keep vertical alignment
 
-                            ## yellow pill wrapper  (one row, two columns)
-                            st.markdown(
-                                "<div class='confirm-row'>", unsafe_allow_html=True
-                            )
-                            pill_name, pill_icons = st.columns([4, 2])
+                            with col2:
+                                st.markdown("<div class='confirm-pill'>", unsafe_allow_html=True)
 
-                            # left pill column – text
-                            pill_name.markdown(
-                                "<span style='font-weight:600;'>Are&nbsp;you&nbsp;sure?</span>",
-                                unsafe_allow_html=True,
-                            )
+                                # label + icons in one horizontal flex row
+                                txt, yes_col, no_col = st.columns([4, 1, 1])
 
-                            # right pill column – stacked icons
-                            btn_yes = pill_icons.button(
-                                "✅", key=f"yes_{key_base}", help="Delete file", use_container_width=True
-                            )
-                            btn_no = pill_icons.button(
-                                "❌", key=f"no_{key_base}", help="Cancel", use_container_width=True
-                            )
-                            st.markdown("</div>", unsafe_allow_html=True)   # close pill div
+                                txt.markdown("**Are&nbsp;you&nbsp;sure?**", unsafe_allow_html=True)
 
-                            # ----- handle clicks ------------------------------------------
-                            if btn_yes:
-                                os.remove(os.path.join(ctx_dir, fn))
-                                shutil.rmtree(idx_dir, ignore_errors=True)
-                                st.session_state.file_to_delete = None
-                                st.experimental_rerun()
+                                if yes_col.button("✅", key=f"yes_{key_base}", help="Delete file", use_container_width=True):
+                                    os.remove(os.path.join(ctx_dir, fn))
+                                    shutil.rmtree(idx_dir, ignore_errors=True)
+                                    st.session_state.file_to_delete = None
+                                    st.rerun()
 
-                            if btn_no:
-                                st.session_state.file_to_delete = None
-                                st.experimental_rerun()
-                                                        
+                                if no_col.button("❌", key=f"no_{key_base}", help="Cancel", use_container_width=True):
+                                    st.session_state.file_to_delete = None
+                                    st.rerun()
+
+                                st.markdown("</div>", unsafe_allow_html=True)
+                                                                                
              
 
     # ----- add new class -------------------------------------------

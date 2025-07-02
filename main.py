@@ -147,6 +147,60 @@ def extract_citation_numbers(text: str) -> list[int]:
 # ─── Streamlit UI setup ───────────────────────────────────────────────────
 st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
 
+from streamlit.components.v1 import html as html_component
+
+# --- build one greeting line (reuse your LLM call or a static string) ----
+greeting_text = "👋 <b>Welcome, Giulia!</b> 🎉 Brace yourself for a wild ride with us!"
+
+# --- inject HTML/CSS/JS ---------------------------------------------------
+html_component(
+    f"""
+    <div id="welcome-banner" class="welcome-banner">
+        {greeting_text}
+    </div>
+
+    <style>
+    .welcome-banner {{
+        position: relative;               /* let JS remove safely */
+        max-width: 600px;
+        margin: 1.2rem auto 2rem;
+        padding: 18px 28px;
+
+        text-align: center;
+        font-size: 1.35rem;
+        font-weight: 600;
+        line-height: 1.5;
+        color: #222;
+
+        background: linear-gradient(135deg,#fffbea 0%,#e9f9ff 100%);
+        border: 2px solid #ffd36a;
+        border-radius: 14px;
+        box-shadow: 0 3px 8px rgba(0,0,0,.06);
+
+        transition: opacity 1s ease-out;   /* fade effect */
+    }}
+    .welcome-banner.fade-out {{
+        opacity: 0;
+    }}
+    </style>
+
+    <script>
+      // wait 10 000 ms  → add fade class
+      setTimeout(() => {{
+         const el = document.getElementById("welcome-banner");
+         if (el) el.classList.add("fade-out");
+      }}, 10000);
+
+      // after 11 000 ms  → remove from DOM to free space
+      setTimeout(() => {{
+         const el = document.getElementById("welcome-banner");
+         if (el) el.remove();
+      }}, 11000);
+    </script>
+    """,
+    height=120,     # fits the banner
+)
+
 def show_greeting(msg: str):
     st.markdown(
         f"""
@@ -177,6 +231,8 @@ def show_greeting(msg: str):
         """,
         unsafe_allow_html=True,
     )
+
+
 
 GREETING_COOLDOWN = 3          # 1 hour
 TONES = ["funny", "snarky", "nice"]

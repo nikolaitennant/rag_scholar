@@ -25,8 +25,8 @@ class AppConfig:
     MAX_TOKEN_LIMIT: int = 800
 
     # UI
-    GREETING_COOLDOWN: int = 36  # seconds
-    TONES: tuple[str, ...] = ("funny", "snarky", "nice")
+    GREETING_COOLDOWN: int = 3  # seconds
+    TONES: tuple[str, ...] = ("funny", "nice")
 
     # Regex
     INLINE_RE: re.Pattern = field(default_factory=lambda: re.compile(r"\[\s*#(\d+)\s*\]"))

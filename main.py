@@ -333,43 +333,30 @@ with st.sidebar.container():
             if not files:
                 st.write("_Folder is empty_")
             else:
-                # "Download all" zip button
+                # 1️⃣  Download-all button
                 import io, zipfile
-                zip_buffer = io.BytesIO()
-                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+                zip_buf = io.BytesIO()
+                with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
                     for fn in files:
                         zf.write(os.path.join(CTX_DIR, fn), arcname=fn)
+
                 st.download_button(
                     "⬇️ Download all as .zip",
-                    data=zip_buffer.getvalue(),
+                    data=zip_buf.getvalue(),
                     file_name=f"{active_class}_files.zip",
                     mime="application/zip",
                     key="zip_all_files",
                 )
+
+                # 2️⃣  Per-file rows
                 st.markdown("<div class='file-list'>", unsafe_allow_html=True)
                 for fn in files:
                     col1, col2, col3 = st.columns([4, 1, 1])
                     col1.write(fn)
-                    with open(os.path.join(CTX_DIR, fn), "rb") as f:
-                        col2.download_button(
-                            "⬇️",
-                            f,
-                            file_name=fn,
-                            mime="application/octet-stream",
-                            key=f"dl_{fn}",
-                        )
-                    if col3.button("🗑️", key=f"del_{fn}"):
-                        os.remove(os.path.join(CTX_DIR, fn))
-                        shutil.rmtree(INDEX_DIR, ignore_errors=True)
-                        st.rerun()
-
-                    col1, col2, col3 = st.columns([4, 1, 1])
-                    col1.write(fn)
 
                     with open(os.path.join(CTX_DIR, fn), "rb") as f:
                         col2.download_button(
-                            "⬇️",
-                            f,
+                            "⬇️", f,
                             file_name=fn,
                             mime="application/octet-stream",
                             key=f"dl_{fn}",
@@ -379,7 +366,6 @@ with st.sidebar.container():
                         os.remove(os.path.join(CTX_DIR, fn))
                         shutil.rmtree(INDEX_DIR, ignore_errors=True)
                         st.rerun()
-
 
     # 3️⃣  ADD-NEW-CLASS EXPANDER (also under the selector)
     with st.sidebar.expander("➕  Add a new class", expanded=False):

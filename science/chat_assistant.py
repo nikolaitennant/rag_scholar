@@ -182,6 +182,7 @@ class ChatAssistant:
 
             (NO CITATION ⇒ NO CLAIM.)
             """
+
         ).strip()
         if persona:
             sys_prompt += f" Adopt persona: {persona}."

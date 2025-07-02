@@ -25,7 +25,7 @@ class AppConfig:
     MAX_TOKEN_LIMIT: int = 800
 
     # UI
-    GREETING_COOLDOWN: int = 3600  # seconds
+    GREETING_COOLDOWN: int = 36  # seconds
     TONES: tuple[str, ...] = ("funny", "snarky", "nice")
 
     # Regex

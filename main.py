@@ -150,82 +150,80 @@ st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
 from streamlit.components.v1 import html as html_component
 
 # --- inject HTML/CSS/JS ---------------------------------------------------
+import time, random, streamlit as st
+from streamlit.components.v1 import html as html_component
+from openai import OpenAI
 
-def show_greeting(msg: str):
-    html_component(
-        f"""
-        <div id="welcome-banner" class="welcome-banner">
-            {msg}
-        </div>
+# ------------------------------------------------------------------ #
+# 1. parameter tweaks                                                 #
+# ------------------------------------------------------------------ #
+GREETING_COOLDOWN = 3600          # 1 hour (set back from 3 s test)
+TONES             = ["funny", "snarky", "nice"]
+openai_client     = OpenAI(api_key=api_key)   # api_key already loaded above
 
-        <style>
-        .welcome-banner {{
-            position: relative;               /* let JS remove safely */
-            max-width: 600px;
-            margin: 1.2rem auto 2rem;
-            padding: 18px 28px;
-
-            text-align: center;
-            font-size: 1.35rem;
-            font-weight: 600;
-            line-height: 1.5;
-            color: #222;
-
-            background: linear-gradient(135deg,#fffbea 0%,#e9f9ff 100%);
-            border: 2px solid #ffd36a;
-            border-radius: 14px;
-            box-shadow: 0 3px 8px rgba(0,0,0,.06);
-
-            transition: opacity 1s ease-out;   /* fade effect */
-        }}
-        .welcome-banner.fade-out {{
-            opacity: 0;
-        }}
-        </style>
-
-        <script>
-        // wait 10 000 ms  → add fade class
-        setTimeout(() => {{
-            const el = document.getElementById("welcome-banner");
-            if (el) el.classList.add("fade-out");
-        }}, 10000);
-
-        // after 11 000 ms  → remove from DOM to free space
-        setTimeout(() => {{
-            const el = document.getElementById("welcome-banner");
-            if (el) el.remove();
-        }}, 11000);
-        </script>
-        """,
-        height=120,     # fits the banner
-    )
-
-
-GREETING_COOLDOWN = 3          # 1 hour
-TONES = ["funny", "snarky", "nice"]
-openai_client = OpenAI(api_key=api_key)
-
-# ── tiny helpers using the new API ──────────────────────────────────────
+# ------------------------------------------------------------------ #
+# 2. query-string helpers (per-tab persistence)                       #
+# ------------------------------------------------------------------ #
 def get_last_greet() -> float:
     return float(st.query_params.get("last_greet", "0"))
 
 def set_last_greet(ts: float) -> None:
-    st.query_params["last_greet"] = f"{ts:.0f}"   # updates URL in-place
+    st.query_params["last_greet"] = f"{ts:.0f}"   # mutates URL in place
 
-# ── show banner if needed ───────────────────────────────────────────────
+# ------------------------------------------------------------------ #
+# 3. HTML banner with auto-fade                                        #
+# ------------------------------------------------------------------ #
+def show_greeting(msg: str):
+    html_component(
+        f"""
+        <div id="welcome-banner" class="welcome-banner">{msg}</div>
+
+        <style>
+          .welcome-banner {{
+              max-width: 600px;
+              margin: 1.2rem auto 2rem;
+              padding: 18px 28px;
+              text-align: center;
+              font-size: 1.35rem; font-weight: 600; line-height: 1.5;
+              background: linear-gradient(135deg,#fffbea 0%,#e9f9ff 100%);
+              border: 2px solid #ffd36a;
+              border-radius: 14px;
+              box-shadow: 0 3px 8px rgba(0,0,0,.06);
+              transition: opacity 1s ease-out;
+          }}
+          .welcome-banner.fade-out {{ opacity: 0; }}
+        </style>
+
+        <script>
+          setTimeout(() => {{
+              const el = document.getElementById("welcome-banner");
+              if (el) el.classList.add("fade-out");
+          }}, 10000);          /* start fade at 10 s */
+
+          setTimeout(() => {{
+              const el = document.getElementById("welcome-banner");
+              if (el) el.remove();              /* remove at 11 s */
+          }}, 11000);
+        </script>
+        """,
+        height=130,   # adjust if the banner wraps onto two lines
+    )
+
+# ------------------------------------------------------------------ #
+# 4. Display banner once per cooldown                                 #
+# ------------------------------------------------------------------ #
 now = time.time()
 if now - get_last_greet() > GREETING_COOLDOWN:
     vibe = random.choice(TONES)
 
     try:
         msg = openai_client.chat.completions.create(
-            model="gpt-4.1-mini",
+            model="gpt-3.5-turbo-0125",
             messages=[
                 {"role": "system",
-                 "content": "Return ONE short welcome line for Giulia"},
+                 "content": "Return ONE short welcome line for Giulia; no extra chatter."},
                 {"role": "user",
-                 "content":
-                 f"Write a {vibe} one-sentence welcome for Giulia, ≤30 words, emoji allowed."}
+                 "content": f"Write a {vibe} one-sentence welcome (≤30 words, emoji allowed)."}
             ],
             max_tokens=30,
             temperature=0.6,
@@ -235,7 +233,7 @@ if now - get_last_greet() > GREETING_COOLDOWN:
 
     show_greeting(msg)
     set_last_greet(now)
-
+    
 st.markdown(
     """
 <style>

@@ -123,19 +123,29 @@ class ChatAssistant:
         self, query: str, sel_docs: List[str], mode: str
     ) -> Tuple[List[Document], Dict]:
         """Returns (docs, snippet_map)."""
-        FIRST_K, FINAL_K = self.cfg.FIRST_K, self.cfg.FINAL_K
-        full_ret = self.vector_store.as_retriever(search_kwargs={"k": FIRST_K})
+        FIRST_K, FINAL_K, RELEVANCE_THRESHOLD = self.cfg.FIRST_K, self.cfg.FINAL_K, self.cfg.RELEVANCE_THRESHOLD
+
+        full_ret = self.vector_store.as_retriever(
+            search_kwargs={
+                "k": FIRST_K,
+                "score_threshold": RELEVANCE_THRESHOLD,   # <-- new line
+            }
+        )
 
         # optional filter retriever
         if sel_docs:
             sel_set = set(sel_docs)
 
-            def _filt(meta: dict) -> bool:
+            def _filt(meta):
                 src = meta.get("source") or meta.get("file_path") or ""
                 return os.path.basename(src) in sel_set
 
             focus_ret = self.vector_store.as_retriever(
-                search_kwargs={"k": FIRST_K, "filter": _filt}
+                search_kwargs={
+                    "k": FIRST_K,
+                    "filter": _filt,
+                    "score_threshold": RELEVANCE_THRESHOLD   
+                }
             )
         else:
             focus_ret = None

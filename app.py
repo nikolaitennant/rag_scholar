@@ -9,6 +9,7 @@
 from __future__ import annotations
 import os, re, shutil
 from typing import List
+print(st.__version__)
 
 import streamlit as st
 from dotenv import load_dotenv

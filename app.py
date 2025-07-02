@@ -90,54 +90,49 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
             else:
                 st.markdown("<div class='file-list'>", unsafe_allow_html=True)
 
+                # ============ 1. list every file row =====================
                 for fn in files:
-                    key_base = fn.replace(" ", "_")  # safe part for keys
-                    col1, col2, col3 = st.columns([4, 1, 1])
-                    col1.write(fn)
+                    key_base = fn.replace(" ", "_")   # safe for widget keys
 
+                    col_name, col_dl, col_trash = st.columns([4, 1, 1])
+                    col_name.write(fn)
+
+                    # download button
                     with open(os.path.join(ctx_dir, fn), "rb") as f:
-                        col2.download_button("⬇️", f,
-                            file_name=fn, mime="application/octet-stream",
-                            key=f"dl_{key_base}")
+                        col_dl.download_button(
+                            "⬇️",
+                            f,
+                            file_name=fn,
+                            mime="application/octet-stream",
+                            key=f"dl_{key_base}",
+                        )
 
-                    # ── first click: ask for confirmation ───────────────
-                    if col3.button("🗑️", key=f"ask_del_{key_base}"):
+                    # trash button → flag for modal
+                    if col_trash.button("🗑️", key=f"ask_del_{key_base}", help="Delete this file"):
                         st.session_state.file_to_delete = fn
+                        st.session_state.show_delete_modal = True
+                        st.rerun()               # immediately open modal on rerun
 
-                        if st.session_state.get("file_to_delete") == fn:
+                # ============ 2. modal confirmation (one per run) ========
+                if st.session_state.get("show_delete_modal"):
+                    fn = st.session_state.get("file_to_delete")
+                    if fn:
+                        with st.modal("🗑️ Delete file?"):
+                            st.write(f"Really delete **{fn}** ?")
 
-                            # two columns that share the same “pill” style
-                            txt_col, btn_col = st.columns([5, 2])
-
-                            # ---- text column ----
-                            with txt_col:
-                                st.markdown(
-                                    "<div class='confirm-text'><b>Are&nbsp;you&nbsp;sure?</b></div>",
-                                    unsafe_allow_html=True,
-                                )
-
-                            # ---- button column ----
-                            with btn_col:
-                                # wrap the two buttons in the same styled div
-                                st.markdown("<div class='confirm-buttons'>", unsafe_allow_html=True)
-
-                                yes_clicked = st.button("✅", key=f"yes_{key_base}", help="Delete file", use_container_width=True)
-                                no_clicked  = st.button("❌", key=f"no_{key_base}",  help="Cancel",      use_container_width=True)
-
-                                st.markdown("</div>", unsafe_allow_html=True)
-
-                            # ---- handle clicks ----
-                            if yes_clicked:
+                            col_yes, col_no = st.columns(2)
+                            if col_yes.button("✅  Yes – delete", key="modal_yes"):
                                 os.remove(os.path.join(ctx_dir, fn))
                                 shutil.rmtree(idx_dir, ignore_errors=True)
+                                st.session_state.show_delete_modal = False
                                 st.session_state.file_to_delete = None
                                 st.rerun()
 
-                            if no_clicked:
+                            if col_no.button("❌  Cancel", key="modal_no"):
+                                st.session_state.show_delete_modal = False
                                 st.session_state.file_to_delete = None
                                 st.rerun()
-                                                                                
-             
+                
 
     # ----- add new class -------------------------------------------
     with st.expander("➕  Add a new class", expanded=False):

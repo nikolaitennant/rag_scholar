@@ -128,7 +128,7 @@ class ChatAssistant:
         full_ret = self.vector_store.as_retriever(
             search_kwargs={
                 "k": FIRST_K,
-                "score_threshold": RELEVANCE_THRESHOLD,   # <-- new line
+                "score_threshold": RELEVANCE_THRESHOLD,   
             }
         )
 

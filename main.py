@@ -516,12 +516,6 @@ if user_input:
 
             # ③ build context & map
             context_parts.append(f"[#{cid}]\n{d.page_content}")
-            # snippet_map[cid] = {
-            #     "preview": re.sub(r"\s+", " ", d.page_content.strip())[:160] + "…",
-            #     "source": file_name,
-            #     "page": page_num,
-            # }
-
             snippet_map[cid] = {
                 "preview": re.sub(r"\s+", " ", d.page_content.strip())[:160] + "…",
                 "full": d.page_content.strip(),          # ← store the whole snippet
@@ -560,13 +554,7 @@ if user_input:
         if st.session_state.persona:
             sys_prompt += f" Adopt persona: {st.session_state.persona}."        
 
-        # ─── session-wide citation IDs ────────────────────────────────────────────
-        if "global_ids" not in st.session_state:
-            st.session_state.global_ids = {}   # {(file, page) → stable int}
-            st.session_state.next_id = 1       # next unused number
-            
         messages = [SystemMessage(content=sys_prompt)]
-
 
         # ① last 8 turns verbatim  (higher fidelity)
         win_hist = st.session_state.window_memory.load_memory_variables({}).get("history", [])
@@ -632,33 +620,31 @@ for entry in st.session_state.chat_history:
         with st.chat_message("assistant"):
             st.markdown(highlighted, unsafe_allow_html=True)
 
-            if cites:
-                pill = ", ".join(f"#{n}" for n in cites)
-                with st.expander(f"Sources used: {pill}", expanded=False):
-                    seen = set()
-                    for n in cites:
-                        if n in seen:
-                            continue          # skip duplicates
-                        seen.add(n)
-                        info = entry.get("snippets", {}).get(n)
-                        if not info:
-                            st.write(f"• [#{n}] – (not in this context?)")
-                            continue
-                        label = f"**[#{n}]** – {info['source']}"
-                        quote = info["full"].replace("\n", " ")[:550]  # clip very long pages
-                        st.markdown(
-                            f"{label}<br>"
-                            f"<span style='color:gray;font-size:0.85rem'>p.{info['page']+1 if info['page'] is not None else '-'} "
-                            f"</span><br>"
-                            f"<blockquote style='margin-top:6px'>{quote}</blockquote>",
-                            unsafe_allow_html=True,
-                        )
-                        note = info["source"]
-                        if info["page"] is not None:
-                            note += f"  (p.{info['page']+1})"
-                        st.markdown(
-                            f"{label}<br/><span style='color:gray;font-size:0.85rem'>from <b>{note}</b></span>",
-                            unsafe_allow_html=True,
-                        )
+        if cites:
+            pill = ", ".join(f"#{n}" for n in cites)
+            with st.expander(f"Sources used: {pill}", expanded=False):
+                seen = set()
+                for n in cites:
+                    if n in seen:
+                        continue                   # skip duplicates
+                    seen.add(n)
+
+                    info = entry.get("snippets", {}).get(n)
+                    if not info:
+                        st.write(f"• [#{n}] – (not in this context?)")
+                        continue
+
+                    # -------- build display ----------
+                    label = f"**[#{n}]** – {info['source']}"
+                    page  = f"p.{info['page'] + 1}" if info.get("page") is not None else ""
+                    raw   = info.get("full", info["preview"])
+                    quote = raw.replace("\n", " ")[:550]   # clip very long pages
+
+                    st.markdown(
+                        f"{label}<br>"
+                        f"<span style='color:gray;font-size:0.85rem'>{page}</span><br>"
+                        f"<blockquote style='margin-top:6px'>{quote}</blockquote>",
+                        unsafe_allow_html=True,
+                    )
     else:
         st.chat_message("user").write(entry["text"])

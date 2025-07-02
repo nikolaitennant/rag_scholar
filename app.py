@@ -9,9 +9,9 @@ and giulia_ui/* modules.
 import streamlit as st
 
 from science.config import CONFIG
-from science.greeting import GreetingBanner
+from science.greetings import GreetingBanner
 from science.vector_store import VectorStoreManager
-from UI.styles import SidebarUI
+from UI.sidebar import SidebarUI
 from UI.chat import ChatUI
 from UI.styles import inject_global_css
 

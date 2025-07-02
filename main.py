@@ -149,15 +149,11 @@ st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
 
 from streamlit.components.v1 import html as html_component
 
-# --- inject HTML/CSS/JS ---------------------------------------------------
-import time, random, streamlit as st
-from streamlit.components.v1 import html as html_component
-from openai import OpenAI
 
 # ------------------------------------------------------------------ #
 # 1. parameter tweaks                                                 #
 # ------------------------------------------------------------------ #
-GREETING_COOLDOWN = 3600          # 1 hour (set back from 3 s test)
+GREETING_COOLDOWN = 3          # 1 hour (set back from 3 s test)
 TONES             = ["funny", "snarky", "nice"]
 openai_client     = OpenAI(api_key=api_key)   # api_key already loaded above
 
@@ -233,7 +229,7 @@ if now - get_last_greet() > GREETING_COOLDOWN:
 
     show_greeting(msg)
     set_last_greet(now)
-    
+
 st.markdown(
     """
 <style>

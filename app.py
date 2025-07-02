@@ -89,22 +89,6 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
             if not files:
                 st.write("_Folder is empty_")
             else:
-                # --- ZIP-all button -----------------------------------
-                import io, zipfile
-                zip_buf = io.BytesIO()
-                with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
-                    for fn in files:
-                        zf.write(os.path.join(ctx_dir, fn), arcname=fn)
-
-                st.download_button(
-                    "⬇️ Download all as .zip",
-                    data=zip_buf.getvalue(),
-                    file_name=f"{active_class}_files.zip",
-                    mime="application/zip",
-                    key="download_all_zip",
-                )
-                st.divider()
-
                 # --- per-file rows ------------------------------------
                 for idx, fn in enumerate(files, start=1):
                     key_base = fn.replace(" ", "_")  # safe for widget keys

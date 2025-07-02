@@ -104,31 +104,40 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                     if col3.button("🗑️", key=f"ask_del_{key_base}"):
                         st.session_state.file_to_delete = fn
 
-                        # inside the file-listing loop, *in place of* the trash-can button
                         if st.session_state.get("file_to_delete") == fn:
-                            # ✔ / ✖ replace the trash icon in the same column
-                            col2.markdown("**Are&nbsp;you&nbsp;sure?**", unsafe_allow_html=True)
 
-                            # stack icons vertically in the delete column
-                            if col3.button("✅", key=f"yes_{key_base}", help="Delete file", use_container_width=True):
+                            ## yellow pill wrapper  (one row, two columns)
+                            st.markdown(
+                                "<div class='confirm-row'>", unsafe_allow_html=True
+                            )
+                            pill_name, pill_icons = st.columns([4, 2])
+
+                            # left pill column – text
+                            pill_name.markdown(
+                                "<span style='font-weight:600;'>Are&nbsp;you&nbsp;sure?</span>",
+                                unsafe_allow_html=True,
+                            )
+
+                            # right pill column – stacked icons
+                            btn_yes = pill_icons.button(
+                                "✅", key=f"yes_{key_base}", help="Delete file", use_container_width=True
+                            )
+                            btn_no = pill_icons.button(
+                                "❌", key=f"no_{key_base}", help="Cancel", use_container_width=True
+                            )
+                            st.markdown("</div>", unsafe_allow_html=True)   # close pill div
+
+                            # ----- handle clicks ------------------------------------------
+                            if btn_yes:
                                 os.remove(os.path.join(ctx_dir, fn))
                                 shutil.rmtree(idx_dir, ignore_errors=True)
                                 st.session_state.file_to_delete = None
                                 st.experimental_rerun()
 
-                            if col3.button("❌", key=f"no_{key_base}", help="Cancel", use_container_width=True):
+                            if btn_no:
                                 st.session_state.file_to_delete = None
                                 st.experimental_rerun()
-                        else:
-                            # normal row: show download + trash
-                            with open(os.path.join(ctx_dir, fn), "rb") as f:
-                                col2.download_button("⬇️", f, file_name=fn,
-                                                    mime="application/octet-stream",
-                                                    key=f"dl_{key_base}")
-
-                            if col3.button("🗑️", key=f"ask_del_{key_base}"):
-                                st.session_state.file_to_delete = fn
-                                
+                                                        
              
 
     # ----- add new class -------------------------------------------

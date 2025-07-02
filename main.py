@@ -15,7 +15,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langchain.memory import ConversationBufferWindowMemory
 import re, shutil, tempfile, os
 from langchain.memory import ConversationSummaryBufferMemory
-
+import time, random
 
 # ─── Load environment variables ─────────────────────────────────────────────
 load_dotenv()

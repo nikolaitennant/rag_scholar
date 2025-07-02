@@ -166,13 +166,13 @@ if now - get_last_greet() > GREETING_COOLDOWN:
 
     try:
         msg = openai_client.chat.completions.create(
-            model="gpt-3.5-turbo-0125",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system",
-                 "content": "Return ONE short welcome line, no extra chatter."},
+                 "content": "Return ONE short welcome line for Giulia"},
                 {"role": "user",
                  "content":
-                 f"Write a {vibe} one-sentence welcome for Giulia, ≤20 words, emoji allowed."}
+                 f"Write a {vibe} one-sentence welcome for Giulia, ≤40 words, emoji allowed."}
             ],
             max_tokens=18,
             temperature=0.9,

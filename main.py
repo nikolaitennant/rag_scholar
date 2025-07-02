@@ -298,32 +298,32 @@ with st.sidebar.container():
     INDEX_DIR = f"faiss_{active_class}"
 
     # 2️⃣  FILE-BROWSER EXPANDER (shown under the selector)
-    with st.sidebar.expander(f"🗄️ {active_class} File Browser", expanded=False):
-        if not os.path.exists(CTX_DIR):
-            st.write("_Folder does not exist yet_")
-        else:
-            files = sorted(os.listdir(CTX_DIR))
-            if not files:
-                st.write("_Folder is empty_")
-            else:
-                st.markdown("<div class='file-list'>", unsafe_allow_html=True)
-                for fn in files:
-                    col1, col2, col3 = st.columns([4, 1, 1])
-                    col1.write(fn)
+    # with st.sidebar.expander(f"🗄️ {active_class} File Browser", expanded=False):
+    #     if not os.path.exists(CTX_DIR):
+    #         st.write("_Folder does not exist yet_")
+    #     else:
+    #         files = sorted(os.listdir(CTX_DIR))
+    #         if not files:
+    #             st.write("_Folder is empty_")
+    #         else:
+    #             st.markdown("<div class='file-list'>", unsafe_allow_html=True)
+    #             for fn in files:
+    #                 col1, col2, col3 = st.columns([4, 1, 1])
+    #                 col1.write(fn)
 
-                    with open(os.path.join(CTX_DIR, fn), "rb") as f:
-                        col2.download_button(
-                            "⬇️",
-                            f,
-                            file_name=fn,
-                            mime="application/octet-stream",
-                            key=f"dl_{fn}",
-                        )
+    #                 with open(os.path.join(CTX_DIR, fn), "rb") as f:
+    #                     col2.download_button(
+    #                         "⬇️",
+    #                         f,
+    #                         file_name=fn,
+    #                         mime="application/octet-stream",
+    #                         key=f"dl_{fn}",
+    #                     )
 
-                    if col3.button("🗑️", key=f"del_{fn}"):
-                        os.remove(os.path.join(CTX_DIR, fn))
-                        shutil.rmtree(INDEX_DIR, ignore_errors=True)
-                        st.rerun()
+    #                 if col3.button("🗑️", key=f"del_{fn}"):
+    #                     os.remove(os.path.join(CTX_DIR, fn))
+    #                     shutil.rmtree(INDEX_DIR, ignore_errors=True)
+    #                     st.rerun()
 
     with st.expander(f"🗄️ {active_class} File Browser", expanded=False):
         if not os.path.exists(CTX_DIR):

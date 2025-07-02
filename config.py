@@ -9,6 +9,8 @@ class AppConfig:
     # Directories
     BASE_CTX_DIR: str = "classes_context"
     INDEX_PREFIX: str = "faiss_"
+    CTX_DIR = None  # will be set after the user picks a class
+    INDEX_DIR = None
 
     # Retrieval
     FIRST_K: int = 30
@@ -16,15 +18,18 @@ class AppConfig:
 
     # Models
     LLM_MODEL: str = "gpt-4.1-mini"
-    SUMMARY_MODEL: str = "gpt-3.5-turbo-0125"
+    SUMMARY_MODEL: str = "gpt-4.1-mini"
 
     # Memory
     SESSION_WINDOW: int = 8
     MAX_TOKEN_LIMIT: int = 800
 
-    # UI & Vibe
+    # UI
     GREETING_COOLDOWN: int = 3600  # seconds
     TONES: tuple[str, ...] = ("funny", "snarky", "nice")
 
     # Regex
     INLINE_RE: re.Pattern = field(default_factory=lambda: re.compile(r"\[\s*#(\d+)\s*\]"))
+
+
+

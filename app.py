@@ -94,7 +94,7 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                     key_base = fn.replace(" ", "_")  # safe for widget keys
 
                     col_name, col_dl, col_tr = st.columns([5, 1, 1])
-                    col_name.write(f"{idx}.  {fn}")
+                    col_name.write(fn)
 
                     # download button
                     with open(os.path.join(ctx_dir, fn), "rb") as f:

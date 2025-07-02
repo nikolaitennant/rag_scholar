@@ -14,11 +14,11 @@ import streamlit as st
 from dotenv import load_dotenv
 
 # ── local modules ─────────────────────────────────────────────────────
-from science.config import AppConfig
+from config import AppConfig
 from science.document_manager import DocumentManager
 from science.memory_manager import MemoryManager
 from science.chat_assistant import ChatAssistant
-from ui.ui_helpers import setup_ui
+from UI.ui_helpers import setup_ui
 
 # ── env + OpenAI key ──────────────────────────────────────────────────
 load_dotenv()

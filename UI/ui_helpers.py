@@ -21,14 +21,14 @@ def setup_ui(page_title: str, page_icon: str, cfg: AppConfig, api_key: str) -> N
     st.markdown(
         """
         <style>
-        .confirm-row{
+        .confirm-pill{
             background:#fff8d6;            /* light yellow */
-            border-radius:8px;
+            border-radius:10px;
             padding:6px 10px;
             margin:4px 0;
         }
-        /* tiny icon buttons */
-        div[data-testid="column"] button span{
+        /* shrink icon text */
+        button[kind="secondary"] span{
             font-size:1.25rem !important;
             line-height:1.25rem !important;
         }

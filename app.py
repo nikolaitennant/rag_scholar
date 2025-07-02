@@ -104,31 +104,31 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                     if col3.button("🗑️", key=f"ask_del_{key_base}"):
                         st.session_state.file_to_delete = fn
 
-                    # inside the file-listing loop, *in place of* the trash-can button
-                    if st.session_state.get("file_to_delete") == fn:
-                        # ✔ / ✖ replace the trash icon in the same column
-                        col2.markdown("**Are&nbsp;you&nbsp;sure?**", unsafe_allow_html=True)
+                        # inside the file-listing loop, *in place of* the trash-can button
+                        if st.session_state.get("file_to_delete") == fn:
+                            # ✔ / ✖ replace the trash icon in the same column
+                            col2.markdown("**Are&nbsp;you&nbsp;sure?**", unsafe_allow_html=True)
 
-                        # stack icons vertically in the delete column
-                        if col3.button("✅", key=f"yes_{key_base}", help="Delete file", use_container_width=True):
-                            os.remove(os.path.join(ctx_dir, fn))
-                            shutil.rmtree(idx_dir, ignore_errors=True)
-                            st.session_state.file_to_delete = None
-                            st.experimental_rerun()
+                            # stack icons vertically in the delete column
+                            if col3.button("✅", key=f"yes_{key_base}", help="Delete file", use_container_width=True):
+                                os.remove(os.path.join(ctx_dir, fn))
+                                shutil.rmtree(idx_dir, ignore_errors=True)
+                                st.session_state.file_to_delete = None
+                                st.experimental_rerun()
 
-                        if col3.button("❌", key=f"no_{key_base}", help="Cancel", use_container_width=True):
-                            st.session_state.file_to_delete = None
-                            st.experimental_rerun()
-                    else:
-                        # normal row: show download + trash
-                        with open(os.path.join(ctx_dir, fn), "rb") as f:
-                            col2.download_button("⬇️", f, file_name=fn,
-                                                mime="application/octet-stream",
-                                                key=f"dl_{key_base}")
+                            if col3.button("❌", key=f"no_{key_base}", help="Cancel", use_container_width=True):
+                                st.session_state.file_to_delete = None
+                                st.experimental_rerun()
+                        else:
+                            # normal row: show download + trash
+                            with open(os.path.join(ctx_dir, fn), "rb") as f:
+                                col2.download_button("⬇️", f, file_name=fn,
+                                                    mime="application/octet-stream",
+                                                    key=f"dl_{key_base}")
 
-                        if col3.button("🗑️", key=f"ask_del_{key_base}"):
-                            st.session_state.file_to_delete = fn
-                            
+                            if col3.button("🗑️", key=f"ask_del_{key_base}"):
+                                st.session_state.file_to_delete = fn
+                                
              
 
     # ----- add new class -------------------------------------------

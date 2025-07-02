@@ -1,4 +1,3 @@
-# ==================== file: ui_helpers.py ====================
 """
 Small collection of UI-centric helpers for Giulia’s Law AI Assistant.
 

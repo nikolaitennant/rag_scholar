@@ -1,11 +1,7 @@
-# ==================== file: config.py ====================
 """Configuration and constants for Giulia’s Law AI Assistant."""
 
 from dataclasses import dataclass, field
-import os
 import re
-import random
-import time
 
 @dataclass
 class AppConfig:

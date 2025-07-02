@@ -1,7 +1,5 @@
-# ==================== file: memory_manager.py ====================
 """Conversation memory wrapper around LangChain memories with Streamlit state."""
 from __future__ import annotations
-from typing import List
 
 import streamlit as st
 from langchain.memory import ConversationBufferWindowMemory, ConversationSummaryBufferMemory

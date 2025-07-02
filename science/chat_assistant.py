@@ -1,4 +1,3 @@
-# ==================== file: chat_assistant.py ====================
 """Core retrieval-augmented generation workflow."""
 from __future__ import annotations
 
@@ -13,7 +12,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
 from config import AppConfig
-from memory_manager import MemoryManager
+from science.memory_manager import MemoryManager
 
 
 class ChatAssistant:

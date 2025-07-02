@@ -1,4 +1,3 @@
-# ==================== file: document_manager.py ====================
 """Handles document loading, indexing, and FAISS persistence."""
 from __future__ import annotations
 import os

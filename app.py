@@ -1,4 +1,3 @@
-# ==================== file: app.py ====================
 """
 🍋 Giulia's Law AI Assistant – OOP edition with polished UI.
 
@@ -14,10 +13,10 @@ import streamlit as st
 
 # Local modules
 from config import AppConfig
-from ui_helpers import setup_ui            # ← our new helper
-from document_manager import DocumentManager
-from memory_manager import MemoryManager
-from chat_assistant import ChatAssistant
+from UI.ui_helpers import setup_ui            # ← our new helper
+from science.document_manager import DocumentManager
+from science.memory_manager import MemoryManager
+from science.chat_assistant import ChatAssistant
 
 # Load .env & key
 load_dotenv()

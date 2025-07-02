@@ -104,31 +104,35 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                     if col3.button("🗑️", key=f"ask_del_{key_base}"):
                         st.session_state.file_to_delete = fn
 
-                    if st.session_state.get("file_to_delete") == fn:
-                        col1, col2 = st.columns([4, 2])
-                        col1.write("")   # keeps alignment
+                        if st.session_state.get("file_to_delete") == fn:
+                            # filename col stays blank for alignment
+                            col1, col2 = st.columns([4, 3])
 
-                        with col2:
-                            st.markdown("<div class='confirm-pill'>", unsafe_allow_html=True)
+                            with col2:
+                                st.markdown("<div class='confirm-pill'>", unsafe_allow_html=True)
 
-                            ## label + icons in one line
-                            lbl, c_yes, c_no = st.columns([2, 1, 1])
-                            lbl.markdown(
-                                "<span style='font-size:0.9rem;color:#444;'>Are you sure?</span>",
-                                unsafe_allow_html=True,
-                            )
+                                # 1 text  +  2 icon buttons in one row
+                                txt, b_yes, b_no = st.columns([3, 1, 1])
 
-                            if c_yes.button("✅", key=f"yes_{key_base}", help="Delete file"):
-                                os.remove(os.path.join(ctx_dir, fn))
-                                shutil.rmtree(idx_dir, ignore_errors=True)
-                                st.session_state.file_to_delete = None
-                                st.rerun()
+                                txt.markdown(
+                                    "<span style='font-size:0.9rem;white-space:nowrap;'>Are&nbsp;you&nbsp;sure?</span>",
+                                    unsafe_allow_html=True,
+                                )
 
-                            if c_no.button("❌", key=f"no_{key_base}", help="Cancel"):
-                                st.session_state.file_to_delete = None
-                                st.rerun()
+                                if b_yes.button("✅", key=f"yes_{key_base}", help="Delete file"):
+                                    os.remove(os.path.join(ctx_dir, fn))
+                                    shutil.rmtree(idx_dir, ignore_errors=True)
+                                    st.session_state.file_to_delete = None
+                                    st.experimental_rerun()
 
-        st.markdown("</div>", unsafe_allow_html=True)
+                                if b_no.button("❌", key=f"no_{key_base}", help="Cancel"):
+                                    st.session_state.file_to_delete = None
+                                    st.experimental_rerun()
+
+                                st.markdown("</div>", unsafe_allow_html=True)
+                            
+             
+
     # ----- add new class -------------------------------------------
     with st.expander("➕  Add a new class", expanded=False):
         new_name = st.text_input("Class name (letters, numbers, spaces):", key="new_class_name")

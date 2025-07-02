@@ -81,53 +81,46 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
 
     # ----- file browser --------------------------------------------
     with st.expander(f"🗄️ {active_class} File Browser", expanded=False):
-            if not os.path.exists(ctx_dir):
-                st.write("_Folder does not exist yet_")
+        if not os.path.exists(ctx_dir):
+            st.write("_Folder does not exist yet_")
+        else:
+            files = sorted(os.listdir(ctx_dir))
+            if not files:
+                st.write("_Folder is empty_")
             else:
-                files = sorted(os.listdir(ctx_dir))
-                if not files:
-                    st.write("_Folder is empty_")
-                else:
-                    st.markdown("<div class='file-list'>", unsafe_allow_html=True)
-                    for fn in files:
-                        col1, col2, col3 = st.columns([4, 1, 1])
-                        col1.write(fn)
+                st.markdown("<div class='file-list'>", unsafe_allow_html=True)
 
-                        with open(os.path.join(ctx_dir, fn), "rb") as f:
-                            col2.download_button(
-                                "⬇️",
-                                f,
-                                file_name=fn,
-                                mime="application/octet-stream",
-                                key=f"dl_{fn}",
-                            )
+                # ── 1. list rows ───────────────────────────────────────────
+                for fn in files:
+                    col1, col2, col3 = st.columns([4, 1, 1])
+                    col1.write(fn)
+                    with open(os.path.join(ctx_dir, fn), "rb") as f:
+                        col2.download_button("⬇️", f, file_name=fn,
+                                            mime="application/octet-stream",
+                                            key=f"dl_{fn}")
+                    # first-click → set state only
+                    if col3.button("🗑️", key=f"ask_del_{fn}"):
+                        st.session_state.file_to_delete = fn
+                        st.session_state.show_delete_confirm = True
+                        st.rerun()
 
-                        # first click – ask
-                        if col3.button("🗑️", key=f"ask_del_{fn}"):
-                            st.session_state.file_to_delete = fn
-                            st.session_state.confirm_file_delete = True
-                            st.rerun()
-
-                        # outside the for-loop, add:
-                        if st.session_state.get("confirm_file_delete"):
-                            fn = st.session_state.get("file_to_delete")
-                            if fn:
-                                with st.expander(f"⚠️ Delete {fn}?", expanded=True):
-                                    st.error(f"Really delete {fn}?")
-                                    col_yes, col_no = st.columns(2)
-
-                                    # note the f-strings ↓↓↓
-                                    if col_yes.button("Yes, delete", key=f"yes_del_{fn}"):
-                                        os.remove(os.path.join(ctx_dir, fn))
-                                        shutil.rmtree(idx_dir, ignore_errors=True)
-                                        st.session_state.confirm_file_delete = False
-                                        st.session_state.file_to_delete = None
-                                        st.rerun()
-
-                                    if col_no.button("Cancel", key=f"cancel_del_{fn}"):
-                                        st.session_state.confirm_file_delete = False
-                                        st.session_state.file_to_delete = None
-                                        st.rerun()
+                # ── 2. single confirm dialog (outside loop) ───────────────
+                if st.session_state.get("show_delete_confirm"):
+                    fn = st.session_state.get("file_to_delete")
+                    if fn:
+                        with st.expander(f"⚠️ Delete {fn}?", expanded=True):
+                            st.error(f"Really delete {fn}?")
+                            col_yes, col_no = st.columns(2)
+                            if col_yes.button("Yes, delete", key=f"yes_del_{fn}"):
+                                os.remove(os.path.join(ctx_dir, fn))
+                                shutil.rmtree(idx_dir, ignore_errors=True)
+                                st.session_state.show_delete_confirm = False
+                                st.session_state.file_to_delete = None
+                                st.rerun()
+                            if col_no.button("Cancel", key=f"cancel_del_{fn}"):
+                                st.session_state.show_delete_confirm = False
+                                st.session_state.file_to_delete = None
+                                st.rerun()
 
     # ----- add new class -------------------------------------------
     with st.expander("➕  Add a new class", expanded=False):

@@ -17,25 +17,6 @@ from config import AppConfig
 def setup_ui(page_title: str, page_icon: str, cfg: AppConfig, api_key: str) -> None:
     """Call this **once** at the very top of your Streamlit file."""
     st.set_page_config(page_title, page_icon)
-
-    st.markdown(
-        """
-        <style>
-        .confirm-pill{
-            background:#fff8d6;            /* light yellow */
-            border-radius:10px;
-            padding:6px 10px;
-            margin:4px 0;
-        }
-        /* shrink icon text */
-        button[kind="secondary"] span{
-            font-size:1.25rem !important;
-            line-height:1.25rem !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
     _inject_css()
     _maybe_greet(cfg, api_key)
 

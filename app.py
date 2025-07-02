@@ -1,4 +1,10 @@
-"""Giulia's Law AI Assistant – full-feature UI wrapper"""
+# 🍋  Giulia's Law AI Assistant – full-feature UI wrapper
+# ------------------------------------------------------
+# Directory layout expected:
+#   science/  → backend modules
+#   ui/       → UI helpers (CSS + greeting)
+#   app.py    → this file
+# ------------------------------------------------------
 
 from __future__ import annotations
 import os, re, shutil
@@ -7,35 +13,34 @@ from typing import List
 import streamlit as st
 from dotenv import load_dotenv
 
-# --- local modules ----------------------------------------------------
-from config import AppConfig
+# ── local modules ─────────────────────────────────────────────────────
+from science.config import AppConfig
 from science.document_manager import DocumentManager
 from science.memory_manager import MemoryManager
 from science.chat_assistant import ChatAssistant
-from UI.ui_helpers import setup_ui
+from ui.ui_helpers import setup_ui
 
-# --- env + OpenAI key --------------------------------------------------
+# ── env + OpenAI key ──────────────────────────────────────────────────
 load_dotenv()
 API_KEY = os.getenv("OPENAI_API_KEY", "")
 if not API_KEY:
     st.error("OPENAI_API_KEY not found in environment.")
     st.stop()
 
-# --- one-time app-level setup -----------------------------------------
+# ── app-level setup ───────────────────────────────────────────────────
 cfg = AppConfig()
 setup_ui("Giulia's (🐀) Law AI Assistant", "⚖️", cfg, API_KEY)
 
-# --- backend managers --------------------------------------------------
 doc_mgr = DocumentManager(API_KEY, cfg)
-mem_mgr = MemoryManager(API_KEY, cfg)  # this seeds session_state keys
+mem_mgr = MemoryManager(API_KEY, cfg)
 
-# ----------------------------------------------------------------------
-# 1. SIDEBAR  –  class folders, uploads, focus mode, disclaimer
-# ----------------------------------------------------------------------
+# ======================================================================
+# 1. SIDEBAR – class selector + controls, uploads, disclaimer
+# ======================================================================
 
 st.sidebar.header("📂 Settings & Additional Info")
 
-# ---------- 1.1 quick tips panel --------------------------------------
+# 1.1 quick tips
 with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
     st.markdown(
         """
@@ -48,7 +53,7 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
         unsafe_allow_html=True,
     )
 
-# ---------- 1.2 class selector ---------------------------------------
+# 1.2 class selector (always visible)
 class_folders: List[str] = doc_mgr.list_class_folders()
 if not class_folders:
     st.sidebar.warning(f"Add folders inside `{cfg.BASE_CTX_DIR}` to get started.")
@@ -58,37 +63,53 @@ if "active_class" not in st.session_state:
     st.session_state.active_class = class_folders[0]
 
 active_class = st.sidebar.selectbox(
-    "Select class / module", class_folders, index=class_folders.index(st.session_state.active_class)
+    "Select class / module",
+    class_folders,
+    index=class_folders.index(st.session_state.active_class),
 )
-
 if active_class != st.session_state.active_class:
     st.session_state.active_class = active_class
     st.rerun()
 
 ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
 
-# ---------- 1.3 class controls (collapsed expander) -------------------
+# 1.3 class controls
 with st.sidebar.expander("🗂️ Class controls", expanded=False):
-    # ----- file browser ---------------------------------------------
-    # --- 1.3.1 File browser with dropdown ----------------------------
+
+    # --- 1.3.1 File browser (list view with icons) -------------------
     st.markdown("##### 📄 Files in this class", unsafe_allow_html=True)
     if not os.path.exists(ctx_dir):
         st.write("_Folder does not exist yet_")
     else:
         files = sorted(os.listdir(ctx_dir))
-        if files:
-            chosen = st.selectbox("Open file", files, key="file_select")
-            col_d, col_r = st.columns([1, 1])
-            with open(os.path.join(ctx_dir, chosen), "rb") as f:
-                col_d.download_button(
-                    "⬇️ Download", f, file_name=chosen, mime="application/octet-stream", key=f"dl_{chosen}"
-                )
-            if col_r.button("🗑️ Delete", key=f"del_{chosen}"):
-                os.remove(os.path.join(ctx_dir, chosen))
-                shutil.rmtree(idx_dir, ignore_errors=True)
-                st.rerun()
-        else:
+        if not files:
             st.write("_Folder is empty_")
+        else:
+            st.markdown("<div class='file-list'>", unsafe_allow_html=True)
+
+            def _icon(fn: str) -> str:
+                ext = fn.rsplit(".", 1)[-1].lower()
+                return {
+                    "pdf": "📄",
+                    "docx": "📝",
+                    "doc": "📝",
+                    "pptx": "📊",
+                    "csv": "📑",
+                    "txt": "📄",
+                }.get(ext, "📄")
+
+            for fn in files:
+                col0, col1, col2, col3 = st.columns([0.6, 4, 1, 1])
+                col0.write(_icon(fn))
+                col1.write(fn)
+                with open(os.path.join(ctx_dir, fn), "rb") as f:
+                    col2.download_button(
+                        "⬇️", f, file_name=fn, mime="application/octet-stream", key=f"dl_{fn}"
+                    )
+                if col3.button("🗑️", key=f"del_{fn}"):
+                    os.remove(os.path.join(ctx_dir, fn))
+                    shutil.rmtree(idx_dir, ignore_errors=True)
+                    st.rerun()
 
 
     # ----- add new class -------------------------------------------

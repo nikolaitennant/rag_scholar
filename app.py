@@ -75,42 +75,32 @@ ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
 
 # 1.3 class controls
 with st.sidebar.expander("🗂️ Class controls", expanded=False):
+    with st.expander(f"🗄️ {active_class} File Browser", expanded=False):
+            if not os.path.exists(ctx_dir):
+                st.write("_Folder does not exist yet_")
+            else:
+                files = sorted(os.listdir(ctx_dir))
+                if not files:
+                    st.write("_Folder is empty_")
+                else:
+                    st.markdown("<div class='file-list'>", unsafe_allow_html=True)
+                    for fn in files:
+                        col1, col2, col3 = st.columns([4, 1, 1])
+                        col1.write(fn)
 
-    # --- 1.3.1 File browser (list view with icons) -------------------
-    st.markdown("##### 📄 Files in this class", unsafe_allow_html=True)
-    if not os.path.exists(ctx_dir):
-        st.write("_Folder does not exist yet_")
-    else:
-        files = sorted(os.listdir(ctx_dir))
-        if not files:
-            st.write("_Folder is empty_")
-        else:
-            st.markdown("<div class='file-list'>", unsafe_allow_html=True)
+                        with open(os.path.join(ctx_dir, fn), "rb") as f:
+                            col2.download_button(
+                                "⬇️",
+                                f,
+                                file_name=fn,
+                                mime="application/octet-stream",
+                                key=f"dl_{fn}",
+                            )
 
-            def _icon(fn: str) -> str:
-                ext = fn.rsplit(".", 1)[-1].lower()
-                return {
-                    "pdf": "📄",
-                    "docx": "📝",
-                    "doc": "📝",
-                    "pptx": "📊",
-                    "csv": "📑",
-                    "txt": "📄",
-                }.get(ext, "📄")
-
-            for fn in files:
-                col0, col1, col2, col3 = st.columns([0.6, 4, 1, 1])
-                col0.write(_icon(fn))
-                col1.write(fn)
-                with open(os.path.join(ctx_dir, fn), "rb") as f:
-                    col2.download_button(
-                        "⬇️", f, file_name=fn, mime="application/octet-stream", key=f"dl_{fn}"
-                    )
-                if col3.button("🗑️", key=f"del_{fn}"):
-                    os.remove(os.path.join(ctx_dir, fn))
-                    shutil.rmtree(idx_dir, ignore_errors=True)
-                    st.rerun()
-
+                        if col3.button("🗑️", key=f"del_{fn}"):
+                            os.remove(os.path.join(ctx_dir, fn))
+                            shutil.rmtree(idx_dir, ignore_errors=True)
+                            st.rerun()
 
     # ----- add new class -------------------------------------------
     with st.expander("➕  Add a new class", expanded=False):

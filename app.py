@@ -86,7 +86,11 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
     # 🗄️  File Browser expander
     # (requires: from streamlit_modal import Modal  ← add at top)
     # ------------------------------------------------------------
-    delete_modal = Modal("🗑️  Delete file?", key="delete_modal", padding=10)
+    delete_modal = Modal(
+    "Delete file?",            # title still used for a11y
+    key="delete_modal",
+    padding=0,                 # let our CSS handle spacing
+)
 
     with st.expander(f"🗄️ {active_class} File Browser", expanded=False):
         if not os.path.exists(ctx_dir):

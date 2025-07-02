@@ -17,6 +17,39 @@ from config import AppConfig
 def setup_ui(page_title: str, page_icon: str, cfg: AppConfig, api_key: str) -> None:
     """Call this **once** at the very top of your Streamlit file."""
     st.set_page_config(page_title, page_icon)
+    st.markdown(
+    """
+    <style>
+    /* shrink modal width & round corners */
+    .modal-container {
+        max-width: 420px !important;   /* <— feel free to tweak */
+        border-radius: 12px !important;
+    }
+    /* fine-tune header & body */
+    .modal-container h4 {
+        font-size: 1.15rem;
+        margin: 0.8rem 0 0.4rem;
+        text-align: center;
+    }
+    .modal-container p {
+        text-align: center;
+        margin-bottom: 0.8rem;
+    }
+    /* centre the Yes/No buttons side-by-side */
+    .confirm-row{
+        display:flex;
+        justify-content:center;
+        gap:0.6rem;
+        padding-bottom:1rem;
+    }
+    .confirm-row button span{
+        font-size:1.2rem !important;
+        line-height:1.2rem !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
     _inject_css()
     _maybe_greet(cfg, api_key)
 

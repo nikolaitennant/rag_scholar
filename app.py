@@ -104,32 +104,30 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                     if col3.button("🗑️", key=f"ask_del_{key_base}"):
                         st.session_state.file_to_delete = fn
 
-                        if st.session_state.get("file_to_delete") == fn:
-                            # filename col stays blank for alignment
-                            col1, col2 = st.columns([4, 3])
+                    # inside the file-listing loop, *in place of* the trash-can button
+                    if st.session_state.get("file_to_delete") == fn:
+                        # ✔ / ✖ replace the trash icon in the same column
+                        col2.markdown("**Are&nbsp;you&nbsp;sure?**", unsafe_allow_html=True)
 
-                            with col2:
-                                st.markdown("<div class='confirm-pill'>", unsafe_allow_html=True)
+                        # stack icons vertically in the delete column
+                        if col3.button("✅", key=f"yes_{key_base}", help="Delete file", use_container_width=True):
+                            os.remove(os.path.join(ctx_dir, fn))
+                            shutil.rmtree(idx_dir, ignore_errors=True)
+                            st.session_state.file_to_delete = None
+                            st.experimental_rerun()
 
-                                # 1 text  +  2 icon buttons in one row
-                                txt, b_yes, b_no = st.columns([3, 1, 1])
+                        if col3.button("❌", key=f"no_{key_base}", help="Cancel", use_container_width=True):
+                            st.session_state.file_to_delete = None
+                            st.experimental_rerun()
+                    else:
+                        # normal row: show download + trash
+                        with open(os.path.join(ctx_dir, fn), "rb") as f:
+                            col2.download_button("⬇️", f, file_name=fn,
+                                                mime="application/octet-stream",
+                                                key=f"dl_{key_base}")
 
-                                txt.markdown(
-                                    "<span style='font-size:0.9rem;white-space:nowrap;'>Are&nbsp;you&nbsp;sure?</span>",
-                                    unsafe_allow_html=True,
-                                )
-
-                                if b_yes.button("✅", key=f"yes_{key_base}", help="Delete file"):
-                                    os.remove(os.path.join(ctx_dir, fn))
-                                    shutil.rmtree(idx_dir, ignore_errors=True)
-                                    st.session_state.file_to_delete = None
-                                    st.experimental_rerun()
-
-                                if b_no.button("❌", key=f"no_{key_base}", help="Cancel"):
-                                    st.session_state.file_to_delete = None
-                                    st.experimental_rerun()
-
-                                st.markdown("</div>", unsafe_allow_html=True)
+                        if col3.button("🗑️", key=f"ask_del_{key_base}"):
+                            st.session_state.file_to_delete = fn
                             
              
 

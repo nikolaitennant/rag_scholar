@@ -70,12 +70,14 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
         "Select class / module",
         class_folders,
         index=class_folders.index(st.session_state.active_class),
+        key="active_class_select"
     )
     if active_class != st.session_state.active_class:
         st.session_state.active_class = active_class
         st.rerun()
 
     ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
+
 
     
 

@@ -127,26 +127,28 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                 # ---------- modal confirmation --------------------------
                 if delete_modal.is_open():
                     with delete_modal.container():
-                        fn = st.session_state.get("file_to_delete", "")
-                        st.write(f"Really delete **{fn}** ?")
+                        st.markdown("<h4>Delete file</h4>", unsafe_allow_html=True)
+                        st.markdown(f"<p>Really delete<br><b>{fn}</b>?</p>", unsafe_allow_html=True)
 
-                        col_yes, col_no = st.columns(2)
+                        st.markdown("<div class='confirm-row'>", unsafe_allow_html=True)
 
-                        if col_yes.button("✅  Yes – delete", key="modal_yes"):
-                            try:
-                                os.remove(os.path.join(ctx_dir, fn))
-                            except FileNotFoundError:
-                                pass        # already gone
+                        yes = st.button("✅", key="modal_yes", help="Delete file", type="primary")
+                        no  = st.button("❌", key="modal_no",  help="Cancel",      type="secondary")
+
+                        st.markdown("</div>", unsafe_allow_html=True)
+
+                        if yes:
+                            os.remove(os.path.join(ctx_dir, fn))
                             shutil.rmtree(idx_dir, ignore_errors=True)
                             delete_modal.close()
                             st.session_state.file_to_delete = None
                             st.rerun()
 
-                        if col_no.button("❌  Cancel", key="modal_no"):
+                        if no:
                             delete_modal.close()
                             st.session_state.file_to_delete = None
                             st.rerun()
-                    
+                    st.markdown("</div>", unsafe_allow_html=True)            
 
     # ----- add new class -------------------------------------------
     with st.expander("➕  Add a new class", expanded=False):

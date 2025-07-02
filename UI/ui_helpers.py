@@ -19,24 +19,23 @@ def setup_ui(page_title: str, page_icon: str, cfg: AppConfig, api_key: str) -> N
     st.set_page_config(page_title, page_icon)
 
     st.markdown(
-    """
-    <style>
-    .confirm-pill{
-        padding:2px 8px;
-        background:#f2f4f6;
-        border-radius:8px;
-        display:inline-block;
-    }
-    /* shrink the icon buttons */
-    div[data-testid="column"] button span{
-        font-size:1.25rem !important;
-        line-height:1.25rem !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
+        """
+        <style>
+        .confirm-row{
+            background:#fff8d6;            /* light yellow */
+            border-radius:8px;
+            padding:6px 10px;
+            margin:4px 0;
+        }
+        /* tiny icon buttons */
+        div[data-testid="column"] button span{
+            font-size:1.25rem !important;
+            line-height:1.25rem !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
     )
-
     _inject_css()
     _maybe_greet(cfg, api_key)
 

@@ -19,6 +19,23 @@ from langchain_community.document_loaders import (
 
 from config import AppConfig
 
+@st.cache_resource(show_spinner=False)
+def load_and_index_defaults(folder: str, api_key: str) -> Tuple[List, FAISS | None]:
+    """Load every file in `folder`, build a FAISS index, and cache the result."""
+    from .document_manager import DocumentManager  # local import to avoid cycle
+
+    docs = []
+    if os.path.exists(folder):
+        for fname in os.listdir(folder):
+            loader_cls = DocumentManager.LOADER_MAP.get(fname.rsplit(".", 1)[-1].lower())
+            if loader_cls:
+                docs.extend(loader_cls(os.path.join(folder, fname)).load())
+
+    if not docs:
+        return [], None
+
+    embeddings = OpenAIEmbeddings(api_key=api_key)
+    return docs, FAISS.from_documents(docs, embeddings)
 
 class DocumentManager:
     """Responsible for all document I/O and vector store lifecycle."""
@@ -51,22 +68,6 @@ class DocumentManager:
             if os.path.isdir(os.path.join(self.cfg.BASE_CTX_DIR, d))
         )
 
-    # ............................ retrieval helpers ............................
-    @st.cache_resource(show_spinner=False)
-    def _load_and_index_defaults(self, folder: str):
-        docs = []
-        if os.path.exists(folder):
-            for fname in os.listdir(folder):
-                loader = self._pick_loader(os.path.join(folder, fname))
-                if loader:
-                    docs.extend(loader.load())
-
-        if not docs:
-            return [], None
-
-        index = FAISS.from_documents(docs, OpenAIEmbeddings(api_key=self.api_key))
-        return docs, index
-
     def ensure_vector_store(self, ctx_dir: str, idx_dir: str, uploaded_docs) -> FAISS:
         """Return a FAISS index (loading or rebuilding as needed)."""
         embeddings = OpenAIEmbeddings(api_key=self.api_key)
@@ -84,7 +85,7 @@ class DocumentManager:
                 shutil.rmtree(idx_dir, ignore_errors=True)  # force rebuild if corrupted
 
         # Build from scratch
-        default_docs, default_idx = self._load_and_index_defaults(ctx_dir)
+        default_docs, default_idx = load_and_index_defaults(ctx_dir, self.api_key)
         session_docs = self._load_uploaded_files(uploaded_docs)
 
         if default_idx and session_docs:

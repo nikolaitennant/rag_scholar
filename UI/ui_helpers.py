@@ -18,17 +18,17 @@ def setup_ui(page_title: str, page_icon: str, cfg: AppConfig, api_key: str) -> N
     """Call this **once** at the very top of your Streamlit file."""
     st.set_page_config(page_title, page_icon)
 
-    st.markdown(
-    """
-    <style>
-    div[data-testid="column"] button {
-        padding: 0.2rem 0.4rem;
-        border-radius: 6px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-    )
+    # st.markdown(
+    # """
+    # <style>
+    # div[data-testid="column"] button {
+    #     padding: 0.2rem 0.4rem;
+    #     border-radius: 6px;
+    # }
+    # </style>
+    # """,
+    # unsafe_allow_html=True,
+    # )
 
     st.markdown(
     """

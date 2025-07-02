@@ -147,6 +147,49 @@ def extract_citation_numbers(text: str) -> list[int]:
 # ─── Streamlit UI setup ───────────────────────────────────────────────────
 st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
 
+# ── config ─────────────────────────────────────────────────────────────
+GREETING_COOLDOWN = 3600       # seconds
+TONES = ["funny", "snarky", "nice"]
+openai_client = OpenAI(api_key=api_key)   # you already loaded api_key above
+
+# ── tiny query-string helpers  (per-browser persistence) ───────────────
+def _get_last_greet() -> float:
+    qp = st.experimental_get_query_params()
+    return float(qp.get("last_greet", [0])[0])
+
+def _set_last_greet(ts: float) -> None:
+    qp = st.experimental_get_query_params()
+    qp["last_greet"] = f"{ts:.0f}"
+    st.experimental_set_query_params(**qp)
+
+# ── show banner if >1 h since last greeting in this tab ────────────────
+now = time.time()
+if now - _get_last_greet() > GREETING_COOLDOWN:
+    # pick a random vibe for today
+    vibe = random.choice(TONES)
+
+    # ask the LLM for a one-liner (max 10 tokens, keep it emoji-friendly)
+    try:
+        msg = openai_client.chat.completions.create(
+            model="gpt-3.5-turbo-0125",
+            messages=[
+                {"role": "system",
+                 "content": ("You are a chatbot that produces a SINGLE short welcome line. "
+                             "No apologies, no extra commentary.")},
+                {"role": "user",
+                 "content": (f"Write a {vibe} one-sentence welcome message for Giulia, "
+                             "max 20 words, feel free to use an emoji.")}
+            ],
+            max_tokens=18,
+            temperature=0.9,
+        ).choices[0].message.content.strip()
+    except Exception:
+        # fallback if API hiccups
+        msg = "👋 Welcome, Giulia! Ready to dive into some case law?"
+
+    st.info(msg)
+    _set_last_greet(now)
+
 st.markdown(
     """
 <style>

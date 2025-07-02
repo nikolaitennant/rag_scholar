@@ -15,7 +15,7 @@ class AppConfig:
     # Retrieval
     FIRST_K: int = 30
     FINAL_K: int = 4
-    RELEVANCE_THRESHOLD: float = 0.1
+    RELEVANCE_THRESHOLD: float = 0.8
 
     # Models
     LLM_MODEL: str = "gpt-4.1-mini"

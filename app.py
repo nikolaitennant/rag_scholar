@@ -1,17 +1,10 @@
-# 🍋  Giulia's Law AI Assistant – full-feature UI wrapper
+# Giulia's Law AI Assistant – full-feature UI wrapper
 # ------------------------------------------------------
 # This Streamlit entry-point wires together the OOP backend (in
 # science/…) with the original rich sidebar (class browser, uploads,
 # prioritise/only-these toggle, disclaimers, etc.) and the polished UI
 # helpers in ui/ui_helpers.py.
 #
-# Directory layout expected:
-#   science/
-#       config.py, document_manager.py, memory_manager.py, chat_assistant.py
-#   ui/
-#       ui_helpers.py
-#   app.py   ← you’re here
-# ------------------------------------------------------
 
 from __future__ import annotations
 import os, re, shutil, random, time, tempfile
@@ -195,6 +188,43 @@ vector_store = doc_mgr.ensure_vector_store(ctx_dir, idx_dir, uploaded_docs)
 st.title("⚖️ Giulia's Law AI Assistant (OOP)")
 assistant = ChatAssistant(API_KEY, cfg, mem_mgr, vector_store)
 
+with st.expander("ℹ️  How this assistant works", expanded=False):
+    st.markdown(
+        """
+<div class="info-panel">
+
+**📚 Quick overview**
+
+<ul style="margin-left:1.1em;margin-top:12px">
+
+<!-- Core behaviour ---------------------------------------------------- -->
+  <li><b>Document-only answers</b> – I rely <em>solely</em> on the files you upload or the facts you store with remember:/memo:/user queries. No web searching!</li>
+
+  <li><b>Citations</b> – every sentence that states a legal rule, date, or authority ends with [#n]. If I can’t cite it, I’ll say so.</li>
+
+  <li><b>Sources pill</b> – under each reply you’ll see “Sources used: #2, #7 …”. Click to preview which file each number came from.</li>
+
+  <li><b>Read the snippet</b> – type “<kbd>show snippet [#4]</kbd>” and I’ll reveal the exact passage.</li>
+
+  <!-- Uploads ----------------------------------------------------------- -->
+  <li><b>Uploads</b>
+      <ul>
+        <li><b>Session-only</b> – drag files into the sidebar. They vanish when you refresh.</li>
+        <li><b>Keep forever</b> – after uploading, click <strong>“💾 Save uploads”</strong>. Need to delete one later? Hit <strong>🗑️</strong>.</li>
+      </ul>
+  </li>
+
+  <!-- Retrieval options -------------------------------------------------- -->
+  <li>📌 <b>Prioritise docs</b> – tick files in the sidebar to make me search them first, then widen the net.</li>
+  <li style="margin-top:6px;color:gray;font-size:0.95rem">
+      Tip: the “Prioritise / Only these docs” switch activates once at least one file is ticked.
+  </li>
+</ul>
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 user_q = st.chat_input("Ask anything…")
 if user_q:
     reply = assistant.handle_turn(user_q, sel_docs, mode)
@@ -232,22 +262,3 @@ for entry in st.session_state.chat_history:
                             f"<blockquote style='margin-top:6px'>{quote}</blockquote>",
                             unsafe_allow_html=True,
                         )
-
-# ----------------------------------------------------- #
-# 7. Footer disclaimer                                  #
-# ----------------------------------------------------- #
-with st.sidebar.expander("⚖️ Disclaimer", expanded=False):
-    st.markdown(
-        """
-I’m an AI study buddy, **not** your solicitor or lecturer.  
-By using this tool you agree that:
-
-* I might be wrong, out-of-date, or miss a key authority.
-* Your exam results remain **your** responsibility.
-* If you flunk, you’ve implicitly waived all claims in tort, contract,
-  equity, and any other jurisdiction you can think of&nbsp;😉
-
-In short: double-check everything before relying on it.
-""",
-        unsafe_allow_html=True,
-    )

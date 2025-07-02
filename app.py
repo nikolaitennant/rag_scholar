@@ -11,6 +11,7 @@ import os, re, shutil
 from typing import List
 
 import streamlit as st
+from streamlit_modal import Modal
 print(st.__version__)
 from dotenv import load_dotenv
 
@@ -80,7 +81,13 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
     ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
 
 
-    # ----- file browser --------------------------------------------
+        # ----- file browser --------------------------------------------
+        # ------------------------------------------------------------
+    # 🗄️  File Browser expander
+    # (requires: from streamlit_modal import Modal  ← add at top)
+    # ------------------------------------------------------------
+    delete_modal = Modal("🗑️  Delete file?", key="delete_modal", padding=10)
+
     with st.expander(f"🗄️ {active_class} File Browser", expanded=False):
         if not os.path.exists(ctx_dir):
             st.write("_Folder does not exist yet_")
@@ -91,9 +98,9 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
             else:
                 st.markdown("<div class='file-list'>", unsafe_allow_html=True)
 
-                # ============ 1. list every file row =====================
+                # ---------- list every file row --------------------------
                 for fn in files:
-                    key_base = fn.replace(" ", "_")   # safe for widget keys
+                    key_base = fn.replace(" ", "_")   # safe part for widget keys
 
                     col_name, col_dl, col_trash = st.columns([4, 1, 1])
                     col_name.write(fn)
@@ -101,39 +108,41 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                     # download button
                     with open(os.path.join(ctx_dir, fn), "rb") as f:
                         col_dl.download_button(
-                            "⬇️",
-                            f,
+                            "⬇️", f,
                             file_name=fn,
                             mime="application/octet-stream",
                             key=f"dl_{key_base}",
                         )
 
-                    # trash button → flag for modal
+                    # trash button → opens modal
                     if col_trash.button("🗑️", key=f"ask_del_{key_base}", help="Delete this file"):
                         st.session_state.file_to_delete = fn
-                        st.session_state.show_delete_modal = True
-                        st.rerun()               # immediately open modal on rerun
+                        delete_modal.open()
+                        st.rerun()   # immediately render modal
 
-                # ============ 2. modal confirmation (one per run) ========
-                if st.session_state.get("show_delete_modal"):
-                    fn = st.session_state.get("file_to_delete")
-                    if fn:
-                        with st.modal("🗑️ Delete file?"):
-                            st.write(f"Really delete **{fn}** ?")
+                # ---------- modal confirmation --------------------------
+                if delete_modal.is_open():
+                    with delete_modal.container():
+                        fn = st.session_state.get("file_to_delete", "")
+                        st.write(f"Really delete **{fn}** ?")
 
-                            col_yes, col_no = st.columns(2)
-                            if col_yes.button("✅  Yes – delete", key="modal_yes"):
+                        col_yes, col_no = st.columns(2)
+
+                        if col_yes.button("✅  Yes – delete", key="modal_yes"):
+                            try:
                                 os.remove(os.path.join(ctx_dir, fn))
-                                shutil.rmtree(idx_dir, ignore_errors=True)
-                                st.session_state.show_delete_modal = False
-                                st.session_state.file_to_delete = None
-                                st.rerun()
+                            except FileNotFoundError:
+                                pass        # already gone
+                            shutil.rmtree(idx_dir, ignore_errors=True)
+                            delete_modal.close()
+                            st.session_state.file_to_delete = None
+                            st.rerun()
 
-                            if col_no.button("❌  Cancel", key="modal_no"):
-                                st.session_state.show_delete_modal = False
-                                st.session_state.file_to_delete = None
-                                st.rerun()
-                
+                        if col_no.button("❌  Cancel", key="modal_no"):
+                            delete_modal.close()
+                            st.session_state.file_to_delete = None
+                            st.rerun()
+                    
 
     # ----- add new class -------------------------------------------
     with st.expander("➕  Add a new class", expanded=False):

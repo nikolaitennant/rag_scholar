@@ -102,10 +102,29 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                                 key=f"dl_{fn}",
                             )
 
-                        if col3.button("🗑️", key=f"del_{fn}"):
-                            os.remove(os.path.join(ctx_dir, fn))
-                            shutil.rmtree(idx_dir, ignore_errors=True)
+                        # first click – ask
+                        if col3.button("🗑️", key=f"ask_del_{fn}"):
+                            st.session_state.file_to_delete = fn
+                            st.session_state.confirm_file_delete = True
                             st.rerun()
+
+                        # outside the for-loop, add:
+                        if st.session_state.get("confirm_file_delete"):
+                            fn = st.session_state.get("file_to_delete")
+                            if fn:
+                                with st.expander(f"⚠️ Delete {fn}?", expanded=True):
+                                    st.error(f"Really delete {fn}?")
+                                    col_yes, col_no = st.columns(2)
+                                    if col_yes.button("Yes, delete", key="yes_del_file"):
+                                        os.remove(os.path.join(ctx_dir, fn))
+                                        shutil.rmtree(idx_dir, ignore_errors=True)
+                                        st.session_state.confirm_file_delete = False
+                                        st.session_state.file_to_delete = None
+                                        st.rerun()
+                                    if col_no.button("Cancel", key="cancel_del_file"):
+                                        st.session_state.confirm_file_delete = False
+                                        st.session_state.file_to_delete = None
+                                        st.rerun()
 
     # ----- add new class -------------------------------------------
     with st.expander("➕  Add a new class", expanded=False):

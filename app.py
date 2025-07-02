@@ -70,25 +70,26 @@ ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
 # ---------- 1.3 class controls (collapsed expander) -------------------
 with st.sidebar.expander("🗂️ Class controls", expanded=False):
     # ----- file browser ---------------------------------------------
+    # --- 1.3.1 File browser with dropdown ----------------------------
+    st.markdown("##### 📄 Files in this class", unsafe_allow_html=True)
     if not os.path.exists(ctx_dir):
         st.write("_Folder does not exist yet_")
     else:
         files = sorted(os.listdir(ctx_dir))
-        if not files:
-            st.write("_Folder is empty_")
+        if files:
+            chosen = st.selectbox("Open file", files, key="file_select")
+            col_d, col_r = st.columns([1, 1])
+            with open(os.path.join(ctx_dir, chosen), "rb") as f:
+                col_d.download_button(
+                    "⬇️ Download", f, file_name=chosen, mime="application/octet-stream", key=f"dl_{chosen}"
+                )
+            if col_r.button("🗑️ Delete", key=f"del_{chosen}"):
+                os.remove(os.path.join(ctx_dir, chosen))
+                shutil.rmtree(idx_dir, ignore_errors=True)
+                st.rerun()
         else:
-            st.markdown("<div class='file-list'>", unsafe_allow_html=True)
-            for fn in files:
-                col1, col2, col3 = st.columns([4, 1, 1])
-                col1.write(fn)
-                with open(os.path.join(ctx_dir, fn), "rb") as f:
-                    col2.download_button(
-                        "⬇️", f, file_name=fn, mime="application/octet-stream", key=f"dl_{fn}"
-                    )
-                if col3.button("🗑️", key=f"del_{fn}"):
-                    os.remove(os.path.join(ctx_dir, fn))
-                    shutil.rmtree(idx_dir, ignore_errors=True)
-                    st.rerun()
+            st.write("_Folder is empty_")
+
 
     # ----- add new class -------------------------------------------
     with st.expander("➕  Add a new class", expanded=False):

@@ -147,6 +147,36 @@ def extract_citation_numbers(text: str) -> list[int]:
 # ─── Streamlit UI setup ───────────────────────────────────────────────────
 st.set_page_config("Giulia's (🐀) Law AI Assistant", "⚖️")
 
+def show_greeting(msg: str):
+    st.markdown(
+        f"""
+        <div class="welcome-banner">
+            {msg}
+        </div>
+
+        <style>
+        .welcome-banner {{
+            /* layout */
+            margin: 1.2rem auto 2rem;
+            padding: 18px 28px;
+            max-width: 600px;
+
+            /* look & feel */
+            text-align: center;
+            font-size: 1.35rem;
+            font-weight: 600;
+            line-height: 1.5;
+            color: #222;
+
+            background: linear-gradient(135deg,#fffbea 0%,#e9f9ff 100%);
+            border: 2px solid #ffd36a;
+            border-radius: 14px;
+            box-shadow: 0 3px 8px rgba(0,0,0,.06);
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 GREETING_COOLDOWN = 3          # 1 hour
 TONES = ["funny", "snarky", "nice"]
@@ -180,7 +210,7 @@ if now - get_last_greet() > GREETING_COOLDOWN:
     except Exception:
         msg = "👋 Welcome, Giulia! Ready to dive into some case law?"
 
-    st.info(msg)
+    show_greeting(msg)
     set_last_greet(now)
 
 st.markdown(

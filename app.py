@@ -274,36 +274,36 @@ with st.sidebar.expander("✉️  Contact / Report an issue", expanded=False):
                     [datetime.datetime.utcnow().isoformat(), name, email, message]
                 )
 
-            # --- grab secrets (Streamlit first, env-vars as fallback) ----------
-            api_key = st.secrets.get("SENDGRID_API_KEY", os.getenv("SENDGRID_API_KEY"))
-            owner   = st.secrets.get("OWNER_EMAIL",      os.getenv("OWNER_EMAIL"))
-            sender  = st.secrets.get("FROM_EMAIL",       owner)
+            import smtplib, ssl
+            from email.message import EmailMessage
 
+            # --- grab credentials from secrets / env
+            gmail_user = st.secrets.get("GMAIL_USER", os.getenv("GMAIL_USER"))
+            gmail_pass = st.secrets.get("GMAIL_PASS", os.getenv("GMAIL_PASS"))
+            owner      = st.secrets.get("OWNER_EMAIL", gmail_user)  # where you'll receive it
 
-            if api_key and owner:
-                subj = "New Giulia AI contact form entry"
-                content = f"""Name: {name or '-'}\nEmail: {email or '-'}\n\nMessage:\n{message}"""
-
-                r = requests.post(
-                    "https://api.sendgrid.com/v3/mail/send",
-                    headers={
-                        "Authorization": f"Bearer {api_key}",
-                        "Content-Type": "application/json",
-                    },
-                    data=json.dumps({
-                        "personalizations": [{"to": [{"email": owner}]}],
-                        "from": {"email": sender},
-                        "subject": subj,
-                        "content": [{"type": "text/plain", "value": content}],
-                    }),
-                    timeout=10,
+            if gmail_user and gmail_pass:
+                msg = EmailMessage()
+                msg["Subject"] = "New Giulia AI contact form entry"
+                msg["From"]    = gmail_user
+                msg["To"]      = owner
+                msg.set_content(
+                    f"Name: {name or '-'}\n"
+                    f"Email: {email or '-'}\n\n"
+                    f"Message:\n{message}"
                 )
-                if r.status_code >= 300:
-                    st.info("Saved, but email failed to send (check API key / quota).")
-                else:
-                    st.success("Thanks! Your message has been recorded.")
+
+                try:
+                    context = ssl.create_default_context()
+                    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as smtp:
+                        smtp.login(gmail_user, gmail_pass)
+                        smtp.send_message(msg)
+                    st.success("Thanks! Your message has been recorded and emailed.")
+                except Exception as e:
+                    st.info(f"Saved, but email failed to send: {e}")
             else:
-                st.success("Thanks! Your message has been recorded.")
+                st.info("Saved, but email credentials not set (GMAIL_USER / GMAIL_PASS).")
+
 
     # ---------- 1.4 disclaimer -------------------------------------------
     with st.sidebar.expander("⚖️ Disclaimer", expanded=False):

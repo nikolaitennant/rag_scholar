@@ -9,8 +9,8 @@
 from __future__ import annotations
 import os, re, shutil
 from pathlib import Path
-from typing import List
-
+from typing import List    
+import os, requests, json, csv, datetime, pathlib
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -195,24 +195,7 @@ with st.sidebar.expander("📄 Document controls", expanded=False):
         horizontal=True,
     )
 
-# ---------- 1.4 disclaimer -------------------------------------------
-with st.sidebar.expander("⚖️ Disclaimer", expanded=False):
-    st.markdown(
-        """
-I’m an AI study buddy, **not** your solicitor or lecturer.  
-By using this tool you agree that:
-
-* I might be wrong, out-of-date, or miss a key authority.  
-* Your exam results remain **your** responsibility.  
-* If you flunk, you’ve implicitly waived all claims in tort, contract, equity, and any other jurisdiction you can think of 😉
-
-**Double-check everything** before relying on it.
-""",
-        unsafe_allow_html=True,
-    )
-
 # ===== 1.5 Contact / Report an issue =================================
-import csv, datetime, pathlib, json, requests
 
 with st.sidebar.expander("✉️  Contact / Report an issue", expanded=False):
     st.markdown(
@@ -238,10 +221,11 @@ with st.sidebar.expander("✉️  Contact / Report an issue", expanded=False):
                     [datetime.datetime.utcnow().isoformat(), name, email, message]
                 )
 
-            # ---------- B.  send email (silent fail if not configured) --
-            api_key = os.getenv("SENDGRID_API_KEY")
-            owner   = os.getenv("nikolaitennant@gmail.com")     # must be set
-            sender  = os.getenv("FROM_EMAIL", owner)
+            # --- grab secrets (Streamlit first, env-vars as fallback) ----------
+            api_key = st.secrets.get("SENDGRID_API_KEY", os.getenv("SENDGRID_API_KEY"))
+            owner   = st.secrets.get("OWNER_EMAIL",      os.getenv("OWNER_EMAIL"))
+            sender  = st.secrets.get("FROM_EMAIL",       owner)
+
 
             if api_key and owner:
                 subj = "New Giulia AI contact form entry"
@@ -267,7 +251,23 @@ with st.sidebar.expander("✉️  Contact / Report an issue", expanded=False):
                     st.success("Thanks! Your message has been recorded.")
             else:
                 st.success("Thanks! Your message has been recorded.")
-    # =====================================================================
+
+    # ---------- 1.4 disclaimer -------------------------------------------
+    with st.sidebar.expander("⚖️ Disclaimer", expanded=False):
+        st.markdown(
+            """
+    I’m an AI study buddy, **not** your solicitor or lecturer.  
+    By using this tool you agree that:
+
+    * I might be wrong, out-of-date, or miss a key authority.  
+    * Your exam results remain **your** responsibility.  
+    * If you flunk, you’ve implicitly waived all claims in tort, contract, equity, and any other jurisdiction you can think of 😉
+
+    **Double-check everything** before relying on it.
+    """,
+            unsafe_allow_html=True,
+        )
+
 
 # ----------------------------------------------------------------------
 # 2. VECTOR STORE (loads cached index or rebuilds)                       

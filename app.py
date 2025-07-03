@@ -212,7 +212,7 @@ By using this tool you agree that:
     )
 
 # ===== 1.5 Contact / Report an issue =================================
-import csv, datetime, pathlib
+import csv, datetime, pathlib, json, requests
 
 with st.sidebar.expander("✉️  Contact / Report an issue", expanded=False):
     st.markdown(
@@ -230,13 +230,44 @@ with st.sidebar.expander("✉️  Contact / Report an issue", expanded=False):
         if not message.strip():
             st.warning("Please enter a message before submitting.")
         else:
+            # ---------- A.  append to CSV -------------------------------
             log_dir = pathlib.Path("logs"); log_dir.mkdir(exist_ok=True)
-            with open(log_dir / "contact_requests.csv", "a", newline="", encoding="utf-8") as f:
+            log_file = log_dir / "contact_requests.csv"
+            with open(log_file, "a", newline="", encoding="utf-8") as f:
                 csv.writer(f).writerow(
                     [datetime.datetime.utcnow().isoformat(), name, email, message]
                 )
-            st.success("Thanks! Your message has been recorded.")
-# =====================================================================
+
+            # ---------- B.  send email (silent fail if not configured) --
+            api_key = os.getenv("SENDGRID_API_KEY")
+            owner   = os.getenv("OWNER_EMAIL")     # must be set
+            sender  = os.getenv("FROM_EMAIL", owner)
+
+            if api_key and owner:
+                subj = "New Giulia AI contact form entry"
+                content = f"""Name: {name or '-'}\nEmail: {email or '-'}\n\nMessage:\n{message}"""
+
+                r = requests.post(
+                    "https://api.sendgrid.com/v3/mail/send",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    data=json.dumps({
+                        "personalizations": [{"to": [{"email": owner}]}],
+                        "from": {"email": sender},
+                        "subject": subj,
+                        "content": [{"type": "text/plain", "value": content}],
+                    }),
+                    timeout=10,
+                )
+                if r.status_code >= 300:
+                    st.info("Saved, but email failed to send (check API key / quota).")
+                else:
+                    st.success("Thanks! Your message has been recorded.")
+            else:
+                st.success("Thanks! Your message has been recorded.")
+    # =====================================================================
 
 # ----------------------------------------------------------------------
 # 2. VECTOR STORE (loads cached index or rebuilds)                       

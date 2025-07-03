@@ -73,7 +73,7 @@ st.sidebar.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------- Workspace header --------------------------------------
-st.sidebar.markdown("### 🗂️ Workspace")
+st.sidebar.markdown("### 🛠️ Workspace")
 
 # ───────────────────────────────────────────────────────────────────
 # 1. SIDEBAR  → single “Class controls” block (opened by default)

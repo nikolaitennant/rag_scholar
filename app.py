@@ -64,15 +64,7 @@ if active_class != st.session_state.active_class:
     st.session_state.active_class = active_class
     st.rerun()
 
-st.sidebar.markdown(
-    f"""
-    <div style="background:#eef4ff;padding:0.45rem 0.8rem;
-                border-radius:0.5rem;font-weight:600;">
-      📂 Current class: <span style="color:#003366;">{active_class}</span>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+
 # 1.2 class controls
 with st.sidebar.expander("🗂️ Class controls", expanded=False):
 

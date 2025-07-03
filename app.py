@@ -88,6 +88,18 @@ with st.sidebar.expander("🗂️ Class Controls", expanded=False):
             (mem_mgr._new_window(), mem_mgr._new_summary())  # fresh pair
         )
 
+        # 🔹 update the global copies that ChatAssistant will read
+        st.session_state.window_memory   = mem_mgr.window
+        st.session_state.summary_memory  = mem_mgr.summary
+
+        # load chat history, snippets, and ID counters for the new class
+        st.session_state.chat_history = st.session_state.chat_buckets.get(chosen, [])
+        st.session_state.all_snippets = st.session_state.snip_buckets.get(chosen, {})
+        st.session_state.global_ids, st.session_state.next_id = (
+            st.session_state.id_counters.get(chosen, ({}, 1))
+        )
+
+
         # rebuild snippet & ID tables for the newly loaded class
         st.session_state.all_snippets = {
             int(cid): info
@@ -103,13 +115,6 @@ with st.sidebar.expander("🗂️ Class Controls", expanded=False):
         st.session_state.next_id = (
             max(st.session_state.all_snippets) + 1
             if st.session_state.all_snippets else 1
-        )
-
-        # load chat history, snippets, and IDs
-        st.session_state.chat_history = st.session_state.chat_buckets.get(chosen, [])
-        st.session_state.all_snippets = st.session_state.snip_buckets.get(chosen, {})
-        st.session_state.global_ids, st.session_state.next_id = (
-            st.session_state.id_counters.get(chosen, ({}, 1))
         )
 
         st.session_state.active_class = chosen

@@ -15,19 +15,22 @@ class MemoryManager:
         self.cfg = cfg
         self._ensure_session_state()
         self._setup_memories(api_key)
-        self.window  = self._new_window()
-        self.summary = self._new_summary()
+        # 🔹 use the persisted memories, don’t create new ones
+        self.window  = st.session_state.window_memory
+        self.summary = st.session_state.summary_memory
          
     def save_turn(self, user_text: str, assistant_text: str) -> None:
         """Record the latest exchange in both memories."""
         self.window.save_context({"input": user_text}, {"output": assistant_text})
         self.summary.save_context({"input": user_text}, {"output": assistant_text})
-    
-    def _new_window(self):
-        """Return a fresh (empty) ConversationBufferMemory."""
-        from langchain.memory import ConversationBufferMemory
-        return ConversationBufferMemory(return_messages=True)
 
+    def _new_window(self):
+        return ConversationBufferWindowMemory(
+            k=8,
+            return_messages=True,     #  ←  this line is crucial
+            ai_prefix="AI",
+            human_prefix="Human",
+        )
     def _new_summary(self):
         """Return a fresh ConversationSummaryMemory."""
         from langchain.memory import ConversationSummaryMemory
@@ -53,11 +56,14 @@ class MemoryManager:
                 k=self.cfg.SESSION_WINDOW, return_messages=True
             )
 
+
         if "summary_memory" not in st.session_state:
             st.session_state.summary_memory = ConversationSummaryBufferMemory(
-                llm=ChatOpenAI(api_key=api_key, model=self.cfg.SUMMARY_MODEL, temperature=0.0),
+                llm=ChatOpenAI(api_key=api_key,
+                            model=self.cfg.SUMMARY_MODEL,
+                            temperature=0.0),
                 max_token_limit=self.cfg.MAX_TOKEN_LIMIT,
-                return_messages=True,
+                return_messages=False,     # ← change True → False
                 human_prefix="Human",
                 ai_prefix="AI",
                 summary_prompt=(

@@ -82,50 +82,52 @@ div[data-testid="stSelectbox"]{
 # ---------- Workspace header --------------------------------------
 st.sidebar.markdown("### 🗂️ Workspace")
 
-# # ---------- Class selector (label hidden) -------------------------
-# active_class = st.sidebar.selectbox(
-#     label=" ",                         # blank label
-#     options=class_folders,
-#     index=class_folders.index(st.session_state.active_class),
-#     key="active_class_select",
-#     label_visibility="collapsed",      # Streamlit ≥ 1.25
-# )
-# if active_class != st.session_state.active_class:
-#     st.session_state.active_class = active_class
-#     st.rerun()
+# ───────────────────────────────────────────────────────────────────
+# 1. SIDEBAR  → single “Class controls” block (opened by default)
+# ───────────────────────────────────────────────────────────────────
+class_folders: List[str] = doc_mgr.list_class_folders()
+if not class_folders:
+    st.sidebar.warning(f"Add folders inside `{cfg.BASE_CTX_DIR}` to get started.")
+    st.stop()
 
+if "active_class" not in st.session_state:
+    st.session_state.active_class = class_folders[0]
 
+with st.sidebar.expander("🗂️ Class controls", expanded=True):
 
-# 1.2 class controls
-with st.sidebar.expander("🗂️ Class controls", expanded=False):
-
-    # ---------- Class selector (label hidden) -------------------------
-    active_class = st.sidebar.selectbox(
-        label=" ",                         # blank label
+    # ---------- selector ------------------------------------------------
+    active_class = st.selectbox(
+        label=" ",                       # hide label
         options=class_folders,
         index=class_folders.index(st.session_state.active_class),
         key="active_class_select",
-        label_visibility="collapsed",      # Streamlit ≥ 1.25
+        label_visibility="collapsed",
     )
     if active_class != st.session_state.active_class:
         st.session_state.active_class = active_class
         st.rerun()
-    st.sidebar.info(f"📂  Current class:  **{active_class}**")
 
-    # ---------- Meta badges -------------------------------------------
+    st.info(f"📂 Current class: **{active_class}**")
+
+    # ---------- meta badges --------------------------------------------
     ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
     doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
     sel_docs  = st.session_state.get("sel_docs", [])
 
-    meta_html = f"""
-    <div class="workspace-meta">
-    📄 <span class="workspace-badge">{doc_count}</span> docs
-    {f' | 🔖 <span class="workspace-badge">{len(sel_docs)}</span> selected' if sel_docs else ''}
-    </div>
-    """
-    st.sidebar.markdown(meta_html, unsafe_allow_html=True)
-
-    # ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
+    st.markdown(
+        f"""
+        <div style="font-size:0.82rem;margin-top:0.2rem;">
+          📄 <span style="background:#fff;border:1px solid #d0d7e8;
+                         border-radius:0.4rem;padding:0 0.45rem;
+                         font-weight:600;">{doc_count}</span> docs
+          {f' | 🔖 <span style="background:#fff;border:1px solid #d0d7e8;\
+                         border-radius:0.4rem;padding:0 0.45rem;\
+                         font-weight:600;">{len(sel_docs)}</span> selected'
+             if sel_docs else ''}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
     # ----- file browser --------------------------------------------

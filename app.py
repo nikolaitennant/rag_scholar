@@ -240,7 +240,7 @@ with st.sidebar.expander("✉️  Contact / Report an issue", expanded=False):
 
             # ---------- B.  send email (silent fail if not configured) --
             api_key = os.getenv("SENDGRID_API_KEY")
-            owner   = os.getenv("OWNER_EMAIL")     # must be set
+            owner   = os.getenv("nikolaitennant@gmail.com")     # must be set
             sender  = os.getenv("FROM_EMAIL", owner)
 
             if api_key and owner:

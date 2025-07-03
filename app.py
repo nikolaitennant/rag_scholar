@@ -1,21 +1,14 @@
-# 🍋  Giulia's Law AI Assistant – full-feature UI wrapper
-# ------------------------------------------------------
-# Directory layout expected:
-#   science/  → backend modules
-#   ui/       → UI helpers (CSS + greeting)
-#   app.py    → this file
-# ------------------------------------------------------
-
+# 🍋  Giulia's Law Study Buddy – single-file app.py
+# -------------------------------------------------
 from __future__ import annotations
-import os, re, shutil
+import os, re, shutil, csv, datetime, pathlib, html, re as regex
 from pathlib import Path
-from typing import List    
-import os, csv, datetime, pathlib
+from typing import List
+
 import streamlit as st
 from dotenv import load_dotenv
 
-import html, re
-# ── local modules ─────────────────────────────────────────────────────
+# ── local modules ─────────────────────────────────
 from config import AppConfig
 from science.document_manager import DocumentManager
 from science.memory_manager import MemoryManager
@@ -23,93 +16,60 @@ from science.chat_assistant import ChatAssistant
 from UI.ui_helpers import setup_ui
 
 
-# ── env + OpenAI key ──────────────────────────────────────────────────
+# ═══════════ 0. ENV + UI BOOTSTRAP ═══════════════
 load_dotenv()
 API_KEY = os.getenv("OPENAI_API_KEY", "")
 if not API_KEY:
-    st.error("OPENAI_API_KEY not found in environment.")
-    st.stop()
+    st.error("OPENAI_API_KEY not found in environment."); st.stop()
 
-# ── app-level setup ───────────────────────────────────────────────────
 cfg = AppConfig()
 setup_ui("Giulia's Law Study Buddy", "⚖️", cfg, API_KEY)
 
 doc_mgr = DocumentManager(API_KEY, cfg)
-mem_mgr = MemoryManager(API_KEY, cfg)
+mem_mgr  = MemoryManager(API_KEY, cfg)
 
+# ═══════════ 1. SESSION DEFAULTS (prevent AttrErr) ═══════════════
+defaults = dict(
+    chat_history   = [],
+    all_snippets   = {},
+    global_ids     = {},
+    next_id        = 1,
+    session_facts  = [],
+    persona        = None,
+    chat_buckets   = {},   # class → chat_history
+    snip_buckets   = {},   # class → snippet map
+    id_counters    = {},   # class → (global_ids, next_id)
+)
+for k, v in defaults.items():
+    st.session_state.setdefault(k, v)
 
-# ------------------------------------------------------------------
-# 1. SIDEBAR – Workspace card + rest of controls
-# ------------------------------------------------------------------
-class_folders: List[str] = doc_mgr.list_class_folders()
-if not class_folders:
-    st.sidebar.warning(f"Add folders inside `{cfg.BASE_CTX_DIR}` to get started.")
-    st.stop()
-
-if "active_class" not in st.session_state:
-    st.session_state.active_class = class_folders[0]
-
-# ---------- one-off CSS tweaks ------------------------------------
-st.sidebar.markdown("""
-<style>
-/* Give Streamlit’s select-box its own “card” */
-/* badges just below the box */
-.workspace-meta{
-  font-size:0.82rem;
-  color:#333;
-  margin-top:-0.3rem;      /* pull it closer to the box */
-}
-.workspace-badge{
-  background:#fff;
-  border-radius:0.45rem;
-  padding:0.05rem 0.55rem;
-  border:1px solid #d0d7e8;
-  font-weight:600;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ────────────────────────────────────────────────────────────────────
-# SIDEBAR  –  Workspace, Class Controls, Tools, Docs, Tips, Contact
-# ────────────────────────────────────────────────────────────────────
+# ═══════════ 2. SIDEBAR ══════════════════════════════════════════
 st.sidebar.markdown("### 🛠️ Workspace")
 
-# 0. one-time buckets (persist per session)
-if "chat_buckets" not in st.session_state:
-    st.session_state.chat_buckets = {}      # class → list[turns]
-    st.session_state.snip_buckets = {}      # class → {cid: snippet}
-    st.session_state.id_counters  = {}      # class → (global_ids, next_id)
-
-# 1. list classes
-class_folders = doc_mgr.list_class_folders()
+# 2-A list classes
+class_folders: List[str] = doc_mgr.list_class_folders()
 if not class_folders:
-    st.sidebar.warning(f"Add folders inside `{cfg.BASE_CTX_DIR}` to get started.")
-    st.stop()
+    st.sidebar.warning(f"Add folders inside `{cfg.BASE_CTX_DIR}` to get started."); st.stop()
+
 if "active_class" not in st.session_state:
     st.session_state.active_class = class_folders[0]
 active_class = st.session_state.active_class
 
-# active class dirs & banner
 ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
-doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
-plural = "doc" if doc_count == 1 else "docs"
-st.sidebar.info(f"📂 Current class: **{active_class}** — {doc_count} {plural}")
 
-# 1-A. Tools: clear chat button
+# 2-B TOOLS – clear chat
 with st.sidebar.expander("🧹 Tools", expanded=False):
     if st.button("🗑️  Clear chat history"):
-        st.session_state.chat_history = []
-        st.session_state.global_ids   = {}
-        st.session_state.next_id      = 1
-        st.session_state.all_snippets = {}
-        st.session_state.session_facts = []
+        st.session_state.chat_history   = []
+        st.session_state.all_snippets   = {}
+        st.session_state.global_ids     = {}
+        st.session_state.next_id        = 1
+        st.session_state.session_facts  = []
         st.success("Chat cleared • counters reset")
         st.rerun()
 
-# 2. Class Controls
+# 2-C CLASS CONTROLS
 with st.sidebar.expander("🗂️ Class Controls", expanded=False):
-
-    # selector
     chosen = st.selectbox(
         "Change class / module",
         class_folders,
@@ -117,15 +77,15 @@ with st.sidebar.expander("🗂️ Class Controls", expanded=False):
         key="change_class_select",
     )
 
-    # swap buckets when class changes
+    # swap buckets if changed
     if chosen != active_class:
         # save outgoing
-        st.session_state.chat_buckets[active_class] = st.session_state.chat_history
-        st.session_state.snip_buckets[active_class] = st.session_state.all_snippets
-        st.session_state.id_counters[active_class]  = (
+        st.session_state.chat_buckets[active_class]  = st.session_state.chat_history
+        st.session_state.snip_buckets[active_class]  = st.session_state.all_snippets
+        st.session_state.id_counters[active_class]   = (
             st.session_state.global_ids, st.session_state.next_id
         )
-        # load incoming
+        # load incoming (or start fresh)
         st.session_state.chat_history = st.session_state.chat_buckets.get(chosen, [])
         st.session_state.all_snippets = st.session_state.snip_buckets.get(chosen, {})
         st.session_state.global_ids, st.session_state.next_id = (
@@ -246,6 +206,12 @@ with st.sidebar.expander("📄 Document controls", expanded=False):
         ["Prioritise (default)", "Only these docs"],
         horizontal=True,
     )
+
+# 2-D always-visible banner
+ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
+doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
+plural    = "doc" if doc_count == 1 else "docs"
+st.sidebar.info(f"📂 Current class: **{active_class}** — {doc_count} {plural}")
 
 # 1.1 quick tips
 with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):

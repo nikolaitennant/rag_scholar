@@ -264,8 +264,11 @@ if user_q:
     st.session_state.chat_history.append(reply)
 
 # ----------------------------------------------------------------------
-# 4. RENDER CHAT HISTORY                                                 
-# ----------------------------------------------------------------------
+# --------------------------------------------------------------
+# 4. RENDER CHAT HISTORY
+# --------------------------------------------------------------
+import re                      # ① make sure re is imported
+
 for entry in st.session_state.chat_history:
     role = "user" if entry["speaker"] == "User" else "assistant"
     with st.chat_message(role):
@@ -273,24 +276,37 @@ for entry in st.session_state.chat_history:
             st.write(entry["text"])
         else:
             st.markdown(entry["text"], unsafe_allow_html=True)
-            cites = assistant._extract_citation_numbers(entry["text"])
-            if cites:
-                pill = ", ".join(f"#{n}" for n in cites)
-                with st.expander(f"Sources used: {pill}", expanded=False):
-                    seen = set()
-                    for n in cites:
-                        if n in seen:
+
+            # --------------------------------------------------
+            # Build pill bar from the citations that appear in
+            # *this* assistant message
+            # --------------------------------------------------
+            assistant_text = entry["text"]           # ② use entry, not turn
+            cited_ids = sorted(
+                {int(n) for n in re.findall(r"\[#(\d+)\]", assistant_text)}
+            )
+
+            all_snips = st.session_state.get("all_snippets", {})
+            if cited_ids:
+                with st.expander(
+                    "Sources used: " + ", ".join(f"#{i}" for i in cited_ids),
+                    expanded=False,
+                ):
+                    for cid in cited_ids:
+                        info = all_snips.get(cid)
+                        if not info:                 # shouldn’t happen now
+                            st.markdown(f"[#{cid}] *snippet not found*")
                             continue
-                        seen.add(n)
-                        info = entry.get("snippets", {}).get(n)
-                        if not info:
-                            st.write(f"• [#{n}] – (not in this context?)")
-                            continue
-                        label = f"**[#{n}]** – {info['source']}"
-                        page = f"p.{info['page']+1}" if info['page'] is not None else ""
-                        quote = info.get("full", info['preview']).replace("\n", " ")[:550]
+
+                        # ③ 1-to-2-line preview (≈120 chars)
+                        preview = (
+                            re.sub(r"\s+", " ", info["full"]).strip()[:120] + " …"
+                        )
+
+                        src  = info["source"]
+                        page = info.get("page")
+                        meta = f" (p.{page})" if page is not None else ""
+
                         st.markdown(
-                            f"{label}<br><span style='color:gray;font-size:0.85rem'>{page}</span><br>"
-                            f"<blockquote style='margin-top:6px'>{quote}</blockquote>",
-                            unsafe_allow_html=True,
+                            f"**[#{cid}] {src}{meta}** — {preview}"
                         )

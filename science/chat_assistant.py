@@ -179,7 +179,13 @@ class ChatAssistant:
                 "page": page_num,
             }
 
+            st.session_state.setdefault("all_snippets", {}).update(snippet_map)
+
         return docs, snippet_map
+    
+
+
+    
 
     # ------------------------------------------------------------------ #
     # Message construction                                               #

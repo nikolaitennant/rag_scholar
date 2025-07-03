@@ -93,7 +93,7 @@ active_class = st.session_state.active_class
 ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
 doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
 plural = "doc" if doc_count == 1 else "docs"
-st.info(f"📂 Current class: **{active_class}** — {doc_count} {plural}")
+st.sidebar.info(f"📂 Current class: **{active_class}** — {doc_count} {plural}")
 
 # 1-A. Tools: clear chat button
 with st.sidebar.expander("🧹 Tools", expanded=False):

@@ -137,6 +137,7 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                 if seed_src.exists():
                     shutil.copy(seed_src, target / seed_src.name)
                     st.success("Class created with starter file giulia.txt.")
+                    st.rerun()
                 else:
                     st.info("Class created (no giulia.txt found).")
 

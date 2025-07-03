@@ -16,9 +16,6 @@ class MemoryManager:
         self._ensure_session_state()
         self._setup_memories(api_key)
 
-    # ------------------------------------------------------------------ #
-    # Public helpers                                                     #
-    # ------------------------------------------------------------------ #
     @property
     def window(self) -> ConversationBufferWindowMemory:
         return st.session_state.window_memory
@@ -31,10 +28,19 @@ class MemoryManager:
         """Persist a single user/assistant exchange to both memories."""
         self.window.save_context({"input": user_msg}, {"output": assistant_msg})
         self.summary.save_context({"input": user_msg}, {"output": assistant_msg})
+    
+    def _new_window(self):
+        """Return a fresh (empty) ConversationBufferMemory."""
+        from langchain.memory import ConversationBufferMemory
+        return ConversationBufferMemory(return_messages=True)
 
-    # ------------------------------------------------------------------ #
-    # Internal helpers                                                   #
-    # ------------------------------------------------------------------ #
+    def _new_summary(self):
+        """Return a fresh ConversationSummaryMemory."""
+        from langchain.memory import ConversationSummaryMemory
+        return ConversationSummaryMemory(
+            llm=ChatOpenAI(model=self.cfg.SUMMARY_MODEL, temperature=0)
+        )
+
     def _ensure_session_state(self) -> None:
         """Initialise Streamlit session keys that various modules rely on."""
         # misc lists

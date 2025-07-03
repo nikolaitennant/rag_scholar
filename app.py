@@ -39,6 +39,7 @@ defaults = dict(
     chat_buckets   = {},   # class → chat_history
     snip_buckets   = {},   # class → snippet map
     id_counters    = {},   # class → (global_ids, next_id)
+    memory_buckets = {},  # class → memory facts
 )
 for k, v in defaults.items():
     st.session_state.setdefault(k, v)
@@ -77,14 +78,26 @@ with st.sidebar.expander("🗂️ Class Controls", expanded=False):
         st.session_state.id_counters[active_class]   = (
             st.session_state.global_ids, st.session_state.next_id
         )
-        # load incoming (or start fresh)
+        st.session_state.memory_buckets[active_class] = (
+            mem_mgr.window, mem_mgr.summary
+        )
+
+        # load (or create) incoming class memory
+        (mem_mgr.window, mem_mgr.summary) = st.session_state.memory_buckets.get(
+            chosen,
+            (mem_mgr._new_window(), mem_mgr._new_summary())  # fresh pair
+        )
+
+        # load chat history, snippets, and IDs
         st.session_state.chat_history = st.session_state.chat_buckets.get(chosen, [])
         st.session_state.all_snippets = st.session_state.snip_buckets.get(chosen, {})
         st.session_state.global_ids, st.session_state.next_id = (
             st.session_state.id_counters.get(chosen, ({}, 1))
         )
+
         st.session_state.active_class = chosen
         st.rerun()
+
 
     # ----- file browser --------------------------------------------
     with st.expander(f"🗄️ {active_class} File Browser", expanded=False):

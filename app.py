@@ -21,43 +21,6 @@ from science.memory_manager import MemoryManager
 from science.chat_assistant import ChatAssistant
 from UI.ui_helpers import setup_ui
 
-st.markdown("""
-<style>
-/* ---------- WORKSPACE CARD ------------------------------------ */
-.workspace-card{
-  background:#eef4ff;
-  border:1px solid #d9e4ff;
-  border-radius:0.7rem;
-  padding:0.9rem 0.85rem 0.8rem;
-  margin-bottom:1rem;
-}
-.workspace-card h3{
-  display:flex;
-  align-items:center;
-  gap:0.45rem;
-  font-size:1.2rem;
-  font-weight:700;
-  margin:0 0 0.6rem 0;
-}
-/* make the selectbox sit tight against the card edges */
-div[data-testid="workspace-selectbox"]{
-  margin:0 0 0.55rem 0;
-}
-/* meta-line (doc + badge) */
-.workspace-meta{
-  font-size:0.82rem;
-  color:#333;
-}
-.workspace-badge{
-  background:#fff;
-  border-radius:0.45rem;
-  padding:0.10rem 0.55rem;
-  border:1px solid #d0d7e8;
-  margin-left:0.45rem;
-  font-weight:600;
-}
-</style>
-""", unsafe_allow_html=True)
 
 # ── env + OpenAI key ──────────────────────────────────────────────────
 load_dotenv()

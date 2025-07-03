@@ -231,15 +231,10 @@ with st.expander("ℹ️  How this assistant works", expanded=False):
 
 <!-- Core behaviour ---------------------------------------------------- -->
   <li><b>Document-only answers</b> – I rely <em>solely</em> on the files you upload or the facts you store with remember:/memo:/user queries. No web searching!</li>
-
   <li><b>Citations</b> – every sentence that states a legal rule, date, or authority ends with [#n]. If I can’t cite it, I’ll say so.</li>
+  <li><b>Sources pill</b> – after each reply you’ll see “Sources used: #2, #7 …”. Click it to expand a list where every #-tag shows <em>file name, page no., and a one-sentence preview</em> of the cited passage.</li>
+  <li><b>Read the whole snippet</b> – type <kbd>show&nbsp;snippet&nbsp;[#4]</kbd> (or any number) and I’ll print the full text of that passage in chat.</li>
 
-  <li><b>Sources pill</b> – after each reply you’ll see “Sources used: #2, #7 …”.  
-    Click it to expand a list where every #-tag shows
-    <em>file name, page no., and a one-sentence preview</em> of the cited passage.</li>
-
-    <li><b>Read the whole snippet</b> – type <kbd>show&nbsp;snippet&nbsp;[#4]</kbd>
-    (or any number) and I’ll print the full text of that passage in chat.</li>
 
   <!-- Uploads ----------------------------------------------------------- -->
   <li><b>Uploads</b>

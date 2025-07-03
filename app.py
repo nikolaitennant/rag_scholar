@@ -112,7 +112,7 @@ st.sidebar.info(
     f"📂  Current class:  **{active_class}**  —  {doc_count} {plural}"
 )
 # ----- collapsible selector ---------------------------------------
-with st.sidebar.expander("Class Controls", expanded=False):
+with st.sidebar.expander("🗂️ Class Controls", expanded=False):
 
     chosen = st.selectbox(
         label="Change class / module",
@@ -126,14 +126,11 @@ with st.sidebar.expander("Class Controls", expanded=False):
         st.session_state.active_class = chosen
         st.rerun()
 
-        # 
-
     # ---------- meta badges --------------------------------------------
     ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
     doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
     sel_docs  = st.session_state.get("sel_docs", [])
 
-   
 
     # ----- file browser --------------------------------------------
     with st.expander(f"🗄️ {active_class} File Browser", expanded=False):

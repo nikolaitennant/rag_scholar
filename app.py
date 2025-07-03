@@ -85,29 +85,39 @@ st.sidebar.markdown("### 🗂️ Workspace")
 # ───────────────────────────────────────────────────────────────────
 # 1. SIDEBAR  → single “Class controls” block (opened by default)
 # ───────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------
+# 1. SIDEBAR – Active-class banner + hidden selector
+# ------------------------------------------------------------------
 class_folders: List[str] = doc_mgr.list_class_folders()
 if not class_folders:
     st.sidebar.warning(f"Add folders inside `{cfg.BASE_CTX_DIR}` to get started.")
     st.stop()
 
+# first visit → pick the first folder
 if "active_class" not in st.session_state:
     st.session_state.active_class = class_folders[0]
 
-with st.sidebar.expander("🗂️ Class controls", expanded=True):
+active_class = st.session_state.active_class           # shorthand
 
-    # ---------- selector ------------------------------------------------
-    active_class = st.expander(
-        label=" ",                       # hide label
+# ----- always-visible blue banner ----------------------------------
+st.sidebar.info(f"📂  Current class:  **{active_class}**")
+
+# ----- collapsible selector ---------------------------------------
+with st.sidebar.expander("🔄 Change class", expanded=False):
+
+    chosen = st.selectbox(
+        label="Select a class",
         options=class_folders,
-        index=class_folders.index(st.session_state.active_class),
-        key="active_class_select",
-        label_visibility="collapsed",
+        index=class_folders.index(active_class),
+        key="change_class_select",
     )
-    if active_class != st.session_state.active_class:
-        st.session_state.active_class = active_class
+
+    # if the user picked a different class, update state & rerun
+    if chosen != active_class:
+        st.session_state.active_class = chosen
         st.rerun()
 
-    st.info(f"📂 Current class: **{active_class}**")
+        # 
 
     # ---------- meta badges --------------------------------------------
     ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)

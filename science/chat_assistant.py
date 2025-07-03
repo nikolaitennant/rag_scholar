@@ -33,10 +33,7 @@ class ChatAssistant:
     # ------------------------------------------------------------------ #
     # Public API                                                         #
     # ------------------------------------------------------------------ #
-      
-    # ------------------------------------------------------------------ #
-    # NEW helper for “background:” turns
-    # ------------------------------------------------------------------ #
+    
     def _handle_background(self, text: str) -> Dict:
         """
         Respond with general knowledge.  No citations expected.
@@ -47,6 +44,16 @@ class ChatAssistant:
         )
         messages = [SystemMessage(content=system), HumanMessage(content=text)]
         response = self.llm.invoke(messages).content
+
+        # ── ensure the prefix is actually bold ──────────────────────────
+        plain_prefix = "Background (uncited):"
+        if response.startswith(plain_prefix):
+            response = f"**{plain_prefix}**" + response[len(plain_prefix):]
+        elif response.lower().startswith(plain_prefix.lower()):
+            # handle lowercase/language-model variations
+            idx = len(plain_prefix)
+            response = f"**{response[:idx]}**" + response[idx:]
+
         return {"speaker": "Assistant", "text": response, "snippets": {}}
 
 

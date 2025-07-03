@@ -56,13 +56,6 @@ if "active_class" not in st.session_state:
 st.sidebar.markdown("""
 <style>
 /* Give Streamlit’s select-box its own “card” */
-div[data-testid="stSelectbox"]{
-  background:#eef4ff;
-  border:1px solid #d9e4ff;
-  border-radius:0.7rem;
-  padding:0.9rem 0.85rem 0.8rem;
-  margin-bottom:0.75rem;
-}
 /* badges just below the box */
 .workspace-meta{
   font-size:0.82rem;

@@ -213,6 +213,7 @@ class ChatAssistant:
               3. Harmless public facts only if obvious.
             • Every sentence that states a legal rule, holding, statute section,
               date, or authority MUST end with its citation [#n].
+            • Information the user states about themselves **or any purely conversational detail** in the last few chat turns **may be used without a citation.**
             • If the answer isn’t in 1 or 2, reply exactly:
               “I don’t have enough information in the provided material to answer that.”
             • Cite ONLY snippets [#]

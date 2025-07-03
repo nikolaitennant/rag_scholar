@@ -422,7 +422,7 @@ for entry in st.session_state.chat_history:
             #                 f"**[#{cid}] {src}{meta}** — {preview}"
             #             )
 
-
+            import html
 
             assistant_html = entry["text"]                    # what you already have
             plain_text     = html.unescape(

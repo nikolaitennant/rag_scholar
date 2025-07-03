@@ -14,7 +14,7 @@ class AppConfig:
 
     # Retrieval
     FIRST_K: int = 30
-    FINAL_K: int = 4
+    FINAL_K: int = 10
     RELEVANCE_THRESHOLD: float = 0.8
 
     # Models

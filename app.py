@@ -56,6 +56,9 @@ if "active_class" not in st.session_state:
 active_class = st.session_state.active_class
 
 ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
+doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
+plural    = "doc" if doc_count == 1 else "docs"
+st.sidebar.info(f"📂 Current class: **{active_class}** — {doc_count} {plural}")
 
 # 2-B TOOLS – clear chat
 with st.sidebar.expander("🧹 Tools", expanded=False):
@@ -206,12 +209,6 @@ with st.sidebar.expander("📄 Document controls", expanded=False):
         ["Prioritise (default)", "Only these docs"],
         horizontal=True,
     )
-
-# 2-D always-visible banner
-ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
-doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
-plural    = "doc" if doc_count == 1 else "docs"
-st.sidebar.info(f"📂 Current class: **{active_class}** — {doc_count} {plural}")
 
 # 1.1 quick tips
 with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):

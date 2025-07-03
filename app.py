@@ -14,6 +14,7 @@ import os, csv, datetime, pathlib
 import streamlit as st
 from dotenv import load_dotenv
 
+import html, re
 # ── local modules ─────────────────────────────────────────────────────
 from config import AppConfig
 from science.document_manager import DocumentManager
@@ -378,62 +379,46 @@ if user_q:
 # --------------------------------------------------------------
 # 4. RENDER CHAT HISTORY
 # --------------------------------------------------------------
-import re                      # ① make sure re is imported
 
+# ---------------------------------------------------------------
+# 0️⃣  Re-hydrate citation maps ONCE, before rendering messages
+# ---------------------------------------------------------------
+if "global_ids" not in st.session_state:
+    st.session_state.global_ids   = {}
+    st.session_state.next_id      = 1
+    st.session_state.all_snippets = {}
+
+    for msg in st.session_state.get("chat_history", []):
+        for cid, info in msg.get("snippets", {}).items():
+            cid_int = int(cid)
+            # global lookup tables
+            st.session_state.all_snippets[cid_int] = info
+            st.session_state.global_ids[
+                (info["source"], info.get("page"))
+            ] = cid_int
+            st.session_state.next_id = max(
+                st.session_state.next_id, cid_int + 1
+            )
+
+# ---------------------------------------------------------------
+# 1️⃣  Render chat history
+# ---------------------------------------------------------------
 for entry in st.session_state.chat_history:
     role = "user" if entry["speaker"] == "User" else "assistant"
+
     with st.chat_message(role):
         if role == "user":
             st.write(entry["text"])
+
         else:
             st.markdown(entry["text"], unsafe_allow_html=True)
 
-            # --------------------------------------------------
-            # Build pill bar from the citations that appear in
-            # *this* assistant message
-            # --------------------------------------------------
-            # assistant_text = entry["text"]           # ② use entry, not turn
-            # cited_ids = sorted(
-            #     {int(n) for n in re.findall(r"\[#(\d+)\]", assistant_text)}
-            # )
+            # --- extract the IDs that appear in this answer --------
+            plain = html.unescape(re.sub(r"<.*?>", "", entry["text"]))
+            cited_ids = sorted({int(n) for n in re.findall(r"\[#\s*(\d+)\s*\]", plain)})
 
-            # all_snips = st.session_state.get("all_snippets", {})
-            # if cited_ids:
-            #     with st.expander(
-            #         "Sources used: " + ", ".join(f"#{i}" for i in cited_ids),
-            #         expanded=False,
-            #     ):
-            #         for cid in cited_ids:
-            #             info = all_snips.get(cid)
-            #             if not info:                 # shouldn’t happen now
-            #                 st.markdown(f"[#{cid}] *snippet not found*")
-            #                 continue
-
-            #             # ③ 1-to-2-line preview (≈120 chars)
-            #             preview = (
-            #                 re.sub(r"\s+", " ", info["full"]).strip()[:120] + " …"
-            #             )
-
-            #             src  = info["source"]
-            #             page = info.get("page")
-            #             meta = f" (p.{page})" if page is not None else ""
-
-            #             st.markdown(
-            #                 f"**[#{cid}] {src}{meta}** — {preview}"
-            #             )
-
-
-
-
-            import html, re
-
-            assistant_html = entry["text"]
-            plain_text = html.unescape(re.sub(r"<.*?>", "", assistant_html))
-
-            # digits only → cast to int
-            cited_ids = sorted({int(n) for n in re.findall(r"\[#\s*(\d+)\s*\]", plain_text)})
-
-            all_snips = st.session_state.get("all_snippets", {})
+            # per-message snippet map
+            snip_map = entry.get("snippets", {})
 
             if cited_ids:
                 with st.expander(
@@ -441,11 +426,15 @@ for entry in st.session_state.chat_history:
                     expanded=False,
                 ):
                     for cid in cited_ids:
-                        info = all_snips.get(cid)
+                        info = snip_map.get(cid)
                         if not info:
                             st.markdown(f"[#{cid}] *snippet not found*")
                             continue
+
                         preview = re.sub(r"\s+", " ", info["full"]).strip()[:120] + " …"
-                        page = info.get("page")
-                        meta = f" (p.{page})" if page is not None else ""
-                        st.markdown(f"**[#{cid}] {info['source']}{meta}** — {preview}")
+                        page    = info.get("page")
+                        meta    = f" (p.{page})" if page is not None else ""
+
+                        st.markdown(
+                            f"**[#{cid}] {info['source']}{meta}** — {preview}"
+                        )

@@ -15,14 +15,8 @@ class MemoryManager:
         self.cfg = cfg
         self._ensure_session_state()
         self._setup_memories(api_key)
-
-    @property
-    def window(self) -> ConversationBufferWindowMemory:
-        return st.session_state.window_memory
-
-    @property
-    def summary(self) -> ConversationSummaryBufferMemory:
-        return st.session_state.summary_memory
+        self.window  = self._new_window()
+        self.summary = self._new_summary()
 
     def save_turn(self, user_msg: str, assistant_msg: str) -> None:
         """Persist a single user/assistant exchange to both memories."""

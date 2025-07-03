@@ -36,43 +36,43 @@ doc_mgr = DocumentManager(API_KEY, cfg)
 mem_mgr = MemoryManager(API_KEY, cfg)
 
 # ======================================================================
-# 1. SIDEBAR – class selector + controls, uploads, disclaimer
+# 1. SIDEBAR – workspace banner, selector, controls, uploads, disclaimer
 # ======================================================================
 
+# ── A. sidebar heading (one is enough) ────────────────────────────────
 st.sidebar.header("📂 Settings & Additional Info")
 
+# ── B. list available class folders once ─────────────────────────────
+class_folders: List[str] = doc_mgr.list_class_folders()
+if not class_folders:
+    st.sidebar.warning(f"Add folders inside `{cfg.BASE_CTX_DIR}` to get started.")
+    st.stop()
 
+# first visit → pick the first folder as default
 if "active_class" not in st.session_state:
-    class_folders: List[str] = doc_mgr.list_class_folders()
     st.session_state.active_class = class_folders[0]
 
-# # ── ⬇️ ALWAYS-VISIBLE BLUE BANNER ⬇️ ────────────────────────────────
-# st.sidebar.info(f"Current class:  **{st.session_state.active_class}**")
+# ── C. always-visible selector + banner ──────────────────────────────
+st.sidebar.subheader("Workspace")          # smaller than .header
+active_class = st.sidebar.selectbox(
+    "Current class",
+    class_folders,
+    index=class_folders.index(st.session_state.active_class),
+    key="active_class_select",
+)
+if active_class != st.session_state.active_class:
+    st.session_state.active_class = active_class
+    st.rerun()
 
-# 1.1 quick tips
-with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
-    st.markdown(
-        """
-| **Command** | **What it Does**               | **Scope**           |
-|------------:|--------------------------------|---------------------|
-| `remember:` | Store a fact permanently       | Across sessions     |
-| `memo:`     | Store a fact this session only | Single session      |
-| `role:`     | Set the assistant’s persona    | Single session      |
-| `background:` | Allow background info from the model (not document based)    | Single session      |
-""",
-        unsafe_allow_html=True,
-    )
-
-st.sidebar.header("Workspace")
-active_class = st.sidebar.selectbox("Current class", class_folders,
-                                    index=class_folders.index(st.session_state.active_class),
-                                    key="active_class_select")
-st.sidebar.markdown(f"""
-<div style="background:#eef4ff;padding:0.4rem 0.8rem;border-radius:0.5rem;font-weight:600;">
-📂 Current class: <span style="color:#003366;">{active_class}</span>
-</div>
-""", unsafe_allow_html=True)
-
+st.sidebar.markdown(
+    f"""
+    <div style="background:#eef4ff;padding:0.45rem 0.8rem;
+                border-radius:0.5rem;font-weight:600;">
+      📂 Current class: <span style="color:#003366;">{active_class}</span>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 # 1.2 class controls
 with st.sidebar.expander("🗂️ Class controls", expanded=False):
 

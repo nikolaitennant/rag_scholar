@@ -114,21 +114,7 @@ with st.sidebar.expander("🗂️ Class controls", expanded=True):
     doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
     sel_docs  = st.session_state.get("sel_docs", [])
 
-    st.markdown(
-        f"""
-        <div style="font-size:0.82rem;margin-top:0.2rem;">
-          📄 <span style="background:#fff;border:1px solid #d0d7e8;
-                         border-radius:0.4rem;padding:0 0.45rem;
-                         font-weight:600;">{doc_count}</span> docs
-          {f' | 🔖 <span style="background:#fff;border:1px solid #d0d7e8;\
-                         border-radius:0.4rem;padding:0 0.45rem;\
-                         font-weight:600;">{len(sel_docs)}</span> selected'
-             if sel_docs else ''}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
+   
 
     # ----- file browser --------------------------------------------
     with st.expander(f"🗄️ {active_class} File Browser", expanded=False):

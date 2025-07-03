@@ -215,7 +215,7 @@ class ChatAssistant:
               date, or authority MUST end with its citation [#n].
             • If the answer isn’t in 1 or 2, reply exactly:
               “I don’t have enough information in the provided material to answer that.”
-            • Cite ONLY snippets [#] (never user chat or remembered facts).
+            • Cite ONLY snippets [#]
 
             STYLE
             1. Open with one friendly line restating the question.

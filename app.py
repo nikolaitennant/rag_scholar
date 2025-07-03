@@ -181,6 +181,20 @@ with st.sidebar.expander("📄 Document controls", expanded=False):
         horizontal=True,
     )
 
+# 1.1 quick tips
+with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
+    st.markdown(
+        """
+| **Command** | **What it Does**               | **Scope**           |
+|------------:|--------------------------------|---------------------|
+| remember: | Store a fact permanently       | Across sessions     |
+| memo:     | Store a fact this session only | Single session      |
+| role:     | Set the assistant’s persona    | Single session      |
+| background: | Allow background info from the model (not document based)    | Single session      |
+""",
+        unsafe_allow_html=True,
+    )
+
 # ===== 1.5 Contact / Report an issue =================================
 
 with st.sidebar.expander("✉️  Contact / Report an issue", expanded=False):

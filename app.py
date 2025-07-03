@@ -10,11 +10,12 @@ Folder structure expected
 └── ui/
     ├── ui_helpers.py      (your existing header / theme code)
     ├── sidebar.py         (new – handles ALL sidebar widgets)
-    └── chat_ui.py         (new – renders chat history and pills)
+    └── hat_ui.py         (new – renders chat history and pills)
 
 Only this file has to be run with `streamlit run app.py`.
 """
 from __future__ import annotations
+
 
 import os
 import streamlit as st

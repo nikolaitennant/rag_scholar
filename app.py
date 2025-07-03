@@ -60,17 +60,6 @@ doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
 plural    = "doc" if doc_count == 1 else "docs"
 st.sidebar.info(f"📂 Current class: **{active_class}** — {doc_count} {plural}")
 
-# 2-B TOOLS – clear chat
-with st.sidebar.expander("🧹 Tools", expanded=False):
-    if st.button("🗑️  Clear chat history"):
-        st.session_state.chat_history   = []
-        st.session_state.all_snippets   = {}
-        st.session_state.global_ids     = {}
-        st.session_state.next_id        = 1
-        st.session_state.session_facts  = []
-        st.success("Chat cleared • counters reset")
-        st.rerun()
-
 # 2-C CLASS CONTROLS
 with st.sidebar.expander("🗂️ Class Controls", expanded=False):
     chosen = st.selectbox(

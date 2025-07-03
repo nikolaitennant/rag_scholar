@@ -77,20 +77,10 @@ mem_mgr = MemoryManager(API_KEY, cfg)
 # 1. SIDEBAR – workspace banner, selector, controls, uploads, disclaimer
 # ======================================================================
 
-# ── B. list available class folders once ─────────────────────────────
-class_folders: List[str] = doc_mgr.list_class_folders()
-if not class_folders:
-    st.sidebar.warning(f"Add folders inside `{cfg.BASE_CTX_DIR}` to get started.")
-    st.stop()
-
-# first visit → pick the first folder as default
-if "active_class" not in st.session_state:
-    st.session_state.active_class = class_folders[0]
 
 # ------------------------------------------------------------------
-# WORKSPACE CARD – always visible
+# 1. SIDEBAR – Workspace card + rest of controls
 # ------------------------------------------------------------------
-# list folders (already did that earlier)
 class_folders: List[str] = doc_mgr.list_class_folders()
 if not class_folders:
     st.sidebar.warning(f"Add folders inside `{cfg.BASE_CTX_DIR}` to get started.")
@@ -99,57 +89,60 @@ if not class_folders:
 if "active_class" not in st.session_state:
     st.session_state.active_class = class_folders[0]
 
-with st.sidebar.container():
-    st.markdown('<div class="workspace-card">', unsafe_allow_html=True)
+# ---------- one-off CSS tweaks ------------------------------------
+st.sidebar.markdown("""
+<style>
+/* Give Streamlit’s select-box its own “card” */
+div[data-testid="stSelectbox"]{
+  background:#eef4ff;
+  border:1px solid #d9e4ff;
+  border-radius:0.7rem;
+  padding:0.9rem 0.85rem 0.8rem;
+  margin-bottom:0.75rem;
+}
+/* badges just below the box */
+.workspace-meta{
+  font-size:0.82rem;
+  color:#333;
+  margin-top:-0.3rem;      /* pull it closer to the box */
+}
+.workspace-badge{
+  background:#fff;
+  border-radius:0.45rem;
+  padding:0.05rem 0.55rem;
+  border:1px solid #d0d7e8;
+  font-weight:600;
+}
+</style>
+""", unsafe_allow_html=True)
 
-    # ----- headline ------------------------------------------------
-    st.markdown('<h3>🗂️ Workspace</h3>', unsafe_allow_html=True)
+# ---------- Workspace header --------------------------------------
+st.sidebar.markdown("### 🗂️ Workspace")
 
+# ---------- Class selector (label hidden) -------------------------
+active_class = st.sidebar.selectbox(
+    label=" ",                         # blank label
+    options=class_folders,
+    index=class_folders.index(st.session_state.active_class),
+    key="active_class_select",
+    label_visibility="collapsed",      # Streamlit ≥ 1.25
+)
+if active_class != st.session_state.active_class:
+    st.session_state.active_class = active_class
+    st.rerun()
 
-    st.markdown("""
-    <style>
-    /* Give Streamlit's own selectbox wrapper the blue card look */
-    div[data-testid="stSelectbox"]{
-    background:#eef4ff;
-    border:1px solid #d9e4ff;
-    border-radius:0.7rem;
-    padding:0.9rem 0.85rem 0.8rem;
-    margin-bottom:0.9rem;
-    }
-    /* header and meta tweaks stay the same */
-    .workspace-meta{ … }
-    .workspace-badge{ … }
-    </style>
-    """, unsafe_allow_html=True)
+# ---------- Meta badges -------------------------------------------
+ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
+doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
+sel_docs  = st.session_state.get("sel_docs", [])
 
-    # ----- class selector (label hidden) ---------------------------
-    active_class = st.selectbox(
-        label=" ",                       # blank label
-        options=class_folders,
-        index=class_folders.index(st.session_state.active_class),
-        key="active_class_select",
-        label_visibility="collapsed",    # Streamlit ≥ 1.25
-    )
-    if active_class != st.session_state.active_class:
-        st.session_state.active_class = active_class
-        st.rerun()
-
-    # we now know which class – get its dirs
-    ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
-
-    # ----- meta line ----------------------------------------------
-    doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
-    sel_docs  = st.session_state.get("sel_docs", [])
-
-    meta_html = f"""
-    <div class="workspace-meta">
-      📄 <span class="workspace-badge">{doc_count}</span> docs
-      {f' | 🔖 <span class="workspace-badge">{len(sel_docs)}</span> selected' if sel_docs else ''}
-    </div>
-    """
-    st.markdown(meta_html, unsafe_allow_html=True)
-
-    st.markdown('</div>', unsafe_allow_html=True)   # close .workspace-card
+meta_html = f"""
+<div class="workspace-meta">
+  📄 <span class="workspace-badge">{doc_count}</span> docs
+  {f' | 🔖 <span class="workspace-badge">{len(sel_docs)}</span> selected' if sel_docs else ''}
+</div>
+"""
+st.sidebar.markdown(meta_html, unsafe_allow_html=True)
 
 # 1.2 class controls
 with st.sidebar.expander("🗂️ Class controls", expanded=False):

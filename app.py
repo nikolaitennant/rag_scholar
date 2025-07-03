@@ -137,25 +137,6 @@ st.sidebar.info(
     f"📂 Current class: **{st.session_state.active_class}** — {doc_count} {plural}"
 )
 
-# ── inside the sidebar, e.g. just below Class Controls ─────────────
-with st.sidebar.expander("🧹 Tools", expanded=False):
-
-    if st.button("🗑️  Clear chat history", key="clear_chat"):
-
-        # 1️⃣  wipe the turn log shown on screen
-        st.session_state.chat_history = []
-
-        # 2️⃣  reset citation machinery
-        st.session_state.global_ids   = {}
-        st.session_state.next_id      = 1
-        st.session_state.all_snippets = {}
-
-        # 3️⃣  (optional) reset remembered facts for this session
-        st.session_state.session_facts = []
-
-        st.success("Chat cleared • counters reset")
-        st.rerun()          # not strictly required; Streamlit auto-reruns
-           # shorthand
 
 # ----- always-visible blue banner ----------------------------------
 # figure out the folder that belongs to this class

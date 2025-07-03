@@ -55,6 +55,13 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
         unsafe_allow_html=True,
     )
 
+if "active_class" not in st.session_state:
+    class_folders: List[str] = doc_mgr.list_class_folders()
+    st.session_state.active_class = class_folders[0]
+
+# ── ⬇️ ALWAYS-VISIBLE BLUE BANNER ⬇️ ────────────────────────────────
+st.sidebar.info(f"📂 Current class:  **{st.session_state.active_class}**")
+
 # 1.2 class controls
 with st.sidebar.expander("🗂️ Class controls", expanded=False):
 

@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 import os, re, shutil
+from pathlib import Path
 from typing import List
 
 import streamlit as st
@@ -116,27 +117,30 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
                         st.rerun()
 
     # ----- add new class -------------------------------------------
-    with st.expander("➕  Add a new class", expanded=False): 
+    with st.expander("➕  Add a new class", expanded=False):
         new_name = st.text_input("Class name (letters, numbers, spaces):", key="new_class_name")
+
         if st.button("Create class", key="create_class"):
             clean = re.sub(r"[^A-Za-z0-9 _-]", "", new_name).strip().replace(" ", "_")
-            target = os.path.join(cfg.BASE_CTX_DIR, clean)
+            target = Path(cfg.BASE_CTX_DIR) / clean
+
             if not clean:
                 st.error("Please enter a name.")
             elif clean in class_folders:
                 st.warning(f"“{clean}” already exists.")
             else:
-                # seed optional file (keep or remove)
-                seed_src = "giulia.txt"
-                seed_dst = os.path.join(target, os.path.basename(seed_src))
-                try:
-                    shutil.copy(seed_src, seed_dst)
-                except FileNotFoundError:
-                    st.warning("Starter file giulia.txt not found – class created empty.")
-                os.makedirs(target, exist_ok=True)
-                st.success(f"Added “{clean}”. Select it in the list above.")
-                st.rerun()
+                target.mkdir(parents=True, exist_ok=True)
 
+                # path to giulia.txt sitting next to app.py
+                seed_src = Path(__file__).with_name("giulia.txt")
+
+                if seed_src.exists():
+                    shutil.copy(seed_src, target / seed_src.name)
+                    st.success("Class created with starter file giulia.txt.")
+                else:
+                    st.info("Class created (no giulia.txt found).")
+
+                    st.rerun()
     # ----- delete class --------------------------------------------
     if st.button("🗑️ Delete this class", key="ask_delete"):
         st.session_state.confirm_delete = True

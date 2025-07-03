@@ -68,26 +68,94 @@ st.sidebar.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
-
 # ---------- Workspace header --------------------------------------
 st.sidebar.markdown("### 🛠️ Workspace")
 
-# ───────────────────────────────────────────────────────────────────
-# 1. SIDEBAR  → single “Class controls” block (opened by default)
-# ───────────────────────────────────────────────────────────────────
-# ------------------------------------------------------------------
-# 1. SIDEBAR – Active-class banner + hidden selector
-# ------------------------------------------------------------------
-class_folders: List[str] = doc_mgr.list_class_folders()
+# ── 0. One-time bucket structures ─────────────────────────────────
+if "chat_buckets" not in st.session_state:
+    st.session_state.chat_buckets = {}     # class → list[turns]
+    st.session_state.snip_buckets = {}     # class → {cid: snippet}
+    st.session_state.id_counters  = {}     # class → (global_ids, next_id)
+
+# ── 1. Load list of classes ───────────────────────────────────────
+class_folders = doc_mgr.list_class_folders()
 if not class_folders:
     st.sidebar.warning(f"Add folders inside `{cfg.BASE_CTX_DIR}` to get started.")
     st.stop()
 
-# first visit → pick the first folder
+# first visit → default class
 if "active_class" not in st.session_state:
     st.session_state.active_class = class_folders[0]
 
-active_class = st.session_state.active_class           # shorthand
+active_class = st.session_state.active_class
+
+# ── 2. COLLAPSIBLE selectbox (inside Class Controls) ──────────────
+with st.sidebar.expander("🗂️ Class Controls", expanded=False):
+
+    chosen = st.selectbox(
+        "Change class / module",
+        class_folders,
+        index=class_folders.index(active_class),
+        key="change_class_select",
+    )
+
+    # 2-A. class switched → swap bucketed state --------------------
+    if chosen != active_class:
+        # save outgoing chat & state
+        st.session_state.chat_buckets[active_class]  = st.session_state.chat_history
+        st.session_state.snip_buckets[active_class]  = st.session_state.all_snippets
+        st.session_state.id_counters[active_class]   = (
+            st.session_state.global_ids, st.session_state.next_id
+        )
+
+        # load incoming (or start fresh)
+        st.session_state.chat_history = st.session_state.chat_buckets.get(chosen, [])
+        st.session_state.all_snippets = st.session_state.snip_buckets.get(chosen, {})
+        st.session_state.global_ids, st.session_state.next_id = (
+            st.session_state.id_counters.get(chosen, ({}, 1))
+        )
+
+        st.session_state.active_class = chosen
+        st.rerun()
+
+# ── 3. Clear-chat button (anywhere in sidebar) ────────────────────
+with st.sidebar.expander("🧹 Tools", expanded=False):
+    if st.button("🗑️  Clear chat history", key="clear_chat"):
+        st.session_state.chat_history = []
+        st.session_state.global_ids   = {}
+        st.session_state.next_id      = 1
+        st.session_state.all_snippets = {}
+        st.session_state.session_facts = []
+        st.success("Chat cleared • counters reset")
+        st.rerun()
+
+# ── 4. Always-visible banner after active_class is final ──────────
+ctx_dir, _ = doc_mgr.get_active_class_dirs(st.session_state.active_class)
+doc_count  = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
+plural     = "doc" if doc_count == 1 else "docs"
+st.sidebar.info(
+    f"📂 Current class: **{st.session_state.active_class}** — {doc_count} {plural}"
+)
+
+# ── inside the sidebar, e.g. just below Class Controls ─────────────
+with st.sidebar.expander("🧹 Tools", expanded=False):
+
+    if st.button("🗑️  Clear chat history", key="clear_chat"):
+
+        # 1️⃣  wipe the turn log shown on screen
+        st.session_state.chat_history = []
+
+        # 2️⃣  reset citation machinery
+        st.session_state.global_ids   = {}
+        st.session_state.next_id      = 1
+        st.session_state.all_snippets = {}
+
+        # 3️⃣  (optional) reset remembered facts for this session
+        st.session_state.session_facts = []
+
+        st.success("Chat cleared • counters reset")
+        st.rerun()          # not strictly required; Streamlit auto-reruns
+           # shorthand
 
 # ----- always-visible blue banner ----------------------------------
 # figure out the folder that belongs to this class

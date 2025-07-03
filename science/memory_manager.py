@@ -17,11 +17,11 @@ class MemoryManager:
         self._setup_memories(api_key)
         self.window  = self._new_window()
         self.summary = self._new_summary()
-
-    def save_turn(self, user_msg: str, assistant_msg: str) -> None:
-        """Persist a single user/assistant exchange to both memories."""
-        self.window.save_context({"input": user_msg}, {"output": assistant_msg})
-        self.summary.save_context({"input": user_msg}, {"output": assistant_msg})
+         
+    def save_turn(self, user_text: str, assistant_text: str) -> None:
+        """Record the latest exchange in both memories."""
+        self.window.save_context({"input": user_text}, {"output": assistant_text})
+        self.summary.save_context({"input": user_text}, {"output": assistant_text})
     
     def _new_window(self):
         """Return a fresh (empty) ConversationBufferMemory."""

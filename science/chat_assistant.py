@@ -232,10 +232,25 @@ class ChatAssistant:
 
         messages = [SystemMessage(content=sys_prompt)]
 
-        # recent chat window
-        messages.extend(
-            self.memory.window.load_memory_variables({}).get("history", [])
-        )
+        # # recent chat window
+        # messages.extend(
+        #     self.memory.window.load_memory_variables({}).get("history", [])
+        # )
+
+        from langchain_core.messages import HumanMessage, AIMessage
+
+        # … inside _build_messages() …
+        window_raw = self.memory.window.load_memory_variables({}).get("history", "")
+
+        if window_raw:
+            # window_raw is one newline-separated string
+            for line in window_raw.split("\n"):
+                if line.startswith("Human:"):
+                    messages.append(HumanMessage(content=line[len("Human:"):].strip()))
+                elif line.startswith("AI:"):
+                    messages.append(AIMessage(content=line[len("AI:"):].strip()))
+
+
         # long-term summary
         messages.extend(
             self.memory.summary.load_memory_variables({}).get("history", [])

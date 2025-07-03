@@ -36,10 +36,6 @@ setup_ui("Giulia's (🐀) Law AI Assistant", "⚖️", cfg, API_KEY)
 doc_mgr = DocumentManager(API_KEY, cfg)
 mem_mgr = MemoryManager(API_KEY, cfg)
 
-# ======================================================================
-# 1. SIDEBAR – workspace banner, selector, controls, uploads, disclaimer
-# ======================================================================
-
 
 # ------------------------------------------------------------------
 # 1. SIDEBAR – Workspace card + rest of controls
@@ -396,12 +392,48 @@ for entry in st.session_state.chat_history:
             # Build pill bar from the citations that appear in
             # *this* assistant message
             # --------------------------------------------------
-            assistant_text = entry["text"]           # ② use entry, not turn
-            cited_ids = sorted(
-                {int(n) for n in re.findall(r"\[#(\d+)\]", assistant_text)}
-            )
+            # assistant_text = entry["text"]           # ② use entry, not turn
+            # cited_ids = sorted(
+            #     {int(n) for n in re.findall(r"\[#(\d+)\]", assistant_text)}
+            # )
+
+            # all_snips = st.session_state.get("all_snippets", {})
+            # if cited_ids:
+            #     with st.expander(
+            #         "Sources used: " + ", ".join(f"#{i}" for i in cited_ids),
+            #         expanded=False,
+            #     ):
+            #         for cid in cited_ids:
+            #             info = all_snips.get(cid)
+            #             if not info:                 # shouldn’t happen now
+            #                 st.markdown(f"[#{cid}] *snippet not found*")
+            #                 continue
+
+            #             # ③ 1-to-2-line preview (≈120 chars)
+            #             preview = (
+            #                 re.sub(r"\s+", " ", info["full"]).strip()[:120] + " …"
+            #             )
+
+            #             src  = info["source"]
+            #             page = info.get("page")
+            #             meta = f" (p.{page})" if page is not None else ""
+
+            #             st.markdown(
+            #                 f"**[#{cid}] {src}{meta}** — {preview}"
+            #             )
+
+
+
+            assistant_html = entry["text"]                    # what you already have
+            plain_text     = html.unescape(
+                                re.sub(r"<.*?>", "", assistant_html)
+                            )                                 # strip HTML tags
+
+            pattern = r"\[#\s*([0-9A-Za-z\-]+)\s*\]"         # e.g. [#12] or [# 12 ]
+            cited_ids = sorted(set(re.findall(pattern, plain_text)))
 
             all_snips = st.session_state.get("all_snippets", {})
+
             if cited_ids:
                 with st.expander(
                     "Sources used: " + ", ".join(f"#{i}" for i in cited_ids),
@@ -409,19 +441,12 @@ for entry in st.session_state.chat_history:
                 ):
                     for cid in cited_ids:
                         info = all_snips.get(cid)
-                        if not info:                 # shouldn’t happen now
+                        if not info:
                             st.markdown(f"[#{cid}] *snippet not found*")
                             continue
-
-                        # ③ 1-to-2-line preview (≈120 chars)
                         preview = (
                             re.sub(r"\s+", " ", info["full"]).strip()[:120] + " …"
                         )
-
-                        src  = info["source"]
                         page = info.get("page")
                         meta = f" (p.{page})" if page is not None else ""
-
-                        st.markdown(
-                            f"**[#{cid}] {src}{meta}** — {preview}"
-                        )
+                        st.markdown(f"**[#{cid}] {info['source']}{meta}** — {preview}")

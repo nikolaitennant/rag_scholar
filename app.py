@@ -41,12 +41,13 @@ mem_mgr = MemoryManager(API_KEY, cfg)
 
 st.sidebar.header("📂 Settings & Additional Info")
 
+
 if "active_class" not in st.session_state:
     class_folders: List[str] = doc_mgr.list_class_folders()
     st.session_state.active_class = class_folders[0]
 
-# ── ⬇️ ALWAYS-VISIBLE BLUE BANNER ⬇️ ────────────────────────────────
-st.sidebar.info(f"Current class:  **{st.session_state.active_class}**")
+# # ── ⬇️ ALWAYS-VISIBLE BLUE BANNER ⬇️ ────────────────────────────────
+# st.sidebar.info(f"Current class:  **{st.session_state.active_class}**")
 
 # 1.1 quick tips
 with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
@@ -61,6 +62,16 @@ with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):
 """,
         unsafe_allow_html=True,
     )
+
+st.sidebar.header("Workspace")
+active_class = st.sidebar.selectbox("Current class", class_folders,
+                                    index=class_folders.index(st.session_state.active_class),
+                                    key="active_class_select")
+st.sidebar.markdown(f"""
+<div style="background:#eef4ff;padding:0.4rem 0.8rem;border-radius:0.5rem;font-weight:600;">
+📂 Current class: <span style="color:#003366;">{active_class}</span>
+</div>
+""", unsafe_allow_html=True)
 
 # 1.2 class controls
 with st.sidebar.expander("🗂️ Class controls", expanded=False):

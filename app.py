@@ -10,7 +10,7 @@ from __future__ import annotations
 import os, re, shutil
 from pathlib import Path
 from typing import List    
-import os, requests, json, csv, datetime, pathlib
+import os, csv, datetime, pathlib
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -31,7 +31,7 @@ if not API_KEY:
 
 # ── app-level setup ───────────────────────────────────────────────────
 cfg = AppConfig()
-setup_ui("Giulia's (🐀) Law AI Assistant", "⚖️", cfg, API_KEY)
+setup_ui("Giulia's Law Study Buddy", "⚖️", cfg, API_KEY)
 
 doc_mgr = DocumentManager(API_KEY, cfg)
 mem_mgr = MemoryManager(API_KEY, cfg)

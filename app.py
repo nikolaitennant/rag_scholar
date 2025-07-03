@@ -49,8 +49,8 @@ if not class_folders:
 if "active_class" not in st.session_state:
     st.session_state.active_class = class_folders[0]
 
-# ── C. always-visible selector + banner ──────────────────────────────
-st.sidebar.header("Workspace")          # smaller than .header
+# ── C. always-visible selector + banner ────────────────────────────
+st.sidebar.subheader("Workspace")
 active_class = st.sidebar.selectbox(
     "Current class",
     class_folders,
@@ -60,6 +60,22 @@ active_class = st.sidebar.selectbox(
 if active_class != st.session_state.active_class:
     st.session_state.active_class = active_class
     st.rerun()
+
+# === NOW we know which class – get its dirs =========================
+ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
+
+# === Badge: doc count + selected count (if any) =====================
+doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
+selected = st.session_state.get("sel_docs", [])      # safe lookup
+st.sidebar.markdown(
+    f"""
+    <div style="font-size:0.85rem;margin-top:0.25rem;">
+      📄 {doc_count} docs
+      {'&nbsp;|&nbsp;🔖 ' + str(len(selected)) + ' selected' if selected else ''}
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # 1.2 class controls

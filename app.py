@@ -76,26 +76,26 @@ st.sidebar.markdown(
 # 1.2 class controls
 with st.sidebar.expander("🗂️ Class controls", expanded=False):
 
-    # ----- class selector -------------------------------------------
-    class_folders: List[str] = doc_mgr.list_class_folders()
-    if not class_folders:
-        st.sidebar.warning(f"Add folders inside `{cfg.BASE_CTX_DIR}` to get started.")
-        st.stop()
+    # # ----- class selector -------------------------------------------
+    # class_folders: List[str] = doc_mgr.list_class_folders()
+    # if not class_folders:
+    #     st.sidebar.warning(f"Add folders inside `{cfg.BASE_CTX_DIR}` to get started.")
+    #     st.stop()
 
-    if "active_class" not in st.session_state:
-        st.session_state.active_class = class_folders[0]
+    # if "active_class" not in st.session_state:
+    #     st.session_state.active_class = class_folders[0]
 
-    active_class = st.selectbox(
-        "Select class / module",
-        class_folders,
-        index=class_folders.index(st.session_state.active_class),
-        key="active_class_select"
-    )
-    if active_class != st.session_state.active_class:
-        st.session_state.active_class = active_class
-        st.rerun()
+    # active_class = st.selectbox(
+    #     "Select class / module",
+    #     class_folders,
+    #     index=class_folders.index(st.session_state.active_class),
+    #     key="active_class_select"
+    # )
+    # if active_class != st.session_state.active_class:
+    #     st.session_state.active_class = active_class
+    #     st.rerun()
 
-    ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
+    # ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
 
 
     # ----- file browser --------------------------------------------

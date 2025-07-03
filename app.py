@@ -95,7 +95,7 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
     #     st.session_state.active_class = active_class
     #     st.rerun()
 
-    # ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
+    ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
 
 
     # ----- file browser --------------------------------------------

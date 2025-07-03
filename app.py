@@ -27,9 +27,9 @@ from science.document_manager import DocumentManager
 from science.memory_manager import MemoryManager
 from science.chat_assistant import ChatAssistant
 
-from ui.ui_helpers import setup_ui
-from ui.sidebar import build_sidebar            # returns state needed for chat
-from ui.chat_ui import render_chat_history      # prints chat bubbles + pills
+from UI.ui_helpers import setup_ui
+from UI.sidebar import build_sidebar            # returns state needed for chat
+from UI.chat_ui import render_chat_history      # prints chat bubbles + pills
 
 # env + API key
 load_dotenv()

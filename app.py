@@ -88,6 +88,23 @@ with st.sidebar.expander("🗂️ Class Controls", expanded=False):
             (mem_mgr._new_window(), mem_mgr._new_summary())  # fresh pair
         )
 
+        # rebuild snippet & ID tables for the newly loaded class
+        st.session_state.all_snippets = {
+            int(cid): info
+            for msg in st.session_state.chat_history
+            for cid, info in msg.get("snippets", {}).items()
+        }
+
+        st.session_state.global_ids = {
+            (info["source"], info.get("page")): int(cid)
+            for cid, info in st.session_state.all_snippets.items()
+        }
+
+        st.session_state.next_id = (
+            max(st.session_state.all_snippets) + 1
+            if st.session_state.all_snippets else 1
+        )
+
         # load chat history, snippets, and IDs
         st.session_state.chat_history = st.session_state.chat_buckets.get(chosen, [])
         st.session_state.all_snippets = st.session_state.snip_buckets.get(chosen, {})

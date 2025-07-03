@@ -331,7 +331,7 @@ vector_store = doc_mgr.ensure_vector_store(ctx_dir, idx_dir, uploaded_docs)
 # ----------------------------------------------------------------------
 # 3. MAIN CHAT AREA                                                      
 # ----------------------------------------------------------------------
-st.title("⚖️ Giulia's Law AI Assistant!")
+st.title("⚖️ Giulia's Law (AI) Study Buddy!")
 assistant = ChatAssistant(API_KEY, cfg, mem_mgr, vector_store)
 
 with st.expander("ℹ️  How this assistant works", expanded=False):

@@ -105,6 +105,23 @@ with st.sidebar.container():
     # ----- headline ------------------------------------------------
     st.markdown('<h3>🗂️ Workspace</h3>', unsafe_allow_html=True)
 
+
+    st.markdown("""
+    <style>
+    /* Give Streamlit's own selectbox wrapper the blue card look */
+    div[data-testid="stSelectbox"]{
+    background:#eef4ff;
+    border:1px solid #d9e4ff;
+    border-radius:0.7rem;
+    padding:0.9rem 0.85rem 0.8rem;
+    margin-bottom:0.9rem;
+    }
+    /* header and meta tweaks stay the same */
+    .workspace-meta{ … }
+    .workspace-badge{ … }
+    </style>
+    """, unsafe_allow_html=True)
+
     # ----- class selector (label hidden) ---------------------------
     active_class = st.selectbox(
         label=" ",                       # blank label

@@ -234,9 +234,12 @@ with st.expander("ℹ️  How this assistant works", expanded=False):
 
   <li><b>Citations</b> – every sentence that states a legal rule, date, or authority ends with [#n]. If I can’t cite it, I’ll say so.</li>
 
-  <li><b>Sources pill</b> – under each reply you’ll see “Sources used: #2, #7 …”. Click to preview which file each number came from.</li>
+  <li><b>Sources pill</b> – after each reply you’ll see “Sources used: #2, #7 …”.  
+    Click it to expand a list where every #-tag shows
+    <em>file name, page no., and a one-sentence preview</em> of the cited passage.</li>
 
-  <li><b>Read the snippet</b> – type “<kbd>show snippet [#4]</kbd>” and I’ll reveal the exact passage.</li>
+    <li><b>Read the whole snippet</b> – type <kbd>show&nbsp;snippet&nbsp;[#4]</kbd>
+    (or any number) and I’ll print the full text of that passage in chat.</li>
 
   <!-- Uploads ----------------------------------------------------------- -->
   <li><b>Uploads</b>

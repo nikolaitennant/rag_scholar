@@ -422,15 +422,16 @@ for entry in st.session_state.chat_history:
             #                 f"**[#{cid}] {src}{meta}** — {preview}"
             #             )
 
-            import html
 
-            assistant_html = entry["text"]                    # what you already have
-            plain_text     = html.unescape(
-                                re.sub(r"<.*?>", "", assistant_html)
-                            )                                 # strip HTML tags
 
-            pattern = r"\[#\s*([0-9A-Za-z\-]+)\s*\]"         # e.g. [#12] or [# 12 ]
-            cited_ids = sorted(set(re.findall(pattern, plain_text)))
+
+            import html, re
+
+            assistant_html = entry["text"]
+            plain_text = html.unescape(re.sub(r"<.*?>", "", assistant_html))
+
+            # digits only → cast to int
+            cited_ids = sorted({int(n) for n in re.findall(r"\[#\s*(\d+)\s*\]", plain_text)})
 
             all_snips = st.session_state.get("all_snippets", {})
 
@@ -444,9 +445,7 @@ for entry in st.session_state.chat_history:
                         if not info:
                             st.markdown(f"[#{cid}] *snippet not found*")
                             continue
-                        preview = (
-                            re.sub(r"\s+", " ", info["full"]).strip()[:120] + " …"
-                        )
+                        preview = re.sub(r"\s+", " ", info["full"]).strip()[:120] + " …"
                         page = info.get("page")
                         meta = f" (p.{page})" if page is not None else ""
                         st.markdown(f"**[#{cid}] {info['source']}{meta}** — {preview}")

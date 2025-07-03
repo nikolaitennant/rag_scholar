@@ -89,6 +89,12 @@ if "active_class" not in st.session_state:
     st.session_state.active_class = class_folders[0]
 active_class = st.session_state.active_class
 
+# active class dirs & banner
+ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
+doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
+plural = "doc" if doc_count == 1 else "docs"
+st.info(f"📂 Current class: **{active_class}** — {doc_count} {plural}")
+
 # 1-A. Tools: clear chat button
 with st.sidebar.expander("🧹 Tools", expanded=False):
     if st.button("🗑️  Clear chat history"):
@@ -127,12 +133,6 @@ with st.sidebar.expander("🗂️ Class Controls", expanded=False):
         )
         st.session_state.active_class = chosen
         st.rerun()
-
-    # active class dirs & banner
-    ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
-    doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
-    plural = "doc" if doc_count == 1 else "docs"
-    st.info(f"📂 Current class: **{active_class}** — {doc_count} {plural}")
 
     # ----- file browser --------------------------------------------
     with st.expander(f"🗄️ {active_class} File Browser", expanded=False):

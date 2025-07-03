@@ -21,6 +21,44 @@ from science.memory_manager import MemoryManager
 from science.chat_assistant import ChatAssistant
 from UI.ui_helpers import setup_ui
 
+st.markdown("""
+<style>
+/* ---------- WORKSPACE CARD ------------------------------------ */
+.workspace-card{
+  background:#eef4ff;
+  border:1px solid #d9e4ff;
+  border-radius:0.7rem;
+  padding:0.9rem 0.85rem 0.8rem;
+  margin-bottom:1rem;
+}
+.workspace-card h3{
+  display:flex;
+  align-items:center;
+  gap:0.45rem;
+  font-size:1.2rem;
+  font-weight:700;
+  margin:0 0 0.6rem 0;
+}
+/* make the selectbox sit tight against the card edges */
+div[data-testid="workspace-selectbox"]{
+  margin:0 0 0.55rem 0;
+}
+/* meta-line (doc + badge) */
+.workspace-meta{
+  font-size:0.82rem;
+  color:#333;
+}
+.workspace-badge{
+  background:#fff;
+  border-radius:0.45rem;
+  padding:0.10rem 0.55rem;
+  border:1px solid #d0d7e8;
+  margin-left:0.45rem;
+  font-weight:600;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ── env + OpenAI key ──────────────────────────────────────────────────
 load_dotenv()
 API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -49,34 +87,52 @@ if not class_folders:
 if "active_class" not in st.session_state:
     st.session_state.active_class = class_folders[0]
 
-# ── C. always-visible selector + banner ────────────────────────────
-st.sidebar.subheader("Workspace")
-active_class = st.sidebar.selectbox(
-    "Current class",
-    class_folders,
-    index=class_folders.index(st.session_state.active_class),
-    key="active_class_select",
-)
-if active_class != st.session_state.active_class:
-    st.session_state.active_class = active_class
-    st.rerun()
+# ------------------------------------------------------------------
+# WORKSPACE CARD – always visible
+# ------------------------------------------------------------------
+# list folders (already did that earlier)
+class_folders: List[str] = doc_mgr.list_class_folders()
+if not class_folders:
+    st.sidebar.warning(f"Add folders inside `{cfg.BASE_CTX_DIR}` to get started.")
+    st.stop()
 
-# === NOW we know which class – get its dirs =========================
-ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
+if "active_class" not in st.session_state:
+    st.session_state.active_class = class_folders[0]
 
-# === Badge: doc count + selected count (if any) =====================
-doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
-selected = st.session_state.get("sel_docs", [])      # safe lookup
-st.sidebar.markdown(
-    f"""
-    <div style="font-size:0.85rem;margin-top:0.25rem;">
-      📄 {doc_count} docs
-      {'&nbsp;|&nbsp;🔖 ' + str(len(selected)) + ' selected' if selected else ''}
+with st.sidebar.container():
+    st.markdown('<div class="workspace-card">', unsafe_allow_html=True)
+
+    # ----- headline ------------------------------------------------
+    st.markdown('<h3>🗂️ Workspace</h3>', unsafe_allow_html=True)
+
+    # ----- class selector (label hidden) ---------------------------
+    active_class = st.selectbox(
+        label=" ",                       # blank label
+        options=class_folders,
+        index=class_folders.index(st.session_state.active_class),
+        key="active_class_select",
+        label_visibility="collapsed",    # Streamlit ≥ 1.25
+    )
+    if active_class != st.session_state.active_class:
+        st.session_state.active_class = active_class
+        st.rerun()
+
+    # we now know which class – get its dirs
+    ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
+
+    # ----- meta line ----------------------------------------------
+    doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
+    sel_docs  = st.session_state.get("sel_docs", [])
+
+    meta_html = f"""
+    <div class="workspace-meta">
+      📄 <span class="workspace-badge">{doc_count}</span> docs
+      {f' | 🔖 <span class="workspace-badge">{len(sel_docs)}</span> selected' if sel_docs else ''}
     </div>
-    """,
-    unsafe_allow_html=True,
-)
+    """
+    st.markdown(meta_html, unsafe_allow_html=True)
 
+    st.markdown('</div>', unsafe_allow_html=True)   # close .workspace-card
 
 # 1.2 class controls
 with st.sidebar.expander("🗂️ Class controls", expanded=False):

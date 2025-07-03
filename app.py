@@ -76,6 +76,8 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
     if active_class != st.session_state.active_class:
         st.session_state.active_class = active_class
         st.rerun()
+        
+    st.sidebar.info(f"📂  Current class:  **{active_class}**")
 
     ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
 

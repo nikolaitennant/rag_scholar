@@ -82,35 +82,50 @@ div[data-testid="stSelectbox"]{
 # ---------- Workspace header --------------------------------------
 st.sidebar.markdown("### 🗂️ Workspace")
 
-# ---------- Class selector (label hidden) -------------------------
-active_class = st.sidebar.selectbox(
-    label=" ",                         # blank label
-    options=class_folders,
-    index=class_folders.index(st.session_state.active_class),
-    key="active_class_select",
-    label_visibility="collapsed",      # Streamlit ≥ 1.25
-)
-if active_class != st.session_state.active_class:
-    st.session_state.active_class = active_class
-    st.rerun()
+# # ---------- Class selector (label hidden) -------------------------
+# active_class = st.sidebar.selectbox(
+#     label=" ",                         # blank label
+#     options=class_folders,
+#     index=class_folders.index(st.session_state.active_class),
+#     key="active_class_select",
+#     label_visibility="collapsed",      # Streamlit ≥ 1.25
+# )
+# if active_class != st.session_state.active_class:
+#     st.session_state.active_class = active_class
+#     st.rerun()
 
-# ---------- Meta badges -------------------------------------------
-ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
-doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
-sel_docs  = st.session_state.get("sel_docs", [])
 
-meta_html = f"""
-<div class="workspace-meta">
-  📄 <span class="workspace-badge">{doc_count}</span> docs
-  {f' | 🔖 <span class="workspace-badge">{len(sel_docs)}</span> selected' if sel_docs else ''}
-</div>
-"""
-st.sidebar.markdown(meta_html, unsafe_allow_html=True)
 
 # 1.2 class controls
 with st.sidebar.expander("🗂️ Class controls", expanded=False):
 
+    # ---------- Class selector (label hidden) -------------------------
+    active_class = st.sidebar.selectbox(
+        label=" ",                         # blank label
+        options=class_folders,
+        index=class_folders.index(st.session_state.active_class),
+        key="active_class_select",
+        label_visibility="collapsed",      # Streamlit ≥ 1.25
+    )
+    if active_class != st.session_state.active_class:
+        st.session_state.active_class = active_class
+        st.rerun()
+    st.sidebar.info(f"📂  Current class:  **{active_class}**")
+
+    # ---------- Meta badges -------------------------------------------
     ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
+    doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
+    sel_docs  = st.session_state.get("sel_docs", [])
+
+    meta_html = f"""
+    <div class="workspace-meta">
+    📄 <span class="workspace-badge">{doc_count}</span> docs
+    {f' | 🔖 <span class="workspace-badge">{len(sel_docs)}</span> selected' if sel_docs else ''}
+    </div>
+    """
+    st.sidebar.markdown(meta_html, unsafe_allow_html=True)
+
+    # ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
 
 
     # ----- file browser --------------------------------------------

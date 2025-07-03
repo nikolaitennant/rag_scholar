@@ -76,7 +76,7 @@ with st.sidebar.expander("🗂️ Class controls", expanded=False):
     if active_class != st.session_state.active_class:
         st.session_state.active_class = active_class
         st.rerun()
-        
+
     st.sidebar.info(f"📂  Current class:  **{active_class}**")
 
     ctx_dir, idx_dir = doc_mgr.get_active_class_dirs(active_class)
@@ -210,6 +210,33 @@ By using this tool you agree that:
 """,
         unsafe_allow_html=True,
     )
+
+# ===== 1.5 Contact / Report an issue =================================
+import csv, datetime, pathlib
+
+with st.sidebar.expander("✉️  Contact / Report an issue", expanded=False):
+    st.markdown(
+        "Spotted a bug or have a feature request? "
+        "Send it here and Giulia’s human will take a look."
+    )
+
+    with st.form(key="contact_form", clear_on_submit=True):
+        name    = st.text_input("Your name (optional)")
+        email   = st.text_input("Email or contact (optional)")
+        message = st.text_area("Describe the issue*", height=150)
+        submitted = st.form_submit_button("Submit")
+
+    if submitted:
+        if not message.strip():
+            st.warning("Please enter a message before submitting.")
+        else:
+            log_dir = pathlib.Path("logs"); log_dir.mkdir(exist_ok=True)
+            with open(log_dir / "contact_requests.csv", "a", newline="", encoding="utf-8") as f:
+                csv.writer(f).writerow(
+                    [datetime.datetime.utcnow().isoformat(), name, email, message]
+                )
+            st.success("Thanks! Your message has been recorded.")
+# =====================================================================
 
 # ----------------------------------------------------------------------
 # 2. VECTOR STORE (loads cached index or rebuilds)                       

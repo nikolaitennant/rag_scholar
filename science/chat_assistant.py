@@ -104,7 +104,7 @@ class ChatAssistant:
         response = self.llm.invoke(messages).content
 
         # 4️⃣ citation sanity check -----------------------------------------
-        bad_cites = [n for n in self._extract_citation_numbers(response) if n not in snippet_map]
+        bad_cites = [n for n in self._extract_citation_numbers(response) if n not in st.session_state.get("all_snippets", {})]
         if bad_cites or "[#]" in response:
             response = "I don’t have enough information in the provided material to answer that."
         else:

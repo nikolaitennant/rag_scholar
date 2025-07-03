@@ -100,13 +100,22 @@ if "active_class" not in st.session_state:
 active_class = st.session_state.active_class           # shorthand
 
 # ----- always-visible blue banner ----------------------------------
-st.sidebar.info(f"📂  Current class:  **{active_class}**")
+# figure out the folder that belongs to this class
+ctx_dir, _ = doc_mgr.get_active_class_dirs(active_class)
 
+# count the files (0 if the folder doesn't exist yet)
+doc_count = len(os.listdir(ctx_dir)) if os.path.exists(ctx_dir) else 0
+plural     = "doc" if doc_count == 1 else "docs"
+
+# always-visible blue banner
+st.sidebar.info(
+    f"📂  Current class:  **{active_class}**  —  {doc_count} {plural}"
+)
 # ----- collapsible selector ---------------------------------------
-with st.sidebar.expander("🔄 Change class", expanded=False):
+with st.sidebar.expander("Class Controls", expanded=False):
 
     chosen = st.selectbox(
-        label="Select a class",
+        label="Change class / module",
         options=class_folders,
         index=class_folders.index(active_class),
         key="change_class_select",

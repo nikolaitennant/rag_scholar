@@ -96,7 +96,7 @@ if "active_class" not in st.session_state:
 with st.sidebar.expander("🗂️ Class controls", expanded=True):
 
     # ---------- selector ------------------------------------------------
-    active_class = st.selectbox(
+    active_class = st.expander(
         label=" ",                       # hide label
         options=class_folders,
         index=class_folders.index(st.session_state.active_class),

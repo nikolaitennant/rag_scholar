@@ -46,7 +46,7 @@ if "active_class" not in st.session_state:
     st.session_state.active_class = class_folders[0]
 
 # ── ⬇️ ALWAYS-VISIBLE BLUE BANNER ⬇️ ────────────────────────────────
-st.sidebar.info(f"📂 Current class:  **{st.session_state.active_class}**")
+st.sidebar.info(f"Current class:  **{st.session_state.active_class}**")
 
 # 1.1 quick tips
 with st.sidebar.expander("🎯 Quick Tips (commands & scope)", expanded=False):

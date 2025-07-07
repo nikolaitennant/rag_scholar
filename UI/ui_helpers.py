@@ -18,7 +18,7 @@ def setup_ui(page_title: str, page_icon: str, cfg: AppConfig, api_key: str) -> N
     """Call this **once** at the very top of your Streamlit file."""
     st.set_page_config(page_title, page_icon)
     _inject_css()
-    _maybe_greet(cfg, api_key)
+    # _maybe_greet(cfg, api_key)
 
 
 # ------------------------------------------------------------------ #

@@ -68,6 +68,8 @@ class MemoryManager:
                 ai_prefix="AI",
                 summary_prompt=(
                     "Provide a concise running summary of the conversation so far, "
-                    "excluding the most recent 8 messages."
+                    f"Do NOT include the most recent {self.cfg.SESSION_WINDOW} messages "
+                    "(those are preserved verbatim). Keep parties, issues, rules/tests, holdings, "
+                    "and any class-specific doctrines. Be neutral and exam-ready."
                 ),
             )

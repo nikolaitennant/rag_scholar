@@ -35,7 +35,7 @@ def load_and_index_defaults(folder: str, api_key: str) -> Tuple[List, FAISS | No
     if not docs:
         return [], None
 
-    embeddings = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large")
+    embeddings = OpenAIEmbeddings(api_key=api_key)
 
     return docs, FAISS.from_documents(docs, embeddings)
 
@@ -72,7 +72,7 @@ class DocumentManager:
 
     def ensure_vector_store(self, ctx_dir: str, idx_dir: str, uploaded_docs) -> FAISS:
         """Return a FAISS index (loading or rebuilding as needed)."""
-        embeddings = OpenAIEmbeddings(api_key=self.api_key, model="text-embedding-3-large")
+        embeddings = OpenAIEmbeddings(api_key=self.api_key)
         bin_path = os.path.join(idx_dir, f"{os.path.basename(idx_dir)}.faiss")
         pkl_path = os.path.join(idx_dir, f"{os.path.basename(idx_dir)}.pkl")
 

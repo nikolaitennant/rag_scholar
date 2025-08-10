@@ -15,7 +15,6 @@ class MemoryManager:
         self.cfg = cfg
         self._ensure_session_state()
         self._setup_memories(api_key)
-        # 🔹 use the persisted memories, don’t create new ones
         self.window  = st.session_state.window_memory
         self.summary = st.session_state.summary_memory
          
@@ -68,8 +67,7 @@ class MemoryManager:
                 ai_prefix="AI",
                 summary_prompt=(
                     "Provide a concise running summary of the conversation so far, "
-                    f"Do NOT include the most recent {self.cfg.SESSION_WINDOW} messages "
-                    "(those are preserved verbatim). Keep parties, issues, rules/tests, holdings, "
-                    "and any class-specific doctrines. Be neutral and exam-ready."
+                    "excluding the most recent 8 messages."
                 ),
             )
+                

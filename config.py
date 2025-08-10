@@ -19,11 +19,11 @@ class AppConfig:
 
     # Models
     LLM_MODEL: str = "gpt-5"
-    SUMMARY_MODEL: str = "o3-mini"
+    SUMMARY_MODEL: str = "gpt-4.1-mini"
 
     # Memory
     SESSION_WINDOW: int = 8
-    MAX_TOKEN_LIMIT: int = 3500
+    MAX_TOKEN_LIMIT: int = 800
 
     # UI
     GREETING_COOLDOWN: int = 3600  # seconds

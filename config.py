@@ -18,8 +18,8 @@ class AppConfig:
     RELEVANCE_THRESHOLD: float = 0.8
 
     # Models
-    LLM_MODEL: str = "gpt-4.1-mini"
-    SUMMARY_MODEL: str = "gpt-4.1-mini"
+    LLM_MODEL: str = "gpt-5"
+    SUMMARY_MODEL: str = "gpt-5"
 
     # Memory
     SESSION_WINDOW: int = 8

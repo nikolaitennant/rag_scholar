@@ -4,6 +4,8 @@ from __future__ import annotations
 import os, re, shutil, csv, datetime, pathlib, html, re as regex
 from pathlib import Path
 from typing import List
+import zipfile
+import io
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -14,6 +16,24 @@ from science.document_manager import DocumentManager
 from science.memory_manager import MemoryManager
 from science.chat_assistant import ChatAssistant
 from UI.ui_helpers import setup_ui
+
+
+# ═══════════ UTILITY FUNCTIONS ═══════════════════
+def create_class_zip(ctx_dir: str, class_name: str) -> bytes:
+    """Create a zip file containing all files in the class directory."""
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        if os.path.exists(ctx_dir):
+            for root, dirs, files in os.walk(ctx_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    # Create archive name relative to the class directory
+                    arcname = os.path.relpath(file_path, ctx_dir)
+                    zip_file.write(file_path, arcname)
+    
+    zip_buffer.seek(0)
+    return zip_buffer.getvalue()
 
 
 # ═══════════ 0. ENV + UI BOOTSTRAP ═══════════════
@@ -131,6 +151,27 @@ with st.sidebar.expander("🗂️ Class Controls", expanded=False):
             if not files:
                 st.write("_Folder is empty_")
             else:
+                # --- bulk download option --------------------------------
+                col_bulk, col_info = st.columns([3, 2])
+                with col_bulk:
+                    if st.button("📦 Download all as ZIP", key="download_all_zip", help="Download all files in this class as a ZIP archive"):
+                        try:
+                            zip_data = create_class_zip(ctx_dir, active_class)
+                            st.download_button(
+                                label="⬇️ Click to download ZIP file",
+                                data=zip_data,
+                                file_name=f"{active_class}_documents.zip",
+                                mime="application/zip",
+                                key="download_zip_file"
+                            )
+                        except Exception as e:
+                            st.error(f"Failed to create ZIP file: {e}")
+                
+                with col_info:
+                    st.write(f"📄 {len(files)} files total")
+                
+                st.divider()
+                
                 # --- per-file rows ------------------------------------
                 for idx, fn in enumerate(files, start=1):
                     key_base = fn.replace(" ", "_")  # safe for widget keys

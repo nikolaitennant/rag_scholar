@@ -13,8 +13,8 @@ class AppConfig:
     INDEX_DIR = None
 
     # Retrieval
-    FIRST_K: int = 30
-    FINAL_K: int = 10
+    FIRST_K: int = 20               # reduced from 30 (less initial retrieval)
+    FINAL_K: int = 5                # reduced from 10 (much smaller context)
     RELEVANCE_THRESHOLD: float = 0.8
 
     # Models

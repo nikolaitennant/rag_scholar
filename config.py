@@ -15,7 +15,7 @@ class AppConfig:
     # Retrieval
     FIRST_K: int = 30               # back to reasonable numbers with chunking
     FINAL_K: int = 8                # multiple document chunks
-    RELEVANCE_THRESHOLD: float = 0.3  # lower threshold for better recall
+    RELEVANCE_THRESHOLD: float = 0.0  # no threshold - let it retrieve anything
 
     # Models
     LLM_MODEL: str = "gpt-4.1"

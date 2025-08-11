@@ -22,7 +22,7 @@ from langchain_community.document_loaders import (
 from config import AppConfig
 
 @st.cache_resource(show_spinner=False)
-def load_and_index_defaults(folder: str, api_key: str) -> Tuple[List, FAISS | None]:
+def load_and_index_defaults(folder: str, api_key: str, version: str = "v2_chunked") -> Tuple[List, FAISS | None]:
     """Load every file in `folder`, build a FAISS index, and cache the result."""
     from .document_manager import DocumentManager  # local import to avoid cycle
 
@@ -96,7 +96,7 @@ class DocumentManager:
                 shutil.rmtree(idx_dir, ignore_errors=True)  # force rebuild if corrupted
 
         # Build from scratch
-        default_docs, default_idx = load_and_index_defaults(ctx_dir, self.api_key)
+        default_docs, default_idx = load_and_index_defaults(ctx_dir, self.api_key, "v2_chunked")
         session_docs = self._load_uploaded_files(uploaded_docs)
 
         if default_idx and session_docs:

@@ -8,7 +8,7 @@ class AppConfig:
     """Centralised configuration so magic numbers live in one place."""
     # Directories
     BASE_CTX_DIR: str = "classes_context"
-    INDEX_PREFIX: str = "faiss_"
+    INDEX_PREFIX: str = "faiss_v2_"  # changed to force rebuild with chunking
     CTX_DIR = None  # will be set after the user picks a class
     INDEX_DIR = None
 

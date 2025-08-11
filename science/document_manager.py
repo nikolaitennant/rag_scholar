@@ -24,6 +24,7 @@ from config import AppConfig
 @st.cache_resource(show_spinner=False)
 def load_and_index_defaults(folder: str, api_key: str, version: str = "v2_chunked") -> Tuple[List, FAISS | None]:
     """Load every file in `folder`, build a FAISS index, and cache the result."""
+    print(f"📁 Loading documents from: {folder}")
     from .document_manager import DocumentManager  # local import to avoid cycle
 
     docs = []
@@ -31,9 +32,13 @@ def load_and_index_defaults(folder: str, api_key: str, version: str = "v2_chunke
         for fname in os.listdir(folder):
             loader_cls = DocumentManager.LOADER_MAP.get(fname.rsplit(".", 1)[-1].lower())
             if loader_cls:
+                print(f"  📄 Loading: {fname}")
                 docs.extend(loader_cls(os.path.join(folder, fname)).load())
+    else:
+        print(f"❌ Directory does not exist: {folder}")
 
     if not docs:
+        print("❌ No documents loaded!")
         return [], None
 
     # Add chunking to break large documents into smaller pieces
@@ -43,6 +48,8 @@ def load_and_index_defaults(folder: str, api_key: str, version: str = "v2_chunke
         separators=["\n\n", "\n", " ", ""]
     )
     chunked_docs = text_splitter.split_documents(docs)
+    
+    print(f"🔹 Original docs: {len(docs)}, After chunking: {len(chunked_docs)}")
 
     embeddings = OpenAIEmbeddings(api_key=api_key)
 
@@ -81,6 +88,7 @@ class DocumentManager:
 
     def ensure_vector_store(self, ctx_dir: str, idx_dir: str, uploaded_docs) -> FAISS:
         """Return a FAISS index (loading or rebuilding as needed)."""
+        print(f"🔍 Loading vector store for: {os.path.basename(ctx_dir)}")
         embeddings = OpenAIEmbeddings(api_key=self.api_key)
         bin_path = os.path.join(idx_dir, f"{os.path.basename(idx_dir)}.faiss")
         pkl_path = os.path.join(idx_dir, f"{os.path.basename(idx_dir)}.pkl")
@@ -136,6 +144,16 @@ class DocumentManager:
                 out.write(f.getbuffer())
             loader = self.LOADER_MAP[ext](fp)
             docs.extend(loader.load())
+        
+        # Add chunking to uploaded files too
+        if docs:
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1200,
+                chunk_overlap=200,
+                separators=["\n\n", "\n", " ", ""]
+            )
+            docs = text_splitter.split_documents(docs)
+        
         return docs
 
 

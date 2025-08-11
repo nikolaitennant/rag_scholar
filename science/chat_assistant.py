@@ -161,12 +161,13 @@ class ChatAssistant:
         self, query: str, sel_docs: List[str], mode: str
     ) -> Tuple[List[Document], Dict]:
         """Returns (docs, snippet_map)."""
+        print(f"🔍 Retrieving for query: '{query}'")
         FIRST_K, FINAL_K, RELEVANCE_THRESHOLD = self.cfg.FIRST_K, self.cfg.FINAL_K, self.cfg.RELEVANCE_THRESHOLD
 
         full_ret = self.vector_store.as_retriever(
             search_kwargs={
                 "k": FIRST_K,
-                "score_threshold": RELEVANCE_THRESHOLD,   
+                # Removed score_threshold - FAISS uses distance, not similarity scores
             }
         )
 
@@ -182,7 +183,7 @@ class ChatAssistant:
                 search_kwargs={
                     "k": FIRST_K,
                     "filter": _filt,
-                    "score_threshold": RELEVANCE_THRESHOLD   
+                    # Removed score_threshold - FAISS uses distance, not similarity scores
                 }
             )
         else:
@@ -198,6 +199,12 @@ class ChatAssistant:
             docs = primary + secondary
         else:
             docs = full_ret.invoke(query)
+
+        print(f"📚 Retrieved {len(docs)} documents")
+        for i, doc in enumerate(docs[:3]):  # Show first 3 docs
+            source = doc.metadata.get('source', 'Unknown')
+            content_preview = doc.page_content[:100].replace('\n', ' ')
+            print(f"  {i+1}. {os.path.basename(source)}: {content_preview}...")
 
         snippet_map: Dict[int, Dict] = {}
         context_parts: List[str] = []

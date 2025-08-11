@@ -13,9 +13,9 @@ class AppConfig:
     INDEX_DIR = None
 
     # Retrieval
-    FIRST_K: int = 20               # reduced from 30 (less initial retrieval)
-    FINAL_K: int = 5                # reduced from 10 (much smaller context)
-    RELEVANCE_THRESHOLD: float = 0.8
+    FIRST_K: int = 30               # back to reasonable numbers with chunking
+    FINAL_K: int = 8                # multiple document chunks
+    RELEVANCE_THRESHOLD: float = 0.3  # lower threshold for better recall
 
     # Models
     LLM_MODEL: str = "gpt-4.1"

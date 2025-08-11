@@ -9,6 +9,7 @@ from openai import api_key
 import streamlit as st
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import (
     Docx2txtLoader,
     UnstructuredWordDocumentLoader,
@@ -35,9 +36,17 @@ def load_and_index_defaults(folder: str, api_key: str) -> Tuple[List, FAISS | No
     if not docs:
         return [], None
 
+    # Add chunking to break large documents into smaller pieces
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1200,  # reasonable chunk size
+        chunk_overlap=200,  # some overlap for context
+        separators=["\n\n", "\n", " ", ""]
+    )
+    chunked_docs = text_splitter.split_documents(docs)
+
     embeddings = OpenAIEmbeddings(api_key=api_key)
 
-    return docs, FAISS.from_documents(docs, embeddings)
+    return chunked_docs, FAISS.from_documents(chunked_docs, embeddings)
 
 class DocumentManager:
     """Responsible for all document I/O and vector store lifecycle."""

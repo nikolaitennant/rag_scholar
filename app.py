@@ -224,6 +224,12 @@ with st.sidebar.expander("🗂️ Class Controls", expanded=False):
                     st.info("Class created (no giulia.txt found).")
 
                     st.rerun()
+    # ----- rebuild index --------------------------------------------
+    if st.button("🔄 Rebuild Index", key="rebuild_index", help="Rebuild the search index for this class"):
+        shutil.rmtree(idx_dir, ignore_errors=True)
+        st.success(f"Index cleared for {active_class}. It will rebuild on next search.")
+        st.rerun()
+    
     # ----- delete class --------------------------------------------
     if st.button("🗑️ Delete this class", key="ask_delete"):
         st.session_state.confirm_delete = True

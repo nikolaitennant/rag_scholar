@@ -118,7 +118,10 @@ class Settings(BaseSettings):
     
     # API Configuration
     api_host: str = Field(default="0.0.0.0", description="API host")
-    api_port: int = Field(default=8000, description="API port")
+    api_port: int = Field(
+        default_factory=lambda: int(os.environ.get("PORT", 8000)),
+        description="API port (defaults to PORT env var for Cloud Run compatibility)"
+    )
     api_prefix: str = Field(default="/api/v1", description="API prefix")
     cors_origins: List[str] = Field(
         default=["*"],

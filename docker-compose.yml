@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # Backend API
+  api:
+    build: .
+    container_name: rag-scholar-api
+    command: python -m rag_scholar.main
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./data:/app/data
+      - ./indexes:/app/indexes
+      - ./uploads:/app/uploads
+    depends_on:
+      - redis
+    networks:
+      - rag-scholar-network
+    restart: unless-stopped
+
+  # Frontend UI
+  ui:
+    build: .
+    container_name: rag-scholar-ui
+    command: python -m rag_scholar.web.modern_app
+    ports:
+      - "8501:8501"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - API_BASE=http://api:8000/api/v1
+    depends_on:
+      - api
+    networks:
+      - rag-scholar-network
+    restart: unless-stopped
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: rag-scholar-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - rag-scholar-network
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+
+networks:
+  rag-scholar-network:
+    driver: bridge

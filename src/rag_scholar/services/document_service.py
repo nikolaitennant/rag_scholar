@@ -177,10 +177,31 @@ class DocumentService:
     async def delete_document(self, collection: str, doc_id: str):
         """Delete a document from collection."""
         
-        # TODO: Implement proper document deletion from index
-        # This would require tracking document chunks in the index
+        collection_dir = self.settings.upload_dir / collection
         
-        # For now, trigger a reindex
+        # Find and delete the physical file
+        if collection_dir.exists():
+            for file_path in collection_dir.iterdir():
+                if file_path.is_file():
+                    # Generate document ID to match
+                    file_doc_id = hashlib.sha256(
+                        f"{collection}:{file_path.name}".encode()
+                    ).hexdigest()[:16]
+                    
+                    if file_doc_id == doc_id:
+                        try:
+                            file_path.unlink()  # Delete the physical file
+                            logger.info(f"Deleted file: {file_path}")
+                        except Exception as e:
+                            logger.error(f"Failed to delete file {file_path}: {e}")
+                            raise
+                        break
+            else:
+                raise ValueError(f"Document {doc_id} not found in collection {collection}")
+        else:
+            raise ValueError(f"Collection {collection} not found")
+        
+        # Rebuild the index to remove document chunks
         await self.reindex_collection(collection)
     
     async def reindex_collection(self, collection: str) -> Dict[str, Any]:

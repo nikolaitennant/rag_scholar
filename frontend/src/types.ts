@@ -2,6 +2,8 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   citations?: Citation[];
+  timestamp?: string;
+  domainId?: string; // Which domain this message belongs to
 }
 
 export interface Citation {
@@ -23,11 +25,31 @@ export interface Document {
   chunks: number;
   size: number;
   status: string;
+  uploaded_at?: string;
+  domains?: string[]; // Which domains this document belongs to
 }
 
-export interface Collection {
+// User-created class/domain
+export interface UserDomain {
+  id: string;
+  name: string; // e.g., "History of Law Class", "Biology Research"
+  type: DomainType; // The domain type (law, science, etc.)
+  documents: string[]; // Document IDs assigned to this domain
+  created_at: string;
+  description?: string;
+}
+
+// User profile for personalization
+export interface UserProfile {
+  id: string;
   name: string;
-  documents: Document[];
+  email: string;
+  domains: UserDomain[];
+  preferences?: {
+    theme: 'light' | 'dark';
+    defaultDomain?: string;
+  };
+  isAdmin?: boolean;
 }
 
 export enum DomainType {

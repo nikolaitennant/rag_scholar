@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from rag_scholar.config.settings import DomainType, Settings
 from rag_scholar.core.domains import DomainFactory
+from rag_scholar.services.memory_service import MemoryService
 from rag_scholar.services.retrieval_service import RetrievalService
 from rag_scholar.services.session_manager import SessionManager
 
@@ -54,10 +55,12 @@ class ChatService:
         settings: Settings,
         retrieval_service: RetrievalService,
         session_manager: SessionManager,
+        memory_service: MemoryService,
     ):
         self.settings = settings
         self.retrieval_service = retrieval_service
         self.session_manager = session_manager
+        self.memory_service = memory_service
         
         # Initialize LLM
         self.llm = ChatOpenAI(
@@ -262,7 +265,16 @@ class ChatService:
         if context:
             messages.append(SystemMessage(content=f"Context:\n{context}"))
         
-        # Add conversation history (last 8 messages)
+        # Add memory context using MemoryService
+        memory_context = self.memory_service.get_context_for_query(
+            session_id, 
+            domain.value,
+            include_summary=True
+        )
+        if memory_context:
+            messages.append(SystemMessage(content=f"Conversation Memory:\n{memory_context}"))
+        
+        # Add conversation history (last 8 messages) - keep existing functionality
         if session.get("history"):
             messages.extend(session["history"][-8:])
         
@@ -276,7 +288,14 @@ class ChatService:
         # Validate citations
         answer = self._validate_citations(answer, citation_map)
         
-        # Update session history
+        # Extract used citations
+        citations = self._extract_citations(answer, citation_map, retrieved_docs)
+        
+        # Add messages to memory service for enhanced memory functionality
+        self.memory_service.add_message(session_id, domain.value, "user", query)
+        self.memory_service.add_message(session_id, domain.value, "assistant", answer, citations)
+        
+        # Update session history (keep existing functionality for compatibility)
         if "history" not in session:
             session["history"] = []
         session["history"].append(HumanMessage(content=query))
@@ -287,9 +306,6 @@ class ChatService:
             session["history"] = session["history"][-20:]
         
         await self.session_manager.save_session(session_id, session)
-        
-        # Extract used citations
-        citations = self._extract_citations(answer, citation_map, retrieved_docs)
         
         return {
             "answer": answer,
@@ -413,3 +429,15 @@ class ChatService:
             "previous_class": old_class,
             "active_class": new_class,
         }
+    
+    async def get_memory_info(self, session_id: str, domain_id: str) -> Dict[str, Any]:
+        """Get memory information for a session and domain."""
+        return self.memory_service.get_session_info(session_id, domain_id)
+    
+    async def clear_memory(self, session_id: str, domain_id: str) -> None:
+        """Clear memory for a session and domain."""
+        self.memory_service.clear_session(session_id, domain_id)
+    
+    async def remember_fact(self, session_id: str, domain_id: str, key: str, value: str) -> None:
+        """Remember a fact in the session context."""
+        self.memory_service.remember_fact(session_id, domain_id, key, value)

@@ -55,7 +55,10 @@ export const apiService = {
   },
 
   deleteDocument: async (collection: string, documentId: string): Promise<void> => {
-    await api.delete(`/documents/collections/${collection}/documents/${documentId}`);
+    console.log(`Attempting to delete document at: /documents/collections/${collection}/documents/${documentId}`);
+    const response = await api.delete(`/documents/collections/${collection}/documents/${documentId}`);
+    console.log('Delete response:', response);
+    return response.data;
   },
 
   reindexCollection: async (collection: string): Promise<any> => {

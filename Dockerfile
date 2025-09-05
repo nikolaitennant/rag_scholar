@@ -46,12 +46,12 @@ RUN mkdir -p data indexes uploads
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app/src
 
-# Expose ports
-EXPOSE 8000 8501
+# Expose port (Cloud Run will set PORT env var)
+EXPOSE 8080
 
-# Health check
+# Health check using PORT environment variable
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD python -c "import httpx; httpx.get('http://localhost:8000/api/v1/health')"
+    CMD python -c "import os, httpx; httpx.get(f'http://localhost:{os.environ.get(\"PORT\", 8000)}/api/v1/health')"
 
 # Default command (can be overridden)
 CMD ["python", "-m", "rag_scholar.main"]

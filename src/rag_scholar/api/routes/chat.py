@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from rag_scholar.config.settings import DomainType, get_settings
-from rag_scholar.services.chat_service import ChatService
+from rag_scholar.services.enhanced_chat_service import ChatService
 from rag_scholar.services.dependencies import get_chat_service
 
 router = APIRouter()

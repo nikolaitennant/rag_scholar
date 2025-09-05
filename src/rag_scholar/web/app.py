@@ -106,18 +106,50 @@ def setup_page():
         border: 1px solid #E2E8F0;
     }
     
-    /* User message */
-    [data-testid="chat-message-user"] {
-        background: linear-gradient(135deg, #f6f8fb 0%, #e9ecef 100%);
-        border-left: 3px solid #667eea;
+    /* Chat message styling with proper alignment */
+    .stChatMessage {
+        margin: 0.5rem 0 !important;
     }
     
-    /* Assistant message */
-    [data-testid="chat-message-assistant"] {
-        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-        border-left: 3px solid #48bb78;
+    /* User messages - right aligned */
+    .stChatMessage:has([data-testid="user"]) {
+        display: flex !important;
+        justify-content: flex-end !important;
+        margin-left: 25% !important;
     }
     
+    .stChatMessage:has([data-testid="user"]) > div {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        border-radius: 18px 18px 4px 18px !important;
+        padding: 12px 16px !important;
+        max-width: 75% !important;
+        text-align: left !important;
+    }
+    
+    /* Assistant messages - left aligned */  
+    .stChatMessage:has([data-testid="assistant"]) {
+        display: flex !important;
+        justify-content: flex-start !important;
+        margin-right: 25% !important;
+    }
+    
+    .stChatMessage:has([data-testid="assistant"]) > div {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+        color: #2D3748 !important;
+        border-radius: 18px 18px 18px 4px !important;
+        padding: 12px 16px !important;
+        max-width: 75% !important;
+        border: 1px solid #E2E8F0 !important;
+    }
+    
+    /* Auto scroll to bottom */
+    [data-testid="stChatMessageContainer"] {
+        scroll-behavior: smooth !important;
+    }
+    </style>
+    
+    <style>
     /* Citation card */
     .citation-card {
         background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
@@ -292,6 +324,40 @@ def setup_page():
         border-top: 1px solid #E2E8F0;
         margin: 1.5rem 0;
     }
+    
+    /* Chat input positioning - simple responsive approach */
+    .stChatInput {
+        position: fixed !important;
+        bottom: 30px !important;
+        left: 20px !important;
+        right: 20px !important;
+        width: auto !important;
+        max-width: 600px !important;
+        margin: 0 auto !important;
+        background: white !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 12px !important;
+        padding: 8px !important;
+        z-index: 1000 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    /* Add some breathing room around the input */
+    .stChatInput > div {
+        margin: 0;
+        padding: 4px;
+    }
+    
+    /* Chat container with space for fixed input */
+    .main .block-container {
+        padding-bottom: 120px;
+        max-width: none;
+    }
+    
+    /* Ensure messages container has proper spacing */
+    [data-testid="stChatMessageContainer"] {
+        margin-bottom: 20px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -358,15 +424,15 @@ def render_sidebar():
         
         st.divider()
         
-        # Domain selector with cards
-        st.markdown("### 🎯 Research Domain")
+        # Domain selector
+        st.markdown("### Research Domain")
         
         cols = st.columns(2)
         for i, domain in enumerate(DomainType):
             config = DOMAIN_CONFIG[domain]
             with cols[i % 2]:
                 if st.button(
-                    f"{config['icon']} {domain.value.replace('_', ' ').title()}",
+                    config['icon'],
                     key=f"domain_{domain.value}",
                     use_container_width=True,
                     type="primary" if domain == st.session_state.current_domain else "secondary",
@@ -376,10 +442,8 @@ def render_sidebar():
         
         st.divider()
         
-        # Collections manager
-        st.markdown("### 📚 Document Collections")
-        
-        with st.container():
+        # Document Collections
+        with st.expander("Document Collections", expanded=True):
             collections = asyncio.run(call_api("/documents/collections"))
             
             if collections:
@@ -396,54 +460,148 @@ def render_sidebar():
                     st.rerun()
             
             # Create new collection
-            with st.expander("➕ Create New Collection"):
+            with st.expander("+ Create New Collection"):
                 new_collection = st.text_input("Collection Name")
                 if st.button("Create", type="primary", use_container_width=True):
                     if new_collection:
                         st.success(f"Created: {new_collection}")
         
-        st.divider()
+        # Document Library  
+        with st.expander("Document Library", expanded=True):
+            tab1, tab2 = st.tabs(["Upload", "Manage"])
+            
+            # UPLOAD TAB
+            with tab1:
+                st.markdown("**Upload Documents**")
+                
+                # Get allowed extensions without dots for streamlit
+                allowed_types = [ext.lstrip('.') for ext in settings.allowed_file_types]
+                
+                uploaded_file = st.file_uploader(
+                    "Choose file",
+                    type=allowed_types,
+                    help=f"Supported: {', '.join(settings.allowed_file_types)}",
+                    key="doc_uploader"
+                )
+                
+                if uploaded_file:
+                    st.info(f"**{uploaded_file.name}** ({uploaded_file.size//1024}KB)")
+                    st.caption(f"Will upload to: **{st.session_state.active_class}**")
+                    
+                    if st.button("Upload", type="primary", use_container_width=True):
+                        with st.spinner("Processing document..."):
+                            result = asyncio.run(
+                                call_api(
+                                    "/documents/upload",
+                                    method="POST",
+                                    files={"file": (uploaded_file.name, uploaded_file.read())},
+                                    params={"collection": st.session_state.active_class},
+                                )
+                            )
+                            if result:
+                                st.success(f"Uploaded to {st.session_state.active_class}!")
+                                st.rerun()
+                            else:
+                                st.error("Upload failed")
+            
+            # MANAGE TAB  
+            with tab2:
+                st.markdown("**Document Library**")
+                
+                if st.session_state.active_class:
+                    documents = asyncio.run(call_api(f"/documents/collections/{st.session_state.active_class}/documents"))
+                    
+                    if documents:
+                        st.caption(f"{len(documents)} documents in **{st.session_state.active_class}**")
+                        
+                        for doc in documents:
+                            with st.container():
+                                col1, col2, col3 = st.columns([2, 1, 1])
+                                
+                                with col1:
+                                    # Clean filename display
+                                    display_name = doc['filename'][:25] + "..." if len(doc['filename']) > 25 else doc['filename']
+                                    st.markdown(f"**{display_name}**")
+                                    st.caption(f"{doc['chunks']} chunks • {doc['size']//1024}KB • {doc['status']}")
+                                
+                                with col2:
+                                    if st.button("🗑️", key=f"del_{doc['id']}", help="Delete", use_container_width=True):
+                                        asyncio.run(call_api(
+                                            f"/documents/collections/{st.session_state.active_class}/documents/{doc['id']}",
+                                            method="DELETE"
+                                        ))
+                                        st.success("🗑️ Deleted!")
+                                        st.rerun()
+                                
+                                with col3:
+                                    if st.button("ℹ️", key=f"info_{doc['id']}", help="Info", use_container_width=True):
+                                        st.info(f"""
+                                        **{doc['filename']}**
+                                        • Size: {doc['size']//1024}KB
+                                        • Chunks: {doc['chunks']}
+                                        • Status: {doc['status']}
+                                        • ID: {doc['id'][:8]}...
+                                        """)
+                        
+                        st.divider()
+                        
+                        # Collection actions
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button("🔄 Reindex", use_container_width=True):
+                                with st.spinner("Reindexing collection..."):
+                                    result = asyncio.run(call_api(
+                                        f"/documents/collections/{st.session_state.active_class}/reindex",
+                                        method="POST"
+                                    ))
+                                    if result:
+                                        st.success(f"✅ {result['total_chunks']} chunks indexed")
+                        
+                        with col2:
+                            if st.button("Stats", use_container_width=True):
+                                total_size = sum(doc['size'] for doc in documents)
+                                total_chunks = sum(doc['chunks'] for doc in documents)
+                                st.info(f"{len(documents)} docs • {total_chunks} chunks • {total_size//1024}KB total")
+                    else:
+                        st.info("No documents in this collection")
+                        st.caption("Upload documents using the Upload tab above")
+                else:
+                    st.warning("Select a collection first")
         
-        # Document uploader with drag-drop effect
-        st.markdown("### 📤 Upload Documents")
-        
-        # Get allowed extensions without dots for streamlit
-        allowed_types = [ext.lstrip('.') for ext in settings.allowed_file_types]
-        
-        uploaded_file = st.file_uploader(
-            "Drag and drop or browse",
-            type=allowed_types,
-            help=f"Supported formats: {', '.join(settings.allowed_file_types)}",
-        )
-        
-        if uploaded_file:
+        # Session management
+        with st.expander("Session", expanded=True):
             col1, col2 = st.columns(2)
             with col1:
-                st.info(f"📄 {uploaded_file.name}")
+                if st.button("🗑️ Clear Chat", use_container_width=True):
+                    st.session_state.messages = []
+                    st.rerun()
+            
             with col2:
-                if st.button("Upload", type="primary", use_container_width=True):
-                    with st.spinner("Processing..."):
-                        result = asyncio.run(
-                            call_api(
-                                "/documents/upload",
-                                method="POST",
-                                files={"file": (uploaded_file.name, uploaded_file.read())},
-                                params={"collection": st.session_state.active_class},
-                            )
-                        )
-                        if result:
-                            st.success("✅ Uploaded successfully!")
-                            st.balloons()
+                if st.button("🆕 New Session", use_container_width=True):
+                    st.session_state.session_id = os.urandom(16).hex()
+                    st.session_state.messages = []
+                    st.rerun()
+            
+            # Session info
+            st.markdown(
+                f"""
+                <div class="info-card" style="margin-top: 1rem;">
+                    <div class="info-card-header">Session ID</div>
+                    <div class="info-card-value" style="font-size: 0.75rem; font-family: monospace;">
+                        {st.session_state.session_id[:8]}...
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
         
-        st.divider()
-        
-        # Special commands with beautiful cards
-        with st.expander("✨ Special Commands", expanded=False):
+        # Special commands - moved to end per user request
+        with st.expander("Special Commands", expanded=False):
             commands = [
-                ("💾 remember:", "Save fact permanently", "remember: Key fact here"),
-                ("📝 memo:", "Save for session only", "memo: Temporary note"),
-                ("👤 role:", "Set AI persona", "role: Expert professor"),
-                ("🌍 background:", "General knowledge", "background: Explain concept"),
+                ("remember:", "Save fact permanently", "remember: Key fact here"),
+                ("memo:", "Save for session only", "memo: Temporary note"),
+                ("role:", "Set AI persona", "role: Expert professor"),
+                ("background:", "General knowledge", "background: Explain concept"),
             ]
             
             for cmd, desc, example in commands:
@@ -459,42 +617,12 @@ def render_sidebar():
                     """,
                     unsafe_allow_html=True
                 )
-        
-        st.divider()
-        
-        # Session management
-        st.markdown("### ⚙️ Session")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("🗑️ Clear Chat", use_container_width=True):
-                st.session_state.messages = []
-                st.rerun()
-        
-        with col2:
-            if st.button("🆕 New Session", use_container_width=True):
-                st.session_state.session_id = os.urandom(16).hex()
-                st.session_state.messages = []
-                st.rerun()
-        
-        # Session info
-        st.markdown(
-            f"""
-            <div class="info-card" style="margin-top: 1rem;">
-                <div class="info-card-header">Session ID</div>
-                <div class="info-card-value" style="font-size: 0.75rem; font-family: monospace;">
-                    {st.session_state.session_id[:8]}...
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
 
 
 def render_chat():
     """Render beautiful chat interface."""
     
-    # Status cards
+    # Beautiful info cards
     col1, col2, col3, col4 = st.columns(4)
     
     domain_config = DOMAIN_CONFIG[st.session_state.current_domain]
@@ -505,7 +633,7 @@ def render_chat():
             <div class="info-card">
                 <div class="info-card-header">Domain</div>
                 <div class="info-card-value" style="color: {domain_config['color']};">
-                    {domain_config['icon']} {st.session_state.current_domain.value.title()}
+                    {domain_config['icon']}
                 </div>
             </div>
             """,
@@ -582,7 +710,10 @@ def render_chat():
                             unsafe_allow_html=True
                         )
     
-    # Chat input
+    # Push chat input to bottom
+    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+    
+    # Chat input at bottom
     if prompt := st.chat_input("💭 Ask your research question or use a command..."):
         # Add user message
         st.session_state.messages.append({"role": "user", "content": prompt})
@@ -619,19 +750,19 @@ def render_chat():
                     if response.get("citations"):
                         with st.expander(f"📎 View {len(response['citations'])} Citations"):
                             for cite in response["citations"]:
+                                page_info = f" - Page {cite['page']}" if cite.get('page') else ""
                                 st.markdown(
                                     f"""
                                     <div class="citation-card">
-                                        <strong style="color: #2D3748;">
-                                            [{cite['id']}] {cite['source']}
-                                            {f" - Page {cite['page']}" if cite.get('page') else ""}
-                                        </strong><br>
-                                        <p style="margin-top: 8px; color: #4A5568; font-size: 0.9rem;">
+                                        <div style="color: #2D3748; font-weight: bold;">
+                                            [{cite['id']}] {cite['source']}{page_info}
+                                        </div>
+                                        <div style="margin-top: 8px; color: #4A5568; font-size: 0.9rem;">
                                             {cite['preview']}
-                                        </p>
-                                        <small style="color: #718096;">
-                                            Relevance: {cite.get('relevance_score', 0):.2%}
-                                        </small>
+                                        </div>
+                                        <div style="color: #718096; font-size: 0.8rem; margin-top: 4px;">
+                                            Relevance: {cite.get('relevance_score', 0):.1%}
+                                        </div>
                                     </div>
                                     """,
                                     unsafe_allow_html=True
@@ -647,7 +778,7 @@ def main():
     
     # Check API health
     try:
-        health = asyncio.run(call_api("/health"))
+        health = asyncio.run(call_api("/health/"))
         if not health or health.get("status") != "healthy":
             st.error("❌ API is not healthy. Please check the backend.")
             st.stop()

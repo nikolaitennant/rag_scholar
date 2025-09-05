@@ -206,10 +206,11 @@ class ChatService:
         # Enhance query with domain knowledge
         enhanced_query = domain_handler.enhance_query(query)
         
-        # Determine collection based on active class
-        collection = active_class or session.get("active_class", "default")
+        # Determine collection based on domain
         if domain != DomainType.GENERAL:
-            collection = f"{collection}_{domain.value}"
+            collection = domain.value  # Use domain directly as collection name
+        else:
+            collection = active_class or session.get("active_class", "default")
         
         # Retrieve relevant documents
         retrieved_docs = await self.retrieval_service.retrieve(

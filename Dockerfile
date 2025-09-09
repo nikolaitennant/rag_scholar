@@ -40,7 +40,7 @@ COPY src/ ./src/
 COPY pyproject.toml ./
 
 # Create necessary directories
-RUN mkdir -p data indexes uploads
+RUN mkdir -p data/uploads data/indexes data/sessions
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

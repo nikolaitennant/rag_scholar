@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { Plus, Trash, RefreshCw, ChevronRight, Upload, File, Trash2, RotateCcw, MessageSquare, X, Sun, Moon, Trophy, BookOpen, Sparkles, Heart, Star, Zap, Award, Settings } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Trash, RefreshCw, ChevronRight, Upload, File, Trash2, RotateCcw, MessageSquare, X, Sun, Moon, Trophy, BookOpen, Sparkles, Heart, Star, Zap, Award, Settings, History, Edit2, MoreVertical, HelpCircle, Home, Book, Beaker, Briefcase, GraduationCap, Code, Edit3 } from 'lucide-react';
 import { DomainManager } from './DomainManager';
 import { ThemeToggle } from './ThemeToggle';
-import { SettingsModal } from './SettingsModal';
 import { useTheme } from '../contexts/ThemeContext';
+import { useUser } from '../contexts/UserContext';
 import { DomainType, Document, UserDomain } from '../types';
+import { apiService } from '../services/api';
 
 interface SidebarProps {
   domains: UserDomain[];
@@ -19,6 +20,7 @@ interface SidebarProps {
   messageCount: number;
   onClearChat: () => void;
   onNewSession: () => void;
+  onSelectSession?: (sessionId: string) => void;
   isCollapsed?: boolean;
   documents: Document[];
   onUpload: (file: File) => Promise<void>;
@@ -28,9 +30,13 @@ interface SidebarProps {
   onOpenSidebar?: () => void;
   onCloseSidebar?: () => void;
   backgroundCommandCount?: number;
+  onOpenSettings?: () => void;
+  sessions?: any[];
+  currentBackendSessionId?: string | null;
+  onDeleteSession?: (sessionId: string) => void;
 }
 
-type TabType = 'domains' | 'library' | 'session' | 'achievements';
+type TabType = 'home' | 'domains' | 'history' | 'documents' | 'achievements' | 'help';
 
 export const Sidebar: React.FC<SidebarProps> = ({
   domains,
@@ -45,6 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   messageCount,
   onClearChat,
   onNewSession,
+  onSelectSession,
   isCollapsed,
   documents,
   onUpload,
@@ -54,50 +61,64 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenSidebar,
   onCloseSidebar,
   backgroundCommandCount = 1,
+  onOpenSettings,
+  sessions: propSessions = [],
+  currentBackendSessionId,
+  onDeleteSession,
 }) => {
-  const [activeTab, setActiveTab] = useState<TabType>('domains');
+  const [activeTab, setActiveTab] = useState<TabType>('home');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const { theme, toggleTheme } = useTheme();
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingSessionName, setEditingSessionName] = useState<string>('');
+  const [editingDomain, setEditingDomain] = useState<UserDomain | null>(null);
+  const [editingDomainName, setEditingDomainName] = useState<string>('');
+  const [editingDomainType, setEditingDomainType] = useState<DomainType>(DomainType.GENERAL);
+  const [editingDomainDescription, setEditingDomainDescription] = useState<string>('');
+  const [editingDomainDocuments, setEditingDomainDocuments] = useState<string[]>([]);
+  const [showCreateClassForm, setShowCreateClassForm] = useState(false);
+  const [newClassName, setNewClassName] = useState('');
+  const [newClassType, setNewClassType] = useState<DomainType>(DomainType.GENERAL);
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const { theme } = useTheme();
+  const { user } = useUser();
+  
+  // Use prop sessions if available, fallback to local sessions
+  const currentSessions = propSessions.length > 0 ? propSessions : sessions;
 
-  // Achievement system
-  const [totalPoints] = useState(150);
-  const achievements = [
-    {
-      id: 'active_learning',
-      title: 'Active Learning',
-      description: 'Asked 10+ questions',
-      icon: BookOpen,
-      color: 'text-blue-400',
-      points: 50,
-      unlocked: messageCount >= 10,
-      progress: Math.min(messageCount, 10),
-      maxProgress: 10
-    },
-    {
-      id: 'top_researcher',
-      title: 'Top Researcher', 
-      description: 'Completed 5+ research sessions',
-      icon: Trophy,
-      color: 'text-yellow-400',
-      points: 75,
-      unlocked: true,
-      progress: 5,
-      maxProgress: 5
-    },
-    {
-      id: 'creative_thinker',
-      title: 'Creative Thinker',
-      description: 'Used background command 3+ times', 
-      icon: Sparkles,
-      color: 'text-purple-400',
-      points: 25,
-      unlocked: backgroundCommandCount >= 3,
-      progress: Math.min(backgroundCommandCount, 3),
-      maxProgress: 3
-    }
-  ];
+  // Get real user data
+  const totalPoints = user?.stats?.total_points || 0;
+  const achievements = user?.achievements || [];
+
+  // Map achievement types to icons and colors
+  const getAchievementIcon = (type: string) => {
+    const iconMap: Record<string, any> = {
+      first_chat: BookOpen,
+      document_upload: Upload,
+      research_streak: Trophy,
+      domain_explorer: Sparkles,
+      citation_master: Award,
+      early_adopter: Star,
+      knowledge_seeker: BookOpen,
+      power_user: Zap,
+    };
+    return iconMap[type] || Award;
+  };
+
+  const getAchievementColor = (type: string) => {
+    const colorMap: Record<string, string> = {
+      first_chat: 'text-blue-400',
+      document_upload: 'text-green-400',
+      research_streak: 'text-yellow-400',
+      domain_explorer: 'text-purple-400',
+      citation_master: 'text-orange-400',
+      early_adopter: 'text-pink-400',
+      knowledge_seeker: 'text-indigo-400',
+      power_user: 'text-red-400',
+    };
+    return colorMap[type] || 'text-gray-400';
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -117,6 +138,51 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Load sessions when user is authenticated
+  useEffect(() => {
+    const loadSessions = async () => {
+      if (user) {
+        try {
+          const userSessions = await apiService.getSessions();
+          setSessions(userSessions);
+        } catch (error) {
+          console.error('Failed to load sessions:', error);
+        }
+      }
+    };
+
+    loadSessions();
+  }, [user]);
+
+  const handleDeleteSession = async (sessionId: string) => {
+    const session = sessions.find(s => s.id === sessionId);
+    const sessionName = session?.name || sessionId;
+    
+    if (!window.confirm(`Are you sure you want to delete the chat "${sessionName}"? This action cannot be undone.`)) {
+      return;
+    }
+    
+    try {
+      await apiService.deleteSession(sessionId);
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+    }
+  };
+
+  const handleRenameSession = async (sessionId: string, newName: string) => {
+    try {
+      await apiService.updateSession(sessionId, newName);
+      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, name: newName } : s));
+    } catch (error) {
+      console.error('Failed to rename session:', error);
+    } finally {
+      // Always clear editing state, regardless of API success/failure
+      setEditingSessionId(null);
+      setEditingSessionName('');
+    }
+  };
+
   if (isCollapsed) {
     return (
       <div className={`h-full w-16 backdrop-blur-md border-r flex flex-col items-center py-4 space-y-3 ${
@@ -125,37 +191,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
           : 'bg-black/10 border-black/20'
       }`}>
         <button 
-          onClick={() => { setActiveTab('domains'); onOpenSidebar?.(); }}
+          onClick={() => { setActiveTab('home'); onOpenSidebar?.(); }}
           className={`p-2 rounded-lg transition-colors ${
-            activeTab === 'domains' 
+            activeTab === 'home' 
               ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
               : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
           }`}
-          title="Domains"
+          title="Home"
         >
-          <MessageSquare className="w-4 h-4" />
+          <Home className="w-4 h-4" />
         </button>
         <button 
-          onClick={() => { setActiveTab('library'); onOpenSidebar?.(); }}
+          onClick={() => { setActiveTab('documents'); onOpenSidebar?.(); }}
           className={`p-2 rounded-lg transition-colors ${
-            activeTab === 'library' 
+            activeTab === 'documents' 
               ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
               : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
           }`}
-          title="Library"
+          title="Documents"
         >
           <File className="w-4 h-4" />
-        </button>
-        <button 
-          onClick={() => { setActiveTab('session'); onOpenSidebar?.(); }}
-          className={`p-2 rounded-lg transition-colors ${
-            activeTab === 'session' 
-              ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
-              : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
-          }`}
-          title="Session"
-        >
-          <RefreshCw className="w-4 h-4" />
         </button>
         <button 
           onClick={() => { setActiveTab('achievements'); onOpenSidebar?.(); }}
@@ -167,6 +222,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           title="Achievements"
         >
           <Trophy className="w-4 h-4" />
+        </button>
+        <button 
+          onClick={() => { setActiveTab('help'); onOpenSidebar?.(); }}
+          className={`p-2 rounded-lg transition-colors ${
+            activeTab === 'help' 
+              ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
+              : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
+          }`}
+          title="Help"
+        >
+          <HelpCircle className="w-4 h-4" />
         </button>
         <div className="mt-auto">
         </div>
@@ -191,13 +257,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           />
         );
       
-      case 'library':
+      case 'documents':
         return (
           <div className="p-4 space-y-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-white' : 'text-black'
-              }`}>Document Library</h3>
+              }`}>Documents</h3>
               <div className="flex items-center space-x-2">
                 <label htmlFor="file-upload" className={`p-1 rounded-lg transition-colors cursor-pointer ${
                   theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10'
@@ -248,7 +314,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </label>
               </div>
             ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-2 overflow-y-auto" style={{maxHeight: 'calc(100vh - 400px)'}}>
                 {documents.map(doc => (
                   <div key={doc.id} className={`rounded-lg p-2 transition-colors group ${
                     theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-black/5 hover:bg-black/10'
@@ -302,13 +368,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         );
 
-      case 'session':
+      case 'help':
         return (
           <div className="p-4 space-y-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-white' : 'text-black'
-              }`}>Session</h3>
+              }`}>Help</h3>
             </div>
 
             <div className="space-y-3">
@@ -415,6 +481,172 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         );
 
+      case 'history':
+        return (
+          <div className="p-4 space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-sm font-semibold ${
+                theme === 'dark' ? 'text-white' : 'text-black'
+              }`}>Chats</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      const newSession = await apiService.createSession();
+                      onSelectSession?.(newSession.id);
+                      setSessions(prev => [newSession, ...prev]);
+                    } catch (error) {
+                      console.error('Failed to create session:', error);
+                    }
+                  }}
+                  className={`p-1 rounded-lg transition-colors ${
+                    theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10'
+                  }`}
+                  title="New Chat"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2 overflow-y-auto" style={{maxHeight: 'calc(100vh - 400px)'}}>
+              {sessions.length === 0 ? (
+                <div className="text-center py-8">
+                  <MessageSquare className={`w-12 h-12 mx-auto mb-3 ${
+                    theme === 'dark' ? 'text-white/30' : 'text-black/30'
+                  }`} />
+                  <p className={`text-sm mb-3 ${
+                    theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                  }`}>No chat history yet</p>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const newSession = await apiService.createSession();
+                        onSelectSession?.(newSession.id);
+                        setSessions([newSession]);
+                      } catch (error) {
+                        console.error('Failed to create session:', error);
+                      }
+                    }}
+                    className={`text-xs py-2 px-4 rounded-lg transition-colors ${
+                      theme === 'dark'
+                        ? 'bg-white/10 hover:bg-white/20 text-white'
+                        : 'bg-black/10 hover:bg-black/20 text-black'
+                    }`}
+                  >
+                    New Chat
+                  </button>
+                </div>
+              ) : (
+                sessions.map(session => (
+                  <div
+                    key={session.id}
+                    className={`group rounded-lg p-3 transition-all duration-200 cursor-pointer ${
+                      sessionId === session.id
+                        ? (theme === 'dark' ? 'bg-white/15 shadow-lg' : 'bg-black/15 shadow-lg')
+                        : (theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-black/5 hover:bg-black/10')
+                    }`}
+                    onClick={() => onSelectSession?.(session.id)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        {editingSessionId === session.id ? (
+                          <input
+                            type="text"
+                            value={editingSessionName}
+                            onChange={(e) => setEditingSessionName(e.target.value)}
+                            onBlur={() => {
+                              if (editingSessionName.trim() && editingSessionName !== session.name) {
+                                handleRenameSession(session.id, editingSessionName);
+                              } else {
+                                setEditingSessionId(null);
+                                setEditingSessionName('');
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleRenameSession(session.id, editingSessionName);
+                              } else if (e.key === 'Escape') {
+                                setEditingSessionId(null);
+                                setEditingSessionName('');
+                              }
+                            }}
+                            className={`w-full text-sm font-medium bg-transparent border rounded px-2 py-1 ${
+                              theme === 'dark'
+                                ? 'text-white border-white/30 focus:border-white/50'
+                                : 'text-black border-black/30 focus:border-black/50'
+                            }`}
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <>
+                            <h4 className={`text-sm font-medium truncate ${
+                              theme === 'dark' ? 'text-white' : 'text-black'
+                            }`}>
+                              {session.name}
+                            </h4>
+                            {session.preview && (
+                              <p className={`text-xs mt-1 truncate ${
+                                theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                              }`}>
+                                {session.preview}
+                              </p>
+                            )}
+                            <div className={`text-xs mt-2 ${
+                              theme === 'dark' ? 'text-white/50' : 'text-black/50'
+                            }`}>
+                              {session.message_count} messages • {new Date(session.updated_at).toLocaleDateString()}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (editingSessionId === session.id) {
+                              // Cancel edit mode if already editing this session
+                              setEditingSessionId(null);
+                              setEditingSessionName('');
+                            } else {
+                              // Start editing this session
+                              setEditingSessionId(session.id);
+                              setEditingSessionName(session.name);
+                            }
+                          }}
+                          className={`p-1 rounded transition-colors ${
+                            theme === 'dark'
+                              ? 'text-white/40 hover:text-white hover:bg-white/10'
+                              : 'text-black/40 hover:text-black hover:bg-black/10'
+                          }`}
+                          title="Rename"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSession(session.id);
+                          }}
+                          className={`p-1 rounded transition-colors ${
+                            theme === 'dark'
+                              ? 'text-white/40 hover:text-red-400 hover:bg-red-400/10'
+                              : 'text-black/40 hover:text-red-400 hover:bg-red-400/10'
+                          }`}
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        );
+
       case 'achievements':
         return (
           <div className="p-4 space-y-4">
@@ -430,32 +662,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-3 overflow-y-auto" style={{maxHeight: 'calc(100vh - 300px)'}}>
               {achievements.map(achievement => {
-                const Icon = achievement.icon;
+                const Icon = getAchievementIcon(achievement.type);
+                const isUnlocked = achievement.unlocked_at !== null;
                 return (
                   <div
-                    key={achievement.id}
+                    key={achievement.type}
                     className={`relative p-3 rounded-lg transition-all duration-200 ${
-                      achievement.unlocked 
+                      isUnlocked 
                         ? (theme === 'dark' ? 'bg-white/10 shadow-lg' : 'bg-black/10 shadow-lg')
                         : (theme === 'dark' ? 'bg-white/5' : 'bg-black/5')
                     }`}
                   >
                     {/* Achievement unlocked glow effect */}
-                    {achievement.unlocked && (
+                    {isUnlocked && (
                       <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 rounded-lg animate-pulse" />
                     )}
                     
                     <div className="relative">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <Icon className={`w-5 h-5 ${achievement.color}`} />
-                          {achievement.unlocked && (
+                          <Icon className={`w-5 h-5 ${getAchievementColor(achievement.type)}`} />
+                          {isUnlocked && (
                             <Award className="w-4 h-4 text-yellow-400" />
                           )}
                         </div>
-                        {achievement.unlocked && (
+                        {isUnlocked && (
                           <div className="flex items-center gap-1">
                             <Zap className="w-3 h-3 text-yellow-400" />
                             <span className="text-xs text-yellow-400 font-semibold">
@@ -466,11 +699,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       </div>
                       
                       <h4 className={`text-sm font-medium mb-1 ${
-                        achievement.unlocked 
+                        isUnlocked 
                           ? (theme === 'dark' ? 'text-white' : 'text-black')
                           : (theme === 'dark' ? 'text-white/60' : 'text-black/60')
                       }`}>
-                        {achievement.title}
+                        {achievement.name}
                       </h4>
                       
                       <p className={`text-xs mb-2 ${
@@ -480,21 +713,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       </p>
                       
                       {/* Progress bar for locked achievements */}
-                      {!achievement.unlocked && (
+                      {!isUnlocked && (
                         <div className="space-y-1">
                           <div className={`w-full rounded-full h-2 ${
                             theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
                           }`}>
                             <div 
                               className="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${(achievement.progress / achievement.maxProgress) * 100}%` }}
+                              style={{ width: `${(achievement.progress / achievement.target) * 100}%` }}
                             />
                           </div>
                           <div className="flex justify-between items-center">
                             <span className={`text-xs ${
                               theme === 'dark' ? 'text-white/50' : 'text-black/50'
                             }`}>
-                              {achievement.progress}/{achievement.maxProgress}
+                              {achievement.progress}/{achievement.target}
                             </span>
                             <span className="text-xs text-purple-400">
                               +{achievement.points} pts
@@ -507,6 +740,619 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 );
               })}
             </div>
+          </div>
+        );
+
+      case 'home':
+        return (
+          <div className="p-4 space-y-6">
+            {/* Show editing form if editing */}
+            {editingDomain ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`text-sm font-semibold ${
+                    theme === 'dark' ? 'text-white' : 'text-black'
+                  }`}>Edit Class</h3>
+                  <button
+                    onClick={() => {
+                      setEditingDomain(null);
+                      setEditingDomainName('');
+                      setEditingDomainType(DomainType.GENERAL);
+                      setEditingDomainDescription('');
+                      setEditingDomainDocuments([]);
+                    }}
+                    className={`p-1 rounded-lg transition-colors ${
+                      theme === 'dark' 
+                        ? 'text-white/60 hover:text-white hover:bg-white/10' 
+                        : 'text-black/60 hover:text-black hover:bg-black/10'
+                    }`}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-medium mb-2 ${
+                    theme === 'dark' ? 'text-white/80' : 'text-black/80'
+                  }`}>
+                    Class Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editingDomainName}
+                    onChange={(e) => setEditingDomainName(e.target.value)}
+                    placeholder="e.g., History 101"
+                    className={`w-full border rounded-lg px-3 py-2 text-sm ${
+                      theme === 'dark'
+                        ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
+                        : 'bg-black/10 border-black/20 text-black placeholder-black/50'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-medium mb-2 ${
+                    theme === 'dark' ? 'text-white/80' : 'text-black/80'
+                  }`}>
+                    Class Type
+                  </label>
+                  <div className="grid grid-cols-3 gap-1">
+                    {Object.entries({
+                      [DomainType.GENERAL]: { icon: Home, label: 'General' },
+                      [DomainType.LAW]: { icon: Book, label: 'Law' },
+                      [DomainType.SCIENCE]: { icon: Beaker, label: 'Science' },
+                      [DomainType.MEDICINE]: { icon: Heart, label: 'Medicine' },
+                      [DomainType.BUSINESS]: { icon: Briefcase, label: 'Business' },
+                      [DomainType.COMPUTER_SCIENCE]: { icon: Code, label: 'Tech' },
+                    }).map(([type, info]) => {
+                      const Icon = info.icon;
+                      return (
+                        <button
+                          key={type}
+                          onClick={() => setEditingDomainType(type as DomainType)}
+                          className={`p-2 rounded text-xs transition-all duration-200 flex flex-col items-center space-y-1 ${
+                            editingDomainType === type
+                              ? theme === 'dark'
+                                ? 'bg-white/20 text-white'
+                                : 'bg-black/20 text-black'
+                              : theme === 'dark'
+                                ? 'bg-white/5 text-white/70 hover:bg-white/10'
+                                : 'bg-black/5 text-black/70 hover:bg-black/10'
+                          }`}
+                        >
+                          <Icon className="w-3 h-3" />
+                          <span>{info.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-medium mb-2 ${
+                    theme === 'dark' ? 'text-white/80' : 'text-black/80'
+                  }`}>
+                    Description (Optional)
+                  </label>
+                  <textarea
+                    value={editingDomainDescription}
+                    onChange={(e) => setEditingDomainDescription(e.target.value)}
+                    placeholder="Describe what this class is about..."
+                    className={`w-full border rounded-lg px-3 py-2 text-sm h-20 resize-none ${
+                      theme === 'dark'
+                        ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
+                        : 'bg-black/10 border-black/20 text-black placeholder-black/50'
+                    }`}
+                  />
+                </div>
+
+                {availableDocuments.length > 0 && (
+                  <div>
+                    <label className={`block text-xs font-medium mb-2 ${
+                      theme === 'dark' ? 'text-white/80' : 'text-black/80'
+                    }`}>
+                      Assign Documents
+                    </label>
+                    <div className={`max-h-32 overflow-y-auto space-y-1 rounded-lg p-2 border ${
+                      theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'
+                    }`}>
+                      {availableDocuments.map(doc => (
+                        <button
+                          key={doc.id}
+                          type="button"
+                          onClick={() => {
+                            setEditingDomainDocuments(prev => 
+                              prev.includes(doc.id)
+                                ? prev.filter(id => id !== doc.id)
+                                : [...prev, doc.id]
+                            );
+                          }}
+                          className={`w-full text-left p-2 rounded text-xs flex items-center justify-between transition-colors ${
+                            editingDomainDocuments.includes(doc.id)
+                              ? theme === 'dark'
+                                ? 'bg-white/15 text-white'
+                                : 'bg-black/15 text-black'
+                              : theme === 'dark'
+                                ? 'text-white/70 hover:bg-white/10'
+                                : 'text-black/70 hover:bg-black/10'
+                          }`}
+                        >
+                          <span className="truncate">{doc.filename}</span>
+                          {editingDomainDocuments.includes(doc.id) && (
+                            <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0"></div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => {
+                      if (editingDomainName.trim()) {
+                        onEditDomain?.(editingDomain.id, editingDomainName, editingDomainType, editingDomainDescription);
+                        onAssignDocuments(editingDomain.id, editingDomainDocuments);
+                        setEditingDomain(null);
+                        setEditingDomainName('');
+                        setEditingDomainType(DomainType.GENERAL);
+                        setEditingDomainDescription('');
+                        setEditingDomainDocuments([]);
+                      }
+                    }}
+                    disabled={!editingDomainName.trim()}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 rounded-lg transition-all duration-200 disabled:opacity-50 text-sm"
+                  >
+                    Update Class
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingDomain(null);
+                      setEditingDomainName('');
+                      setEditingDomainType(DomainType.GENERAL);
+                      setEditingDomainDescription('');
+                      setEditingDomainDocuments([]);
+                    }}
+                    className={`px-3 py-2 rounded-lg transition-colors text-sm ${
+                      theme === 'dark'
+                        ? 'bg-white/10 hover:bg-white/20 text-white'
+                        : 'bg-black/10 hover:bg-black/20 text-black'
+                    }`}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+            <div>
+            {/* Classes Section */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className={`text-sm font-semibold ${
+                  theme === 'dark' ? 'text-white' : 'text-black'
+                }`}>Your Classes</h3>
+                <button
+                  onClick={() => setShowCreateClassForm(!showCreateClassForm)}
+                  className={`p-1 rounded-lg transition-colors ${
+                    showCreateClassForm
+                      ? theme === 'dark'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-black/20 text-black'
+                      : theme === 'dark'
+                        ? 'text-white/60 hover:text-white hover:bg-white/10'
+                        : 'text-black/60 hover:text-black hover:bg-black/10'
+                  }`}
+                  title="Create Class"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+              
+              {/* Create Class Form */}
+              {showCreateClassForm && (
+                <div className={`mb-4 p-3 rounded-lg border ${
+                  theme === 'dark' 
+                    ? 'bg-white/5 border-white/20' 
+                    : 'bg-black/5 border-black/20'
+                }`}>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={newClassName}
+                      onChange={(e) => setNewClassName(e.target.value)}
+                      placeholder="Class name (e.g., History 101)"
+                      className={`w-full border rounded-lg px-3 py-2 text-sm ${
+                        theme === 'dark'
+                          ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
+                          : 'bg-black/10 border-black/20 text-black placeholder-black/50'
+                      }`}
+                    />
+                    
+                    <div className="grid grid-cols-3 gap-1">
+                      {Object.entries({
+                        [DomainType.GENERAL]: { icon: Home, label: 'General' },
+                        [DomainType.LAW]: { icon: Book, label: 'Law' },
+                        [DomainType.SCIENCE]: { icon: Beaker, label: 'Science' },
+                        [DomainType.MEDICINE]: { icon: Heart, label: 'Medicine' },
+                        [DomainType.BUSINESS]: { icon: Briefcase, label: 'Business' },
+                        [DomainType.COMPUTER_SCIENCE]: { icon: Code, label: 'Tech' },
+                      }).map(([type, info]) => {
+                        const Icon = info.icon;
+                        return (
+                          <button
+                            key={type}
+                            onClick={() => setNewClassType(type as DomainType)}
+                            className={`p-2 rounded text-xs transition-all duration-200 flex flex-col items-center space-y-1 ${
+                              newClassType === type
+                                ? theme === 'dark'
+                                  ? 'bg-white/20 text-white'
+                                  : 'bg-black/20 text-black'
+                                : theme === 'dark'
+                                  ? 'bg-white/5 text-white/70 hover:bg-white/10'
+                                  : 'bg-black/5 text-black/70 hover:bg-black/10'
+                            }`}
+                          >
+                            <Icon className="w-3 h-3" />
+                            <span>{info.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Document Selection */}
+                    {availableDocuments.length > 0 && (
+                      <div>
+                        <label className={`block text-xs font-medium mb-2 ${
+                          theme === 'dark' ? 'text-white/80' : 'text-black/80'
+                        }`}>
+                          Assign Documents (Optional)
+                        </label>
+                        <div className={`max-h-32 overflow-y-auto space-y-1 rounded-lg p-2 border ${
+                          theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'
+                        }`}>
+                          {availableDocuments.map(doc => (
+                            <button
+                              key={doc.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedDocuments(prev => 
+                                  prev.includes(doc.id)
+                                    ? prev.filter(id => id !== doc.id)
+                                    : [...prev, doc.id]
+                                );
+                              }}
+                              className={`w-full text-left p-2 rounded text-xs flex items-center justify-between transition-colors ${
+                                selectedDocuments.includes(doc.id)
+                                  ? theme === 'dark'
+                                    ? 'bg-white/15 text-white'
+                                    : 'bg-black/15 text-black'
+                                  : theme === 'dark'
+                                    ? 'text-white/70 hover:bg-white/10'
+                                    : 'text-black/70 hover:bg-black/10'
+                              }`}
+                            >
+                              <span className="truncate">{doc.filename}</span>
+                              {selectedDocuments.includes(doc.id) && (
+                                <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0"></div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                        {selectedDocuments.length > 0 && (
+                          <div className={`text-xs mt-1 ${
+                            theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                          }`}>
+                            {selectedDocuments.length} document{selectedDocuments.length !== 1 ? 's' : ''} selected
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => {
+                          if (newClassName.trim()) {
+                            onCreateDomain(newClassName, newClassType);
+                            // Assign documents to the newly created domain
+                            if (selectedDocuments.length > 0) {
+                              // Get the most recently created domain (it will be the last one)
+                              setTimeout(() => {
+                                const newDomain = domains[domains.length - 1];
+                                if (newDomain) {
+                                  onAssignDocuments(newDomain.id, selectedDocuments);
+                                }
+                              }, 100);
+                            }
+                            setNewClassName('');
+                            setNewClassType(DomainType.GENERAL);
+                            setSelectedDocuments([]);
+                            setShowCreateClassForm(false);
+                          }
+                        }}
+                        disabled={!newClassName.trim()}
+                        className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 rounded-lg transition-all duration-200 disabled:opacity-50 text-sm"
+                      >
+                        Create Class
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCreateClassForm(false);
+                          setNewClassName('');
+                          setNewClassType(DomainType.GENERAL);
+                          setSelectedDocuments([]);
+                        }}
+                        className={`px-3 py-2 rounded-lg transition-colors text-sm ${
+                          theme === 'dark'
+                            ? 'bg-white/10 hover:bg-white/20 text-white'
+                            : 'bg-black/10 hover:bg-black/20 text-black'
+                        }`}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {domains.length === 0 ? (
+                <div className="text-center py-6">
+                  <div className={`text-sm mb-3 ${
+                    theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                  }`}>No classes yet</div>
+                  <button
+                    onClick={() => setShowCreateClassForm(true)}
+                    className={`text-xs py-1 px-3 rounded-lg transition-colors ${
+                      theme === 'dark'
+                        ? 'bg-white/10 hover:bg-white/20 text-white'
+                        : 'bg-black/10 hover:bg-black/20 text-black'
+                    }`}
+                  >
+                    Create Your First Class
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {domains.map(domain => {
+                    const typeInfo = {
+                      [DomainType.GENERAL]: { icon: Home, label: 'General', color: 'blue' },
+                      [DomainType.LAW]: { icon: Book, label: 'Law', color: 'amber' },
+                      [DomainType.SCIENCE]: { icon: Beaker, label: 'Science', color: 'green' },
+                      [DomainType.MEDICINE]: { icon: Heart, label: 'Medicine', color: 'red' },
+                      [DomainType.BUSINESS]: { icon: Briefcase, label: 'Business', color: 'purple' },
+                      [DomainType.HUMANITIES]: { icon: GraduationCap, label: 'Humanities', color: 'pink' },
+                      [DomainType.COMPUTER_SCIENCE]: { icon: Code, label: 'Computer Science', color: 'cyan' },
+                    }[domain.type];
+                    const Icon = typeInfo.icon;
+                    const isActive = activeDomain?.id === domain.id;
+
+                    return (
+                      <button
+                        key={domain.id}
+                        onClick={() => onSelectDomain(domain)}
+                        className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group ${
+                          isActive
+                            ? theme === 'dark'
+                              ? 'bg-white/15 border border-white/20'
+                              : 'bg-black/15 border border-black/20'
+                            : theme === 'dark'
+                              ? 'bg-white/5 hover:bg-white/10 border border-transparent'
+                              : 'bg-black/5 hover:bg-black/10 border border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className={`p-2 rounded-lg bg-${typeInfo.color}-500/20`}>
+                              <Icon className={`w-4 h-4 text-${typeInfo.color}-300`} />
+                            </div>
+                            <div className="flex-1">
+                              <div className={`font-medium text-sm ${
+                                theme === 'dark' ? 'text-white' : 'text-black'
+                              }`}>
+                                {domain.name}
+                              </div>
+                              <div className={`text-xs ${
+                                theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                              }`}>
+                                {typeInfo.label}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingDomain(domain);
+                                setEditingDomainName(domain.name);
+                                setEditingDomainType(domain.type);
+                                setEditingDomainDescription(domain.description || '');
+                                setEditingDomainDocuments(domain.documents || []);
+                              }}
+                              className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${
+                                theme === 'dark' 
+                                  ? 'hover:bg-white/10 text-white/60 hover:text-white' 
+                                  : 'hover:bg-black/10 text-black/60 hover:text-black'
+                              }`}
+                              title="Edit Class"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteDomain(domain.id);
+                              }}
+                              className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${
+                                theme === 'dark' 
+                                  ? 'hover:bg-red-500/20 text-white/60 hover:text-red-400' 
+                                  : 'hover:bg-red-500/20 text-black/60 hover:text-red-600'
+                              }`}
+                              title="Delete Class"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Chats Section */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className={`text-sm font-semibold ${
+                  theme === 'dark' ? 'text-white' : 'text-black'
+                }`}>Recent Chats</h3>
+                <button
+                  onClick={onNewSession}
+                  className={`text-xs py-1 px-3 rounded-lg transition-colors ${
+                    theme === 'dark'
+                      ? 'bg-white/10 hover:bg-white/20 text-white/70 hover:text-white'
+                      : 'bg-black/10 hover:bg-black/20 text-black/70 hover:text-black'
+                  }`}
+                >
+                  New Chat
+                </button>
+              </div>
+              
+              {currentSessions.length === 0 ? (
+                <div className="text-center py-6">
+                  <MessageSquare className={`w-8 h-8 mx-auto mb-3 ${
+                    theme === 'dark' ? 'text-white/30' : 'text-black/30'
+                  }`} />
+                  <div className={`text-sm mb-3 ${
+                    theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                  }`}>No chats yet</div>
+                  <button
+                    onClick={onNewSession}
+                    className={`text-xs py-1 px-3 rounded-lg transition-colors ${
+                      theme === 'dark'
+                        ? 'bg-white/10 hover:bg-white/20 text-white'
+                        : 'bg-black/10 hover:bg-black/20 text-black'
+                    }`}
+                  >
+                    New Chat
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {currentSessions.map(session => {
+                    const isActive = currentBackendSessionId === session.id;
+                    // Find which domain this session belongs to
+                    const sessionDomain = domains.find(d => d.id === session.domain);
+                    
+                    return (
+                      <div key={session.id}>
+                        <button
+                          onClick={() => onSelectSession?.(session.id)}
+                          className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group ${
+                            isActive
+                              ? theme === 'dark'
+                                ? 'bg-white/15 border border-white/20'
+                                : 'bg-black/15 border border-black/20'
+                              : theme === 'dark'
+                                ? 'bg-white/5 hover:bg-white/10 border border-transparent'
+                                : 'bg-black/5 hover:bg-black/10 border border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3 flex-1">
+                              {/* Class Badge - Far Left */}
+                              <div className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
+                                theme === 'dark' 
+                                  ? 'bg-white/10 text-white/60' 
+                                  : 'bg-black/10 text-black/60'
+                              }`}>
+                                {sessionDomain ? sessionDomain.name : 'General'}
+                              </div>
+                              
+                              {/* Chat Content */}
+                              <div className="flex-1 min-w-0">
+                                <div className={`font-medium text-sm truncate ${
+                                  theme === 'dark' ? 'text-white' : 'text-black'
+                                }`}>
+                                  {editingSessionId === session.id ? (
+                                    <input
+                                      type="text"
+                                      value={editingSessionName}
+                                      onChange={(e) => setEditingSessionName(e.target.value)}
+                                      onBlur={() => {
+                              if (editingSessionName.trim() && editingSessionName !== session.name) {
+                                handleRenameSession(session.id, editingSessionName);
+                              } else {
+                                setEditingSessionId(null);
+                                setEditingSessionName('');
+                              }
+                            }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleRenameSession(session.id, editingSessionName);
+                                        if (e.key === 'Escape') {
+                                          setEditingSessionId(null);
+                                          setEditingSessionName('');
+                                        }
+                                      }}
+                                      className={`w-full bg-transparent border-none outline-none ${
+                                        theme === 'dark' ? 'text-white' : 'text-black'
+                                      }`}
+                                      autoFocus
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  ) : (
+                                    session.name
+                                  )}
+                                </div>
+                                <div className={`text-xs ${
+                                  theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                                }`}>
+                                  {new Date(session.updated_at).toLocaleDateString()}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {!editingSessionId && (
+                                <>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingSessionId(session.id);
+                                      setEditingSessionName(session.name);
+                                    }}
+                                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${
+                                      theme === 'dark' 
+                                        ? 'hover:bg-white/10 text-white/60 hover:text-white' 
+                                        : 'hover:bg-black/10 text-black/60 hover:text-black'
+                                    }`}
+                                  >
+                                    <Edit3 className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteSession(session.id);
+                                    }}
+                                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${
+                                      theme === 'dark' 
+                                        ? 'hover:bg-red-500/20 text-white/60 hover:text-red-400' 
+                                        : 'hover:bg-red-500/20 text-black/60 hover:text-red-600'
+                                    }`}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            </div>
+            )}
           </div>
         );
 
@@ -527,34 +1373,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
       }`}>
         <div className="flex items-center space-x-1">
           <button
-            onClick={() => setActiveTab('domains')}
+            onClick={() => setActiveTab('home')}
             className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-              activeTab === 'domains' 
+              activeTab === 'home' 
                 ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
             }`}
           >
-            Domains
+            Home
           </button>
           <button
-            onClick={() => setActiveTab('library')}
+            onClick={() => setActiveTab('documents')}
             className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-              activeTab === 'library' 
+              activeTab === 'documents' 
                 ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
             }`}
           >
-            Library
-          </button>
-          <button
-            onClick={() => setActiveTab('session')}
-            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-              activeTab === 'session' 
-                ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
-                : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
-            }`}
-          >
-            Session
+            Documents
           </button>
           <button
             onClick={() => setActiveTab('achievements')}
@@ -565,6 +1401,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }`}
           >
             Achievements
+          </button>
+          <button
+            onClick={() => setActiveTab('help')}
+            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+              activeTab === 'help' 
+                ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
+                : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
+            }`}
+          >
+            Help
           </button>
         </div>
         <div className="flex items-center space-x-2">
@@ -580,7 +1426,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
         {renderTabContent()}
       </div>
       
@@ -589,7 +1435,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         theme === 'dark' ? 'border-white/10' : 'border-black/10'
       }`}>
         <button
-          onClick={() => setShowSettings(true)}
+          onClick={onOpenSettings}
           className={`w-full flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 group ${
             theme === 'dark' 
               ? 'text-white/70' 
@@ -608,12 +1454,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }`}>Settings</span>
         </button>
       </div>
-      
-      {/* Settings Modal */}
-      <SettingsModal 
-        isOpen={showSettings} 
-        onClose={() => setShowSettings(false)} 
-      />
     </div>
   );
 };

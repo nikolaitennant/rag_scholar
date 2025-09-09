@@ -10,9 +10,11 @@ from pydantic import BaseModel
 from rag_scholar.config.settings import get_settings
 from rag_scholar.services.document_service import DocumentService
 from rag_scholar.services.dependencies import get_document_service
+from .auth import get_current_user
+from ...models.user import UserResponse
+from ...services.user_service import user_service
 
 router = APIRouter()
-settings = get_settings()
 
 
 class DocumentResponse(BaseModel):
@@ -39,6 +41,7 @@ async def upload_document(
     file: UploadFile = File(...),
     collection: str = "default",
     document_service: DocumentService = Depends(get_document_service),
+    current_user: UserResponse = Depends(get_current_user),
 ) -> DocumentResponse:
     """Upload and process a document."""
     
@@ -54,6 +57,7 @@ async def upload_document(
     
     try:
         # Save uploaded file
+        settings = get_settings()
         upload_path = settings.upload_dir / collection / file.filename
         upload_path.parent.mkdir(parents=True, exist_ok=True)
         
@@ -65,6 +69,9 @@ async def upload_document(
             file_path=upload_path,
             collection=collection,
         )
+        
+        # Update user statistics for document upload
+        await user_service.update_user_stats(current_user.id, "document_upload", 1)
         
         return DocumentResponse(
             id=result["doc_id"],

@@ -6,12 +6,13 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { UserProvider, useUser } from './contexts/UserContext';
 import { LoginPage } from './components/LoginPage';
 import { ThemeToggle } from './components/ThemeToggle';
+import { SettingsModal } from './components/SettingsModal';
 import { apiService } from './services/api';
 import { Message, DomainType, Document, UserDomain } from './types';
 
 const AppContent: React.FC = () => {
   const { theme, toggleTheme, getBackgroundClass } = useTheme();
-  const { user, login, signUp, isAuthenticated } = useUser();
+  const { user, login, signUp, refreshUser, isAuthenticated, loading } = useUser();
   const [messages, setMessages] = useState<Message[]>([]);
   const [userDomains, setUserDomains] = useState<UserDomain[]>([]);
   const [activeDomain, setActiveDomain] = useState<UserDomain | null>(null);
@@ -20,15 +21,21 @@ const AppContent: React.FC = () => {
   const [sessionId, setSessionId] = useState<string>(() => 
     Math.random().toString(36).substring(2) + Date.now().toString(36)
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const [currentBackendSessionId, setCurrentBackendSessionId] = useState<string | null>(null);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [isDocumentLoading, setIsDocumentLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [backgroundCommandCount, setBackgroundCommandCount] = useState(1);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [themeToggleVisible, setThemeToggleVisible] = useState(true);
 
   // Load initial data
   const loadDocuments = useCallback(async () => {
     try {
+      console.log('Loading documents...');
       const docs = await apiService.getDocuments('default');
+      console.log('Loaded documents:', docs);
       setDocuments(docs);
     } catch (error) {
       console.error('Failed to load documents:', error);
@@ -37,20 +44,13 @@ const AppContent: React.FC = () => {
   }, []);
 
   const loadUserDomains = useCallback(async () => {
-    // For now, use mock data - will connect to API later
-    const mockDomains: UserDomain[] = [
-      {
-        id: 'general-1',
-        name: 'General Research',
-        type: DomainType.GENERAL,
-        documents: [],
-        created_at: new Date().toISOString(),
-        description: 'General purpose research and queries'
-      }
-    ];
-    setUserDomains(mockDomains);
-    if (!activeDomain && mockDomains.length > 0) {
-      setActiveDomain(mockDomains[0]);
+    // Load domains from localStorage or start with empty array
+    const savedDomains = localStorage.getItem('userDomains');
+    const domains: UserDomain[] = savedDomains ? JSON.parse(savedDomains) : [];
+    
+    setUserDomains(domains);
+    if (!activeDomain && domains.length > 0) {
+      setActiveDomain(domains[0]);
     }
   }, [activeDomain]);
 
@@ -69,11 +69,46 @@ const AppContent: React.FC = () => {
     loadUserDomains();
   }, [checkApiHealth, loadDocuments, loadUserDomains]);
 
+  // Auto-hide theme toggle after 2 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setThemeToggleVisible(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Reset timer when toggle becomes visible again
+  useEffect(() => {
+    if (themeToggleVisible) {
+      const timer = setTimeout(() => {
+        setThemeToggleVisible(false);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [themeToggleVisible]);
+
   // Handlers
   const handleSendMessage = async (content: string) => {
     // Check if it's a background command
     if (content.toLowerCase().startsWith('/background')) {
       setBackgroundCommandCount(prev => prev + 1);
+    }
+
+    // Auto-create a new backend session if this is the first message and we don't have an active session
+    let effectiveSessionId = sessionId;
+    if (!currentBackendSessionId && messages.length === 0) {
+      try {
+        const newSession = await apiService.createSession();
+        const newBackendSessionId = newSession.id;
+        setCurrentBackendSessionId(newBackendSessionId);
+        setSessionId(newBackendSessionId);
+        effectiveSessionId = newBackendSessionId;
+      } catch (error) {
+        console.error('Failed to create new session:', error);
+        // Continue with the current sessionId as fallback
+      }
     }
 
     const userMessage: Message = { role: 'user', content };
@@ -88,13 +123,19 @@ const AppContent: React.FC = () => {
       }
       return newMessages;
     });
-    setIsLoading(true);
+    setIsChatLoading(true);
 
     try {
       const response = await apiService.chat({
         query: content,
         domain: activeDomain?.type || DomainType.GENERAL,
-        session_id: sessionId,
+        session_id: effectiveSessionId,
+        user_context: user ? {
+          name: user.name,
+          bio: user.profile?.bio || null,
+          research_interests: user.profile?.research_interests || [],
+          preferred_domains: user.profile?.preferred_domains || []
+        } : null,
       });
 
       const assistantMessage: Message = {
@@ -114,6 +155,11 @@ const AppContent: React.FC = () => {
         }
         return newMessages;
       });
+
+      // Refresh user data to update achievements in real-time
+      if (user && refreshUser) {
+        refreshUser().catch(error => console.error('Failed to refresh user:', error));
+      }
     } catch (error) {
       const errorMessage: Message = {
         role: 'assistant',
@@ -131,15 +177,24 @@ const AppContent: React.FC = () => {
         return newMessages;
       });
     } finally {
-      setIsLoading(false);
+      setIsChatLoading(false);
     }
   };
 
   const handleUploadDocument = async (file: File) => {
-    setIsLoading(true);
+    setIsDocumentLoading(true);
     try {
       const uploadResponse = await apiService.uploadDocument(file, 'default');
+      console.log('Upload successful:', uploadResponse);
+      
+      // Refresh document list
       await loadDocuments();
+      console.log('Documents reloaded after upload');
+      
+      // Refresh user data to update achievements
+      if (user && refreshUser) {
+        refreshUser().catch(error => console.error('Failed to refresh user after upload:', error));
+      }
       
       // Auto-assign the uploaded document to the current active domain
       if (activeDomain && uploadResponse?.id) {
@@ -148,12 +203,20 @@ const AppContent: React.FC = () => {
       }
     } catch (error) {
       console.error('Upload failed:', error);
+      alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      setIsLoading(false);
+      setIsDocumentLoading(false);
     }
   };
 
   const handleDeleteDocument = async (documentId: string) => {
+    const document = documents.find(doc => doc.id === documentId);
+    const documentName = document?.filename || documentId;
+    
+    if (!window.confirm(`Are you sure you want to delete "${documentName}"? This action cannot be undone.`)) {
+      return;
+    }
+    
     try {
       console.log('Attempting to delete document:', documentId);
       await apiService.deleteDocument('default', documentId);
@@ -167,14 +230,14 @@ const AppContent: React.FC = () => {
   };
 
   const handleReindexCollection = async () => {
-    setIsLoading(true);
+    setIsDocumentLoading(true);
     try {
       await apiService.reindexCollection('default');
       await loadDocuments();
     } catch (error) {
       console.error('Reindex failed:', error);
     } finally {
-      setIsLoading(false);
+      setIsDocumentLoading(false);
     }
   };
 
@@ -187,15 +250,23 @@ const AppContent: React.FC = () => {
       created_at: new Date().toISOString(),
       description
     };
-    setUserDomains(prev => [...prev, newDomain]);
+    setUserDomains(prev => {
+      const newDomains = [...prev, newDomain];
+      localStorage.setItem('userDomains', JSON.stringify(newDomains));
+      return newDomains;
+    });
   };
 
   const handleEditDomain = (domainId: string, name: string, type: DomainType, description?: string) => {
-    setUserDomains(prev => prev.map(domain => 
-      domain.id === domainId 
-        ? { ...domain, name, type, description }
-        : domain
-    ));
+    setUserDomains(prev => {
+      const newDomains = prev.map(domain => 
+        domain.id === domainId 
+          ? { ...domain, name, type, description }
+          : domain
+      );
+      localStorage.setItem('userDomains', JSON.stringify(newDomains));
+      return newDomains;
+    });
   };
 
   const handleSelectDomain = (domain: UserDomain) => {
@@ -216,7 +287,18 @@ const AppContent: React.FC = () => {
   };
 
   const handleDeleteDomain = (domainId: string) => {
-    setUserDomains(prev => prev.filter(d => d.id !== domainId));
+    const domain = userDomains.find(d => d.id === domainId);
+    const domainName = domain?.name || domainId;
+    
+    if (!window.confirm(`Are you sure you want to delete the class "${domainName}"? This action cannot be undone.`)) {
+      return;
+    }
+    
+    setUserDomains(prev => {
+      const newDomains = prev.filter(d => d.id !== domainId);
+      localStorage.setItem('userDomains', JSON.stringify(newDomains));
+      return newDomains;
+    });
     if (activeDomain?.id === domainId) {
       const remainingDomains = userDomains.filter(d => d.id !== domainId);
       setActiveDomain(remainingDomains[0] || null);
@@ -225,11 +307,15 @@ const AppContent: React.FC = () => {
   };
 
   const handleAssignDocuments = (domainId: string, documentIds: string[]) => {
-    setUserDomains(prev => prev.map(domain => 
-      domain.id === domainId 
-        ? { ...domain, documents: documentIds }
-        : domain
-    ));
+    setUserDomains(prev => {
+      const newDomains = prev.map(domain => 
+        domain.id === domainId 
+          ? { ...domain, documents: documentIds }
+          : domain
+      );
+      localStorage.setItem('userDomains', JSON.stringify(newDomains));
+      return newDomains;
+    });
   };
 
   const handleClearChat = () => {
@@ -245,14 +331,65 @@ const AppContent: React.FC = () => {
 
   const handleNewSession = () => {
     setSessionId(Math.random().toString(36).substring(2) + Date.now().toString(36));
+    setCurrentBackendSessionId(null);  // Clear current session - new one will be created on first message
     setMessages([]);
     // Clear all domain histories for new session
     setDomainChatHistory({});
   };
 
+  const handleSelectSession = async (newSessionId: string) => {
+    try {
+      // Load session data from backend
+      const sessionData = await apiService.getSession(newSessionId);
+      
+      // Set the new session ID
+      setSessionId(newSessionId);
+      setCurrentBackendSessionId(newSessionId);
+      
+      // Convert session messages to our Message format
+      const sessionMessages = sessionData.messages.map((msg: any) => ({
+        role: msg.role,
+        content: msg.content,
+        citations: msg.citations || []
+      }));
+      
+      setMessages(sessionMessages);
+      
+      // Clear domain histories as we're switching to a different session
+      setDomainChatHistory({});
+      
+    } catch (error) {
+      console.error('Failed to load session:', error);
+      // Fallback to creating a new session
+      setSessionId(newSessionId);
+      setMessages([]);
+      setDomainChatHistory({});
+    }
+  };
+
   const getUserMessageCount = () => {
     return messages.filter(msg => msg.role === 'user').length;
   };
+
+  // Show loading screen while checking authentication
+  if (loading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${
+        theme === 'dark' 
+          ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900'
+          : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'
+      }`}>
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className={`text-lg font-medium ${
+            theme === 'dark' ? 'text-white/70' : 'text-black/70'
+          }`}>
+            Loading RAG Scholar...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Show login page if not authenticated
   if (!isAuthenticated) {
@@ -322,15 +459,17 @@ const AppContent: React.FC = () => {
           messageCount={getUserMessageCount()}
           onClearChat={handleClearChat}
           onNewSession={handleNewSession}
+          onSelectSession={handleSelectSession}
           isCollapsed={!sidebarOpen}
           documents={documents}
           onUpload={handleUploadDocument}
           onDeleteDocument={handleDeleteDocument}
           onReindex={handleReindexCollection}
-          isLoading={isLoading}
+          isLoading={isDocumentLoading}
           onOpenSidebar={() => setSidebarOpen(true)}
           onCloseSidebar={() => setSidebarOpen(false)}
           backgroundCommandCount={backgroundCommandCount}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
       </div>
       
@@ -344,8 +483,13 @@ const AppContent: React.FC = () => {
         </button>
       )}
       
-      {/* Theme Toggle - Upper Right */}
-      <div className="fixed top-4 right-4 z-[70]">
+      {/* Theme Toggle - Upper Right with auto-hide and hover visibility */}
+      <div 
+        className={`fixed top-4 right-4 z-[60] transition-opacity duration-300 ${
+          themeToggleVisible ? 'opacity-70 hover:opacity-100' : 'opacity-0 hover:opacity-100'
+        }`}
+        onMouseEnter={() => setThemeToggleVisible(true)}
+      >
         <ThemeToggle theme={theme} onToggle={toggleTheme} />
       </div>
       
@@ -357,13 +501,19 @@ const AppContent: React.FC = () => {
           <ChatInterface
             messages={messages}
             onSendMessage={handleSendMessage}
-            isLoading={isLoading}
+            isLoading={isChatLoading}
             currentDomain={activeDomain?.type || DomainType.GENERAL}
             activeCollection="default"
             userName={user?.name || 'User'}
           />
         </div>
       </div>
+      
+      {/* Settings Modal - Rendered at root level for full screen overlay */}
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </div>
   );
 };

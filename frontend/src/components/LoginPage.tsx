@@ -18,6 +18,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp }) => {
     password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Focus name input and clear form when switching to signup mode
@@ -25,18 +26,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp }) => {
     if (isSignUp && nameInputRef.current) {
       // Clear form data when switching to signup
       setFormData({ name: '', email: '', password: '' });
+      setError(null);
       setTimeout(() => {
         nameInputRef.current?.focus();
       }, 100);
     } else if (!isSignUp) {
       // Clear form data when switching back to login
       setFormData({ name: '', email: '', password: '' });
+      setError(null);
     }
   }, [isSignUp]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     try {
       if (isSignUp) {
         await onSignUp(formData.name, formData.email, formData.password);
@@ -45,6 +49,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp }) => {
       }
     } catch (error) {
       console.error('Authentication error:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred during authentication');
     } finally {
       setIsLoading(false);
     }
@@ -252,6 +257,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp }) => {
               </div>
             </div>
 
+            {error && (
+              <div className={`p-3 rounded-xl border ${
+                theme === 'dark'
+                  ? 'bg-red-900/20 border-red-500/30 text-red-400'
+                  : 'bg-red-50 border-red-200 text-red-600'
+              }`}>
+                <p className="text-sm text-center">{error}</p>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isLoading}
@@ -282,20 +297,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp }) => {
             </button>
           </div>
 
-          {/* Demo credentials hint */}
-          {!isSignUp && (
-            <div className={`mt-6 p-4 rounded-xl border ${
-              theme === 'dark'
-                ? 'bg-white/5 border-white/10'
-                : 'bg-black/5 border-black/10'
-            }`}>
-              <p className={`text-xs text-center ${
-                theme === 'dark' ? 'text-white/50' : 'text-black/50'
-              }`}>
-                Demo: Use any email and password to continue
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from rag_scholar.api.routes import chat, documents, health
+from rag_scholar.api.routes import auth, chat, documents, health, sessions
 from rag_scholar.config.settings import get_settings
 from rag_scholar.utils.logging import setup_logging
 
@@ -64,6 +64,16 @@ def create_app() -> FastAPI:
         chat.router,
         prefix=f"{settings.api_prefix}/chat",
         tags=["chat"],
+    )
+    app.include_router(
+        auth.router,
+        prefix=f"{settings.api_prefix}",
+        tags=["auth"],
+    )
+    app.include_router(
+        sessions.router,
+        prefix=f"{settings.api_prefix}",
+        tags=["sessions"],
     )
     
     # Exception handlers

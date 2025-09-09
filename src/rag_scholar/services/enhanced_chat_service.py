@@ -13,6 +13,7 @@ from rag_scholar.core.domains import DomainFactory
 from rag_scholar.services.memory_service import MemoryService
 from rag_scholar.services.retrieval_service import RetrievalService
 from rag_scholar.services.session_manager import SessionManager
+from rag_scholar.services.user_service import user_service
 
 
 class SpecialCommand(BaseModel):
@@ -79,6 +80,8 @@ class ChatService:
         session_id: Optional[str] = None,
         selected_documents: Optional[List[str]] = None,
         active_class: Optional[str] = None,
+        user_context: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Process query with special commands and features."""
         
@@ -225,6 +228,30 @@ class ChatService:
         
         # Check if we have enough information
         if not retrieved_docs and not session["memory_facts"] and not session["session_facts"]:
+            # For casual conversation (greetings, simple questions), allow basic responses
+            casual_patterns = [
+                "hello", "hi", "hey", "how are you", "what's up", "good morning", 
+                "good afternoon", "good evening", "thanks", "thank you", "bye", 
+                "goodbye", "who are you", "what do you do", "help"
+            ]
+            
+            if any(pattern in query.lower() for pattern in casual_patterns):
+                # Allow basic conversational response
+                domain_prompts = domain_handler.get_prompts()
+                messages = [
+                    SystemMessage(content=f"{domain_prompts.system_prompt}\n\nFor casual conversation, you can respond naturally without requiring document context."),
+                    HumanMessage(content=query)
+                ]
+                
+                response = await self.llm.ainvoke(messages)
+                return {
+                    "answer": response.content,
+                    "citations": [],
+                    "domain": domain.value,
+                    "session_id": session_id,
+                    "conversational": True,
+                }
+            
             return {
                 "answer": (
                     "I don't have enough information in the provided material to answer that.\n\n"
@@ -307,6 +334,14 @@ class ChatService:
         
         await self.session_manager.save_session(session_id, session)
         
+        # Update user statistics if user_id is provided
+        if user_id:
+            await user_service.update_user_stats(user_id, "chat", 1)
+            
+            # Add domain to user's explored domains if it's a new domain
+            if domain:
+                await user_service.add_domain_explored(user_id, domain.value)
+        
         return {
             "answer": answer,
             "citations": citations,
@@ -314,6 +349,31 @@ class ChatService:
             "session_id": session_id,
             "active_class": collection,
         }
+    
+    async def stream_query(
+        self,
+        query: str,
+        domain: Optional[DomainType] = None,
+        session_id: Optional[str] = None,
+        selected_documents: Optional[List[str]] = None,
+        user_context: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
+    ):
+        """Stream query responses."""
+        # For now, just call process_query and yield the complete response
+        # In the future, this could be enhanced to stream token by token
+        result = await self.process_query(
+            query=query,
+            domain=domain,
+            session_id=session_id,
+            selected_documents=selected_documents,
+            user_context=user_context,
+            user_id=user_id,
+        )
+        
+        # Yield the complete response as a JSON string
+        import json
+        yield f"data: {json.dumps(result)}\n\n"
     
     def _build_context_with_citations(
         self,

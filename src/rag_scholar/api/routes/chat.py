@@ -9,6 +9,8 @@ from pydantic import BaseModel
 from rag_scholar.config.settings import DomainType, get_settings
 from rag_scholar.services.enhanced_chat_service import ChatService
 from rag_scholar.services.dependencies import get_chat_service
+from .auth import get_current_user
+from ...models.user import UserResponse
 
 router = APIRouter()
 
@@ -21,6 +23,7 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     selected_documents: Optional[List[str]] = None
     stream: bool = False
+    user_context: Optional[dict] = None  # Contains bio, research_interests, etc.
 
 
 class ChatResponse(BaseModel):
@@ -46,6 +49,7 @@ class Citation(BaseModel):
 async def chat_query(
     request: ChatRequest,
     chat_service: ChatService = Depends(get_chat_service),
+    current_user: UserResponse = Depends(get_current_user),
 ) -> ChatResponse:
     """Process a chat query with RAG."""
     
@@ -55,6 +59,8 @@ async def chat_query(
             domain=request.domain,
             session_id=request.session_id,
             selected_documents=request.selected_documents,
+            user_context=request.user_context,
+            user_id=current_user.id,
         )
         
         return ChatResponse(
@@ -72,6 +78,7 @@ async def chat_query(
 async def chat_stream(
     request: ChatRequest,
     chat_service: ChatService = Depends(get_chat_service),
+    current_user: UserResponse = Depends(get_current_user),
 ) -> StreamingResponse:
     """Stream chat responses."""
     
@@ -81,6 +88,8 @@ async def chat_stream(
             domain=request.domain,
             session_id=request.session_id,
             selected_documents=request.selected_documents,
+            user_context=request.user_context,
+            user_id=current_user.id,
         ):
             yield chunk
     
@@ -111,6 +120,7 @@ async def websocket_chat(
                 domain=DomainType(data.get("domain", "general")),
                 session_id=session_id,
                 selected_documents=data.get("selected_documents"),
+                user_context=data.get("user_context"),
             )
             
             # Send response

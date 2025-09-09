@@ -8,6 +8,20 @@ const api = axios.create({
   timeout: 30000,
 });
 
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('ragScholarToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 export const apiService = {
   // Health check
   health: async () => {
@@ -21,6 +35,12 @@ export const apiService = {
     domain: string;
     session_id: string;
     selected_documents?: string[];
+    user_context?: {
+      name: string;
+      bio: string | null;
+      research_interests: string[];
+      preferred_domains: string[];
+    } | null;
   }): Promise<ChatResponse> => {
     const response = await api.post('/chat/query', payload);
     return response.data;
@@ -64,6 +84,31 @@ export const apiService = {
   reindexCollection: async (collection: string): Promise<any> => {
     const response = await api.post(`/documents/collections/${collection}/reindex`);
     return response.data;
+  },
+
+  // Sessions
+  getSessions: async (): Promise<any[]> => {
+    const response = await api.get('/sessions/');
+    return response.data;
+  },
+
+  createSession: async (name?: string, domain?: string): Promise<any> => {
+    const response = await api.post('/sessions/', { name, domain });
+    return response.data;
+  },
+
+  getSession: async (sessionId: string): Promise<any> => {
+    const response = await api.get(`/sessions/${sessionId}`);
+    return response.data;
+  },
+
+  updateSession: async (sessionId: string, name: string): Promise<any> => {
+    const response = await api.put(`/sessions/${sessionId}`, { name });
+    return response.data;
+  },
+
+  deleteSession: async (sessionId: string): Promise<void> => {
+    await api.delete(`/sessions/${sessionId}`);
   },
 };
 

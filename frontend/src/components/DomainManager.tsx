@@ -123,7 +123,7 @@ export const DomainManager: React.FC<DomainManagerProps> = ({
           <label className={`block text-sm font-medium mb-2 ${
             theme === 'dark' ? 'text-white/80' : 'text-black/80'
           }`}>
-            Domain Type
+            Class Type
           </label>
           <div className="grid grid-cols-2 gap-2">
             {Object.entries(DOMAIN_TYPE_INFO).map(([type, info]) => {

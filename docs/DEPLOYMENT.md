@@ -30,13 +30,13 @@ Cloud Run will override the PORT environment variable, so the application dynami
 This project has a Cloud Build trigger configured for automatic deployments:
 
 - **Trigger Name**: `rmgpgab-ragscholarai-europe-west2-nikolaitennant-rag-scholaroqt`
-- **Source Branch**: `refactor/modern-architecture` 
+- **Source Branch**: `main` 
 - **Deploy Target**: Cloud Run service `ragscholarai` in `europe-west2`
 - **Build Time**: ~5-10 minutes (optimized with Docker layer caching)
 
 **To deploy via CI/CD (Both Frontend & Backend):**
 1. Make changes to frontend and/or backend code
-2. Commit and push to the `refactor/modern-architecture` branch
+2. Commit and push to the `main` branch
 3. Cloud Build automatically triggers and deploys BOTH:
    - Backend API to Cloud Run
    - Frontend to Firebase Hosting

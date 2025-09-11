@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "tough-canto-471207-p6",
     "public": "build",
     "ignore": [
       "firebase.json",

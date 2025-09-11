@@ -1,16 +1,5 @@
 {
   "projects": {
-    "default": "ragscholarai",
-    "main": "ragscholarai"
-  },
-  "targets": {
-    "tough-canto-471207-p6": {
-      "hosting": {
-        "rag-scholar": [
-          "tough-canto-471207-p6"
-        ]
-      }
-    }
-  },
-  "etags": {}
+    "default": "tough-canto-471207-p6"
+  }
 }

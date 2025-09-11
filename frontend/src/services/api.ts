@@ -29,6 +29,22 @@ export const apiService = {
     return response.data;
   },
 
+  // Authentication
+  login: async (email: string, password: string) => {
+    const response = await api.post('/auth/login', { email, password });
+    return response.data;
+  },
+
+  register: async (email: string, password: string, name?: string) => {
+    const response = await api.post('/auth/register', { email, password, name });
+    return response.data;
+  },
+
+  logout: async () => {
+    const response = await api.post('/auth/logout');
+    return response.data;
+  },
+
   // Chat
   chat: async (payload: {
     query: string;
@@ -114,8 +130,8 @@ export const apiService = {
 
 // Error interceptor
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
+  (response: any) => response,
+  (error: any) => {
     console.error('API Error:', error.response?.data || error.message);
     throw error;
   }

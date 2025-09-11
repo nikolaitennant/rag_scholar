@@ -12,15 +12,13 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy only dependency files first (for better caching)
+# Copy dependency files and source (needed for build)
 COPY pyproject.toml ./
+COPY src/ ./src/
 
-# Install Python dependencies (this layer can be cached if pyproject.toml doesn't change)
+# Install Python dependencies (can cache if pyproject.toml unchanged)
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir .
-
-# Copy source code after dependencies (separate layer for better caching)
-COPY src/ ./src/
 
 # Stage 2: Runtime
 FROM python:3.11-slim

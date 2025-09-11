@@ -34,10 +34,13 @@ This project has a Cloud Build trigger configured for automatic deployments:
 - **Deploy Target**: Cloud Run service `ragscholarai` in `europe-west2`
 - **Build Time**: ~5-10 minutes (optimized with Docker layer caching)
 
-**To deploy via CI/CD:**
-1. Push changes to the `refactor/modern-architecture` branch
-2. Cloud Build automatically triggers and deploys to production
-3. Monitor progress in [Google Cloud Console > Cloud Build](https://console.cloud.google.com/cloud-build/builds)
+**To deploy via CI/CD (Both Frontend & Backend):**
+1. Make changes to frontend and/or backend code
+2. Commit and push to the `refactor/modern-architecture` branch
+3. Cloud Build automatically triggers and deploys BOTH:
+   - Backend API to Cloud Run
+   - Frontend to Firebase Hosting
+4. Monitor progress in [Google Cloud Console > Cloud Build](https://console.cloud.google.com/cloud-build/builds)
 
 **Build Optimizations Applied:**
 - Docker layer caching enabled (removed `--no-cache`)

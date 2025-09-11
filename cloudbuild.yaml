@@ -1,5 +1,5 @@
 steps:
-  # Build backend with cache enabled (remove --no-cache)
+  # Build backend
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Build-Backend'
     args:
@@ -78,22 +78,21 @@ options:
   machineType: E2_HIGHCPU_8
   diskSizeGb: 100
 
-# Environment substitutions (populated automatically by trigger)
+# Environment substitutions
 substitutions:
   _AR_HOSTNAME: europe-west2-docker.pkg.dev
-  _AR_PROJECT_ID: tough-canto-471207-p6  
+  _AR_PROJECT_ID: tough-canto-471207-p6
   _AR_REPOSITORY: cloud-run-source-deploy
   _DEPLOY_REGION: europe-west2
   _PLATFORM: managed
   _SERVICE_NAME: ragscholarai
-  _TRIGGER_ID: 01f91350-4733-4e62-999c-8654cad868da
   _FIREBASE_PROJECT_ID: tough-canto-471207-p6
 
 # Available secrets (Firebase service account from Secret Manager)
 availableSecrets:
   secretManager:
-  - versionName: projects/tough-canto-471207-p6/secrets/firebase-service-account/versions/latest
-    env: 'FIREBASE_SERVICE_ACCOUNT'
+    - versionName: projects/tough-canto-471207-p6/secrets/firebase-service-account/versions/latest
+      env: 'FIREBASE_SERVICE_ACCOUNT'
 
 tags:
   - gcp-cloud-build-deploy-cloud-run

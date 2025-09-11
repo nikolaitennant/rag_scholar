@@ -3,7 +3,7 @@
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class DomainType(str, Enum):
     """Supported research domains."""
-    
+
     GENERAL = "general"
     LAW = "law"
     SCIENCE = "science"
@@ -23,37 +23,37 @@ class DomainType(str, Enum):
 
 class Settings(BaseSettings):
     """Application settings with environment variable support."""
-    
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
     )
-    
+
     # API Keys
     openai_api_key: str = Field(..., description="OpenAI API key")
-    
+
     # Application
     app_name: str = Field(default="RAG Scholar", description="Application name")
     app_version: str = Field(default="2.0.0", description="Application version")
     debug: bool = Field(default=False, description="Debug mode")
     max_file_size_mb: int = Field(default=50, description="Maximum file upload size in MB")
-    allowed_file_types: List[str] = Field(
+    allowed_file_types: list[str] = Field(
         default=[".pdf", ".docx", ".txt", ".md", ".csv"],
         description="Allowed file extensions for upload"
     )
-    
+
     # Domain Configuration
     default_domain: DomainType = Field(
         default=DomainType.GENERAL,
         description="Default research domain"
     )
-    available_domains: List[DomainType] = Field(
-        default=[domain for domain in DomainType],
+    available_domains: list[DomainType] = Field(
+        default=list(DomainType),
         description="Available research domains"
     )
-    
+
     # Model Configuration
     llm_model: str = Field(
         default="gpt-4-turbo-preview",
@@ -69,7 +69,7 @@ class Settings(BaseSettings):
         ge=0.0,
         le=2.0
     )
-    
+
     # Retrieval Configuration
     chunk_size: int = Field(
         default=1500,
@@ -89,7 +89,7 @@ class Settings(BaseSettings):
         ge=1,
         le=20
     )
-    
+
     # Search Configuration
     use_hybrid_search: bool = Field(
         default=True,
@@ -101,7 +101,7 @@ class Settings(BaseSettings):
         ge=0.0,
         le=1.0
     )
-    
+
     # Storage
     data_dir: Path = Field(
         default=Path("data"),
@@ -115,7 +115,7 @@ class Settings(BaseSettings):
         default=Path("uploads"),
         description="Upload directory path"
     )
-    
+
     # API Configuration
     api_host: str = Field(default="0.0.0.0", description="API host")
     api_port: int = Field(
@@ -123,21 +123,13 @@ class Settings(BaseSettings):
         description="API port (defaults to PORT env var for Cloud Run compatibility)"
     )
     api_prefix: str = Field(default="/api/v1", description="API prefix")
-    cors_origins: List[str] = Field(
+    cors_origins: list[str] = Field(
         default=["*"],
         description="CORS allowed origins"
     )
-    
-    # Streamlit Configuration
-    ui_host: str = Field(default="localhost", description="UI host")
-    ui_port: int = Field(default=8501, description="UI port")
-    
-    # Redis Configuration (for caching/sessions)
-    redis_url: Optional[str] = Field(
-        default=None,
-        description="Redis connection URL"
-    )
-    
+
+
+
     # Logging
     log_level: str = Field(
         default="INFO",
@@ -147,7 +139,7 @@ class Settings(BaseSettings):
         default="json",
         description="Log format (json or text)"
     )
-    
+
     # UI Configuration
     ui_title: str = Field(
         default="RAG Scholar - Research Assistant",
@@ -161,7 +153,7 @@ class Settings(BaseSettings):
         default=False,
         description="Show debug information in UI"
     )
-    
+
     # Rate Limiting
     rate_limit_per_minute: int = Field(
         default=100,
@@ -175,7 +167,7 @@ class Settings(BaseSettings):
         default=5,
         description="Maximum concurrent WebSocket connections per IP"
     )
-    
+
     # Session Configuration
     session_timeout_minutes: int = Field(
         default=60,
@@ -185,7 +177,7 @@ class Settings(BaseSettings):
         default=20,
         description="Maximum messages to keep in session history"
     )
-    
+
     # Search Configuration
     max_search_results: int = Field(
         default=20,
@@ -197,14 +189,14 @@ class Settings(BaseSettings):
         ge=0.0,
         le=1.0
     )
-    
+
     @field_validator("data_dir", "index_dir", "upload_dir")
     def create_directories(cls, v: Path) -> Path:
         """Ensure directories exist."""
         v.mkdir(parents=True, exist_ok=True)
         return v
-    
-    def get_domain_config(self, domain: DomainType) -> Dict[str, Any]:
+
+    def get_domain_config(self, domain: DomainType) -> dict[str, Any]:
         """Get configuration for a specific domain."""
         configs = {
             DomainType.LAW: {

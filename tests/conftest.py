@@ -1,20 +1,19 @@
 """Pytest configuration and fixtures."""
 
+import asyncio
 import os
-import pytest
-from pathlib import Path
 from unittest.mock import Mock
 
-import asyncio
-from httpx import AsyncClient
+import pytest
 from fastapi.testclient import TestClient
+from httpx import AsyncClient
 
 # Set test environment
 os.environ["OPENAI_API_KEY"] = "test-key-12345"
 os.environ["DEBUG"] = "true"
 
-from rag_scholar.main import create_app
 from rag_scholar.config.settings import get_settings
+from rag_scholar.main import create_app
 
 
 @pytest.fixture(scope="session")

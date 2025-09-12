@@ -13,7 +13,7 @@ from rag_scholar.services.session_manager import SessionManager
 _services = {}
 
 
-@lru_cache()
+@lru_cache
 def get_retrieval_service() -> RetrievalService:
     """Get retrieval service instance."""
     if "retrieval" not in _services:
@@ -22,7 +22,7 @@ def get_retrieval_service() -> RetrievalService:
     return _services["retrieval"]
 
 
-@lru_cache()
+@lru_cache
 def get_session_manager() -> SessionManager:
     """Get session manager instance."""
     if "session" not in _services:
@@ -31,17 +31,18 @@ def get_session_manager() -> SessionManager:
     return _services["session"]
 
 
-@lru_cache()
+@lru_cache
 def get_memory_service() -> MemoryService:
     """Get memory service instance."""
     if "memory" not in _services:
         settings = get_settings()
         try:
             from langchain_openai import ChatOpenAI
+
             llm = ChatOpenAI(
                 api_key=settings.openai_api_key,
                 model=settings.llm_model,
-                temperature=0.3
+                temperature=0.3,
             )
             _services["memory"] = MemoryService(llm)
         except Exception:
@@ -50,7 +51,7 @@ def get_memory_service() -> MemoryService:
     return _services["memory"]
 
 
-@lru_cache()
+@lru_cache
 def get_chat_service() -> ChatService:
     """Get chat service instance."""
     if "chat" not in _services:
@@ -62,7 +63,7 @@ def get_chat_service() -> ChatService:
     return _services["chat"]
 
 
-@lru_cache()
+@lru_cache
 def get_document_service() -> DocumentService:
     """Get document service instance."""
     if "document" not in _services:

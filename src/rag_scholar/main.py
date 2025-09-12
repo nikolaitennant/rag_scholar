@@ -1,6 +1,5 @@
 """FastAPI application entry point."""
 
-import logging
 from contextlib import asynccontextmanager
 
 import structlog
@@ -30,7 +29,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     """Create and configure FastAPI application."""
-    
+
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
@@ -39,7 +38,7 @@ def create_app() -> FastAPI:
         docs_url=f"{settings.api_prefix}/docs",
         redoc_url=f"{settings.api_prefix}/redoc",
     )
-    
+
     # Configure CORS
     app.add_middleware(
         CORSMiddleware,
@@ -48,7 +47,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # Include routers
     app.include_router(
         health.router,
@@ -75,7 +74,7 @@ def create_app() -> FastAPI:
         prefix=f"{settings.api_prefix}",
         tags=["sessions"],
     )
-    
+
     # Exception handlers
     @app.exception_handler(Exception)
     async def general_exception_handler(request, exc):
@@ -84,7 +83,7 @@ def create_app() -> FastAPI:
             status_code=500,
             content={"detail": "Internal server error"},
         )
-    
+
     return app
 
 

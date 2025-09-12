@@ -1,7 +1,6 @@
 """Domain system for different research areas."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
 
 from langchain.schema import Document
 from pydantic import BaseModel
@@ -11,35 +10,35 @@ from rag_scholar.config.settings import DomainType
 
 class DomainPrompt(BaseModel):
     """Domain-specific prompt configuration."""
-    
+
     system_prompt: str
-    query_enhancement_prompt: Optional[str] = None
-    answer_format_prompt: Optional[str] = None
+    query_enhancement_prompt: str | None = None
+    answer_format_prompt: str | None = None
     citation_style: str = "numeric"  # numeric, author-year, footnote
 
 
 class BaseDomain(ABC):
     """Abstract base class for research domains."""
-    
+
     def __init__(self, domain_type: DomainType):
         self.domain_type = domain_type
         self.prompts = self.get_prompts()
-    
+
     @abstractmethod
     def get_prompts(self) -> DomainPrompt:
         """Get domain-specific prompts."""
         pass
-    
+
     @abstractmethod
     def process_document(self, document: Document) -> Document:
         """Apply domain-specific document processing."""
         pass
-    
+
     @abstractmethod
-    def format_citation(self, source: str, page: Optional[int] = None) -> str:
+    def format_citation(self, source: str, page: int | None = None) -> str:
         """Format citations according to domain standards."""
         pass
-    
+
     def enhance_query(self, query: str) -> str:
         """Enhance user query with domain knowledge."""
         if self.prompts.query_enhancement_prompt:
@@ -49,7 +48,7 @@ class BaseDomain(ABC):
 
 class GeneralDomain(BaseDomain):
     """General academic research domain."""
-    
+
     def get_prompts(self) -> DomainPrompt:
         return DomainPrompt(
             system_prompt="""You are a research assistant that ONLY uses the provided source documents.
@@ -70,14 +69,14 @@ RESPONSE REQUIREMENTS:
 
 Remember: You are a document-based research assistant, NOT a general knowledge AI.""",
             query_enhancement_prompt="Focus on academic sources and scholarly perspectives.",
-            citation_style="numeric"
+            citation_style="numeric",
         )
-    
+
     def process_document(self, document: Document) -> Document:
         """Standard document processing."""
         return document
-    
-    def format_citation(self, source: str, page: Optional[int] = None) -> str:
+
+    def format_citation(self, source: str, page: int | None = None) -> str:
         if page:
             return f"[{source}, p.{page}]"
         return f"[{source}]"
@@ -85,7 +84,7 @@ Remember: You are a document-based research assistant, NOT a general knowledge A
 
 class LawDomain(BaseDomain):
     """Legal research domain."""
-    
+
     def get_prompts(self) -> DomainPrompt:
         return DomainPrompt(
             system_prompt="""You are a meticulous legal research assistant.
@@ -110,26 +109,27 @@ CITATION REQUIREMENTS:
 
 Never state any fact without a proper [#n] citation.""",
             query_enhancement_prompt="Consider jurisdictional issues and hierarchy of legal authority.",
-            citation_style="legal"
+            citation_style="legal",
         )
-    
+
     def process_document(self, document: Document) -> Document:
         """Extract legal metadata from documents."""
         content = document.page_content
-        
+
         # Extract case citations, statutes, etc.
         import re
-        case_pattern = r'\d+\s+[A-Z][a-z]+\.?\s*\d+[a-z]?'
-        statute_pattern = r'\d+\s+U\.S\.C\.\s+§\s*\d+'
-        
+
+        case_pattern = r"\d+\s+[A-Z][a-z]+\.?\s*\d+[a-z]?"
+        statute_pattern = r"\d+\s+U\.S\.C\.\s+§\s*\d+"
+
         metadata = document.metadata or {}
-        metadata['case_cites'] = re.findall(case_pattern, content)
-        metadata['statute_cites'] = re.findall(statute_pattern, content)
-        
+        metadata["case_cites"] = re.findall(case_pattern, content)
+        metadata["statute_cites"] = re.findall(statute_pattern, content)
+
         document.metadata = metadata
         return document
-    
-    def format_citation(self, source: str, page: Optional[int] = None) -> str:
+
+    def format_citation(self, source: str, page: int | None = None) -> str:
         # Legal bluebook style
         if page:
             return f"{source}, at {page}"
@@ -138,7 +138,7 @@ Never state any fact without a proper [#n] citation.""",
 
 class ScienceDomain(BaseDomain):
     """Scientific research domain."""
-    
+
     def get_prompts(self) -> DomainPrompt:
         return DomainPrompt(
             system_prompt="""You are a scientific research assistant.
@@ -158,24 +158,25 @@ RESPONSE STRUCTURE:
 
 Maintain scientific accuracy and objectivity.""",
             query_enhancement_prompt="Focus on peer-reviewed research and empirical evidence.",
-            citation_style="author-year"
+            citation_style="author-year",
         )
-    
+
     def process_document(self, document: Document) -> Document:
         """Extract scientific metadata."""
         content = document.page_content
-        
+
         # Look for DOIs, journal references, etc.
         import re
-        doi_pattern = r'10\.\d{4,}/[-._;()/:\w]+'
-        
+
+        doi_pattern = r"10\.\d{4,}/[-._;()/:\w]+"
+
         metadata = document.metadata or {}
-        metadata['dois'] = re.findall(doi_pattern, content)
-        
+        metadata["dois"] = re.findall(doi_pattern, content)
+
         document.metadata = metadata
         return document
-    
-    def format_citation(self, source: str, page: Optional[int] = None) -> str:
+
+    def format_citation(self, source: str, page: int | None = None) -> str:
         # Author-year format
         if page:
             return f"({source}, p.{page})"
@@ -184,7 +185,7 @@ Maintain scientific accuracy and objectivity.""",
 
 class ComputerScienceDomain(BaseDomain):
     """Computer Science research domain."""
-    
+
     def get_prompts(self) -> DomainPrompt:
         return DomainPrompt(
             system_prompt="""You are a computer science research assistant.
@@ -204,24 +205,25 @@ RESPONSE FORMAT:
 
 Use precise technical terminology.""",
             query_enhancement_prompt="Consider algorithmic complexity and implementation details.",
-            citation_style="numeric"
+            citation_style="numeric",
         )
-    
+
     def process_document(self, document: Document) -> Document:
         """Extract code blocks and technical content."""
         content = document.page_content
-        
+
         # Detect code blocks
         import re
-        code_pattern = r'```[\s\S]*?```'
-        
+
+        code_pattern = r"```[\s\S]*?```"
+
         metadata = document.metadata or {}
-        metadata['has_code'] = bool(re.search(code_pattern, content))
-        
+        metadata["has_code"] = bool(re.search(code_pattern, content))
+
         document.metadata = metadata
         return document
-    
-    def format_citation(self, source: str, page: Optional[int] = None) -> str:
+
+    def format_citation(self, source: str, page: int | None = None) -> str:
         if page:
             return f"[{source}:{page}]"
         return f"[{source}]"
@@ -229,20 +231,20 @@ Use precise technical terminology.""",
 
 class DomainFactory:
     """Factory for creating domain instances."""
-    
+
     _domains = {
         DomainType.GENERAL: GeneralDomain,
         DomainType.LAW: LawDomain,
         DomainType.SCIENCE: ScienceDomain,
         DomainType.COMPUTER_SCIENCE: ComputerScienceDomain,
     }
-    
+
     @classmethod
     def create(cls, domain_type: DomainType) -> BaseDomain:
         """Create a domain instance."""
         domain_class = cls._domains.get(domain_type, GeneralDomain)
         return domain_class(domain_type)
-    
+
     @classmethod
     def register(cls, domain_type: DomainType, domain_class: type[BaseDomain]):
         """Register a new domain type."""

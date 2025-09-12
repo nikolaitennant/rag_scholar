@@ -2,14 +2,13 @@
 
 import logging
 import sys
-from typing import Optional
 
 import structlog
 
 
 def setup_logging(log_level: str = "INFO"):
     """Configure structured logging."""
-    
+
     # Configure structlog
     structlog.configure(
         processors=[
@@ -29,27 +28,28 @@ def setup_logging(log_level: str = "INFO"):
                 ]
             ),
             structlog.processors.dict_tracebacks,
-            structlog.dev.ConsoleRenderer() if sys.stderr.isatty() 
+            structlog.dev.ConsoleRenderer()
+            if sys.stderr.isatty()
             else structlog.processors.JSONRenderer(),
         ],
         context_class=dict,
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
-    
+
     # Configure standard logging
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout,
         level=getattr(logging, log_level.upper()),
     )
-    
+
     # Silence noisy libraries
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 
-def get_logger(name: Optional[str] = None):
+def get_logger(name: str | None = None):
     """Get a structured logger."""
     return structlog.get_logger(name)

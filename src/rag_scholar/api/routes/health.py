@@ -11,7 +11,7 @@ settings = get_settings()
 
 class HealthResponse(BaseModel):
     """Health check response."""
-    
+
     status: str
     version: str
     domain: str

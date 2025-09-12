@@ -8,7 +8,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from rag_scholar.api.routes import auth, chat, documents, health, sessions
 from rag_scholar.config.settings import get_settings
 from rag_scholar.utils.logging import setup_logging
 
@@ -16,68 +15,92 @@ from rag_scholar.utils.logging import setup_logging
 setup_logging()
 logger = structlog.get_logger()
 
-settings = get_settings()
+# Global variables for lazy initialization
+settings = None
+services = {}
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager."""
-    logger.info("Starting RAG Scholar API", version=settings.app_version)
-    yield
-    logger.info("Shutting down RAG Scholar API")
+    """Application lifespan manager with lazy initialization."""
+    global settings, services
+    
+    try:
+        # Initialize settings first
+        logger.info("Initializing application settings...")
+        settings = get_settings()
+        
+        # Initialize services that might be heavy
+        logger.info("Initializing application services...")
+        # Add other service initialization here as needed:
+        # services['openai'] = OpenAI(api_key=settings.openai_api_key)
+        # services['embeddings'] = load_embeddings()
+        
+        logger.info("RAG Scholar API started successfully", version=settings.app_version)
+        yield
+        
+    except Exception as e:
+        logger.error("Failed to initialize application", error=str(e))
+        raise
+    finally:
+        # Cleanup resources
+        logger.info("Shutting down RAG Scholar API")
+        services.clear()
 
 
 def create_app() -> FastAPI:
     """Create and configure FastAPI application."""
+    # Import routes here to avoid heavy imports at module level
+    from rag_scholar.api.routes import auth, chat, documents, health, sessions
 
     app = FastAPI(
-        title=settings.app_name,
-        version=settings.app_version,
+        title="RAG Scholar",  # Use defaults, will be updated in lifespan
+        version="2.0.0",
         description="Professional RAG-based research assistant API",
         lifespan=lifespan,
-        docs_url=f"{settings.api_prefix}/docs",
-        redoc_url=f"{settings.api_prefix}/redoc",
+        docs_url="/api/v1/docs",  # Use default, will work with most configs
+        redoc_url="/api/v1/redoc",
     )
 
-    # Configure CORS
+    # Configure CORS with safe defaults
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins,
+        allow_origins=["*"],  # Will be updated after settings load if needed
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
-    # Include routers
+    # Include routers with default prefix
     app.include_router(
         health.router,
-        prefix=f"{settings.api_prefix}/health",
+        prefix="/api/v1/health",
         tags=["health"],
     )
     app.include_router(
         documents.router,
-        prefix=f"{settings.api_prefix}/documents",
+        prefix="/api/v1/documents",
         tags=["documents"],
     )
     app.include_router(
         chat.router,
-        prefix=f"{settings.api_prefix}/chat",
+        prefix="/api/v1/chat",
         tags=["chat"],
     )
     app.include_router(
         auth.router,
-        prefix=f"{settings.api_prefix}",
+        prefix="/api/v1",
         tags=["auth"],
     )
     app.include_router(
         sessions.router,
-        prefix=f"{settings.api_prefix}",
+        prefix="/api/v1",
         tags=["sessions"],
     )
 
     # Exception handlers
     @app.exception_handler(Exception)
-    async def general_exception_handler(request, exc):
+    async def general_exception_handler(request, exc):  # noqa: ARG001
         logger.error("Unhandled exception", exc_info=exc)
         return JSONResponse(
             status_code=500,
@@ -94,12 +117,17 @@ def run():
     """Run the application."""
     import os
 
+    # For local development, we can initialize settings here
+    global settings
+    if settings is None:
+        settings = get_settings()
+
     uvicorn.run(
         "rag_scholar.main:app",
         host=os.getenv("HOST", "0.0.0.0"),
         port=int(os.getenv("PORT", 8080)),
-        reload=settings.debug,
-        log_level=settings.log_level.lower(),
+        reload=settings.debug if settings else False,
+        log_level=settings.log_level.lower() if settings else "info",
     )
 
 

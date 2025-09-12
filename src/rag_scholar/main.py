@@ -36,7 +36,9 @@ async def lifespan(app: FastAPI):
         # services['openai'] = OpenAI(api_key=settings.openai_api_key)
         # services['embeddings'] = load_embeddings()
 
-        logger.info("RAG Scholar API started successfully", version=settings.app_version)
+        logger.info(
+            "RAG Scholar API started successfully", version=settings.app_version
+        )
         yield
 
     except Exception as e:

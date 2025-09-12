@@ -1,0 +1,48 @@
+steps:
+  # Build frontend only
+  - name: 'node:18'
+    id: 'Build-Frontend'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cd frontend
+        npm ci
+        npm run build
+    env:
+      - 'NODE_ENV=production'
+
+  # Deploy frontend to Firebase
+  - name: 'node:18'
+    id: 'Deploy-Frontend'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cd frontend
+        npm install -g firebase-tools
+        echo "$$FIREBASE_SERVICE_ACCOUNT" > /tmp/service-account.json
+        export GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json
+        firebase deploy --only hosting --project ${_FIREBASE_PROJECT_ID}
+    secretEnv: ['FIREBASE_SERVICE_ACCOUNT']
+    waitFor: ['Build-Frontend']
+
+# Options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitutionOption: ALLOW_LOOSE
+  machineType: E2_HIGHCPU_8
+
+# Environment substitutions
+substitutions:
+  _FIREBASE_PROJECT_ID: ragscholarai
+
+# Available secrets
+availableSecrets:
+  secretManager:
+    - versionName: projects/tough-canto-471207-p6/secrets/firebase-service-account/versions/latest
+      env: 'FIREBASE_SERVICE_ACCOUNT'
+
+tags:
+  - frontend-only
+  - ragscholarai-frontend

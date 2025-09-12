@@ -1,5 +1,12 @@
 {
   "projects": {
     "default": "tough-canto-471207-p6"
+  },
+  "targets": {
+    "tough-canto-471207-p6": {
+      "hosting": {
+        "ragscholarai": ["ragscholarai"]
+      }
+    }
   }
 }

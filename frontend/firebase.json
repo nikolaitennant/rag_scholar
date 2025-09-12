@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "tough-canto-471207-p6",
+    "site": "ragscholarai",
     "public": "build",
     "ignore": [
       "firebase.json",

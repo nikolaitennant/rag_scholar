@@ -24,21 +24,21 @@ services = {}
 async def lifespan(app: FastAPI):
     """Application lifespan manager with lazy initialization."""
     global settings, services
-    
+
     try:
         # Initialize settings first
         logger.info("Initializing application settings...")
         settings = get_settings()
-        
+
         # Initialize services that might be heavy
         logger.info("Initializing application services...")
         # Add other service initialization here as needed:
         # services['openai'] = OpenAI(api_key=settings.openai_api_key)
         # services['embeddings'] = load_embeddings()
-        
+
         logger.info("RAG Scholar API started successfully", version=settings.app_version)
         yield
-        
+
     except Exception as e:
         logger.error("Failed to initialize application", error=str(e))
         raise

@@ -2,8 +2,8 @@
 
 import json
 from typing import Any
-import structlog
 
+import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from rag_scholar.config.settings import Settings

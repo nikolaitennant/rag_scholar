@@ -92,10 +92,12 @@ app = create_app()
 
 def run():
     """Run the application."""
+    import os
+
     uvicorn.run(
         "rag_scholar.main:app",
-        host=settings.api_host,
-        port=settings.api_port,
+        host=os.getenv("HOST", "0.0.0.0"),
+        port=int(os.getenv("PORT", 8080)),
         reload=settings.debug,
         log_level=settings.log_level.lower(),
     )

@@ -99,18 +99,20 @@ class DocumentProcessor:
         # Try semantic chunking first if available
         if self.semantic_splitter and self.use_semantic_chunking:
             try:
-                return self.semantic_splitter.create_documents(
+                docs = self.semantic_splitter.create_documents(
                     [content],
                     metadatas=[{"source": source, **metadata}],
                 )
+                return docs  # type: ignore[no-any-return,return-value]
             except Exception as e:
                 logger.warning(f"Semantic chunking failed: {e}")
 
         # Fallback to recursive chunking
-        return self.recursive_splitter.create_documents(
+        docs = self.recursive_splitter.create_documents(
             [content],
             metadatas=[{"source": source, **metadata}],
         )
+        return docs  # type: ignore[no-any-return,return-value]
 
     def _enhance_chunks(
         self,
@@ -176,7 +178,7 @@ class SmartChunker:
         lines = content.split("\n")
 
         chunks = []
-        current_chunk = []
+        current_chunk: list[str] = []
         current_size = 0
 
         for line in lines:
@@ -210,7 +212,7 @@ class SmartChunker:
 
         paragraphs = content.split("\n\n")
         chunks = []
-        current_chunk = []
+        current_chunk: list[str] = []
         current_size = 0
 
         for para in paragraphs:

@@ -246,6 +246,6 @@ class DomainFactory:
         return domain_class(domain_type)
 
     @classmethod
-    def register(cls, domain_type: DomainType, domain_class: type[BaseDomain]):
+    def register(cls, domain_type: DomainType, domain_class: type[BaseDomain]) -> None:
         """Register a new domain type."""
         cls._domains[domain_type] = domain_class

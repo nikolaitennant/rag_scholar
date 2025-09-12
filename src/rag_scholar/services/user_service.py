@@ -5,6 +5,7 @@ import json
 import secrets
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 import structlog
 
@@ -25,7 +26,7 @@ logger = structlog.get_logger()
 class UserService:
     """Service for user authentication and management."""
 
-    def __init__(self, data_dir: Path = None):
+    def __init__(self, data_dir: Path | None = None) -> None:
         """Initialize user service with data directory."""
         self.data_dir = data_dir or Path("data/users")
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -34,7 +35,7 @@ class UserService:
 
         # Load existing data
         self.users: dict[str, User] = self._load_users()
-        self.tokens: dict[str, dict] = self._load_tokens()
+        self.tokens: dict[str, dict[str, Any]] = self._load_tokens()
 
     def _load_users(self) -> dict[str, User]:
         """Load users from JSON file."""
@@ -47,17 +48,18 @@ class UserService:
             logger.warning("Failed to load users", error=str(e))
         return {}
 
-    def _load_tokens(self) -> dict[str, dict]:
+    def _load_tokens(self) -> dict[str, dict[str, Any]]:
         """Load tokens from JSON file."""
         try:
             if self.tokens_file.exists():
                 with open(self.tokens_file) as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    return data  # type: ignore[no-any-return]
         except Exception as e:
             logger.warning("Failed to load tokens", error=str(e))
         return {}
 
-    def _save_users(self):
+    def _save_users(self) -> None:
         """Save users to JSON file."""
         try:
             data = {}
@@ -91,7 +93,7 @@ class UserService:
         except Exception as e:
             logger.error("Failed to save users", error=str(e))
 
-    def _save_tokens(self):
+    def _save_tokens(self) -> None:
         """Save tokens to JSON file."""
         try:
             with open(self.tokens_file, "w") as f:
@@ -345,20 +347,12 @@ class UserService:
         if not user:
             raise ValueError("User not found")
 
-        # Verify current password
-        pwd_hash = hashlib.sha256(
-            (current_password + user.password_salt).encode()
-        ).hexdigest()
-        if pwd_hash != user.password_hash:
+        # Verify current password using the same method as login
+        if not self._verify_password(current_password, user.password_hash):
             raise ValueError("Current password is incorrect")
 
-        # Generate new salt and hash
-        new_salt = secrets.token_hex(16)
-        new_hash = hashlib.sha256((new_password + new_salt).encode()).hexdigest()
-
-        # Update password
-        user.password_hash = new_hash
-        user.password_salt = new_salt
+        # Generate new hash
+        user.password_hash = self._hash_password(new_password)
         user.updated_at = datetime.utcnow()
 
         self._save_users()

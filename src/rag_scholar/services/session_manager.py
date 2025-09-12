@@ -2,6 +2,7 @@
 
 import json
 from typing import Any
+import structlog
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -17,7 +18,8 @@ class SessionManager:
         self.sessions_dir.mkdir(parents=True, exist_ok=True)
 
         # In-memory cache
-        self._cache: dict[str, dict] = {}
+        self._cache: dict[str, dict[str, Any]] = {}
+        self.logger = structlog.get_logger()
 
     async def get_session(self, session_id: str) -> dict[str, Any]:
         """Get or create a session."""
@@ -31,7 +33,7 @@ class SessionManager:
         if session_file.exists():
             try:
                 with open(session_file) as f:
-                    session = json.load(f)
+                    session = json.load(f)  # type: ignore[no-any-return]
                     # Reconstruct messages
                     if "history" in session:
                         messages = []
@@ -65,7 +67,7 @@ class SessionManager:
         self._cache[session_id] = session
         return session
 
-    async def save_session(self, session_id: str, session: dict[str, Any]):
+    async def save_session(self, session_id: str, session: dict[str, Any]) -> None:
         """Save session to disk."""
 
         # Update cache
@@ -92,8 +94,8 @@ class SessionManager:
         session_id: str,
         query: str | None = None,
         response: str | None = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """Update session with new interaction."""
 
         session = await self.get_session(session_id)
@@ -114,7 +116,7 @@ class SessionManager:
 
         await self.save_session(session_id, session)
 
-    async def clear_session(self, session_id: str):
+    async def clear_session(self, session_id: str) -> None:
         """Clear a session."""
 
         # Remove from cache

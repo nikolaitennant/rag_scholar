@@ -153,6 +153,7 @@ class ChatService:
             session_id=session_id,
             selected_documents=selected_documents,
             active_class=active_class,
+            user_id=user_id,
         )
 
     async def _handle_background(
@@ -193,10 +194,11 @@ class ChatService:
         self,
         query: str,
         domain: DomainType,
-        session: dict,
+        session: dict[str, Any],
         session_id: str,
         selected_documents: list[str] | None,
         active_class: str | None,
+        user_id: str | None = None,
     ) -> dict[str, Any]:
         """Handle standard RAG queries with citations."""
 
@@ -349,12 +351,12 @@ class ChatService:
         await self.session_manager.save_session(session_id, session)
 
         # Update user statistics if user_id is provided
-        if user_id:  # noqa: F821
-            await user_service.update_user_stats(user_id, "chat", 1)  # noqa: F821
+        if user_id:
+            await user_service.update_user_stats(user_id, "chat", 1)
 
             # Add domain to user's explored domains if it's a new domain
             if domain:
-                await user_service.add_domain_explored(user_id, domain.value)  # noqa: F821
+                await user_service.add_domain_explored(user_id, domain.value)
 
         return {
             "answer": answer,
@@ -372,7 +374,7 @@ class ChatService:
         selected_documents: list[str] | None = None,
         user_context: dict[str, Any] | None = None,
         user_id: str | None = None,
-    ):
+    ) -> Any:
         """Stream query responses."""
         # For now, just call process_query and yield the complete response
         # In the future, this could be enhanced to stream token by token
@@ -392,9 +394,9 @@ class ChatService:
 
     def _build_context_with_citations(
         self,
-        documents: list[dict],
-        domain_handler,
-    ) -> tuple[str, dict[int, dict]]:
+        documents: list[dict[str, Any]],
+        domain_handler: Any,
+    ) -> tuple[str, dict[int, dict[str, Any]]]:
         """Build context string with citation mapping."""
 
         if not documents:

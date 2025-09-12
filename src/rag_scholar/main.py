@@ -1,6 +1,7 @@
 """FastAPI application entry point."""
 
 from contextlib import asynccontextmanager
+from typing import Any
 
 import structlog
 import uvicorn
@@ -8,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from rag_scholar.config.settings import get_settings
+from rag_scholar.config.settings import Settings, get_settings
 from rag_scholar.utils.logging import setup_logging
 
 # Setup structured logging
@@ -16,8 +17,8 @@ setup_logging()
 logger = structlog.get_logger()
 
 # Global variables for lazy initialization
-settings = None
-services = {}
+settings: Settings | None = None
+services: dict[str, Any] = {}
 
 
 @asynccontextmanager
@@ -102,7 +103,7 @@ def create_app() -> FastAPI:
 
     # Exception handlers
     @app.exception_handler(Exception)
-    async def general_exception_handler(request, exc):  # noqa: ARG001
+    async def general_exception_handler(request: Any, exc: Exception) -> JSONResponse:  # noqa: ARG001
         logger.error("Unhandled exception", exc_info=exc)
         return JSONResponse(
             status_code=500,
@@ -115,7 +116,7 @@ def create_app() -> FastAPI:
 app = create_app()
 
 
-def run():
+def run() -> None:
     """Run the application."""
     import os
 

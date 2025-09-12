@@ -4,6 +4,7 @@ Memory Service for maintaining conversation context and summaries.
 
 import logging
 from datetime import datetime
+from typing import Any
 
 from langchain.schema import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
@@ -16,10 +17,10 @@ class MemoryService:
 
     def __init__(self, llm: ChatOpenAI | None = None):
         self.llm = llm or ChatOpenAI(model="gpt-4", temperature=0.3)
-        self.sessions: dict[str, dict] = {}
+        self.sessions: dict[str, dict[str, Any]] = {}
         self.max_recent_messages = 8
 
-    def get_or_create_session(self, session_id: str, domain_id: str) -> dict:
+    def get_or_create_session(self, session_id: str, domain_id: str) -> dict[str, Any]:
         """Get or create a session with memory."""
         key = f"{session_id}_{domain_id}"
         if key not in self.sessions:
@@ -40,7 +41,7 @@ class MemoryService:
         domain_id: str,
         role: str,
         content: str,
-        citations: list | None = None,
+        citations: list[dict[str, Any]] | None = None,
     ) -> None:
         """Add a message to the session memory."""
         session = self.get_or_create_session(session_id, domain_id)
@@ -86,7 +87,7 @@ class MemoryService:
 
         return "\n\n".join(context_parts) if context_parts else ""
 
-    def _update_summary(self, session: dict) -> None:
+    def _update_summary(self, session: dict[str, Any]) -> None:
         """Update the conversation summary using LLM."""
         try:
             # Get all messages except the most recent ones
@@ -139,7 +140,7 @@ class MemoryService:
         session["context"][key] = value
         session["updated_at"] = datetime.now().isoformat()
 
-    def get_session_info(self, session_id: str, domain_id: str) -> dict:
+    def get_session_info(self, session_id: str, domain_id: str) -> dict[str, Any]:
         """Get information about a session."""
         session = self.get_or_create_session(session_id, domain_id)
         return {
@@ -159,6 +160,6 @@ class MemoryService:
         if key in self.sessions:
             del self.sessions[key]
 
-    def export_session(self, session_id: str, domain_id: str) -> dict:
+    def export_session(self, session_id: str, domain_id: str) -> dict[str, Any]:
         """Export full session data."""
         return self.get_or_create_session(session_id, domain_id)

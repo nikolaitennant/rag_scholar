@@ -6,7 +6,7 @@ import sys
 import structlog
 
 
-def setup_logging(log_level: str = "INFO"):
+def setup_logging(log_level: str = "INFO") -> None:
     """Configure structured logging."""
 
     # Configure structlog
@@ -50,6 +50,6 @@ def setup_logging(log_level: str = "INFO"):
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 
-def get_logger(name: str | None = None):
+def get_logger(name: str | None = None) -> structlog.BoundLogger:
     """Get a structured logger."""
     return structlog.get_logger(name)

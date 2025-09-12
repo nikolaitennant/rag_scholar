@@ -30,7 +30,9 @@ class TestSettings:
 
         # Test science domain config
         science_config = settings.get_domain_config(DomainType.SCIENCE)
-        assert "scientific research assistant" in science_config["system_prompt"].lower()
+        assert (
+            "scientific research assistant" in science_config["system_prompt"].lower()
+        )
 
     def test_required_openai_key(self):
         """Test that OpenAI API key is required."""
@@ -41,10 +43,7 @@ class TestSettings:
         """Test settings validation."""
         # Valid settings
         settings = Settings(
-            openai_api_key="test-key",
-            temperature=0.5,
-            chunk_size=1000,
-            retrieval_k=10
+            openai_api_key="test-key", temperature=0.5, chunk_size=1000, retrieval_k=10
         )
         assert settings.temperature == 0.5
 

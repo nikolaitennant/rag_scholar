@@ -72,5 +72,5 @@ def sample_document():
     return {
         "content": "This is a test document about artificial intelligence and machine learning.",
         "source": "test_document.txt",
-        "metadata": {"author": "Test Author", "date": "2024-01-01"}
+        "metadata": {"author": "Test Author", "date": "2024-01-01"},
     }

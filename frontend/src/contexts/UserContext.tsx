@@ -66,9 +66,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const API_BASE = process.env.NODE_ENV === 'production' 
-    ? 'https://rag-scholar-backend-966097649832.europe-west2.run.app'
-    : 'http://localhost:8001';
+  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
   useEffect(() => {
     // Check for saved token and validate with backend

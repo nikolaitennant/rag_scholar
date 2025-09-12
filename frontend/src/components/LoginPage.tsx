@@ -163,7 +163,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp }) => {
               theme === 'dark' ? 'text-white/60' : 'text-black/60'
             }`}>
               {isSignUp 
-                ? 'Join thousands of researchers using RAG Scholar'
+                ? 'Get started with your AI research assistant'
                 : 'Sign in to continue your research journey'
               }
             </p>

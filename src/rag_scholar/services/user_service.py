@@ -119,7 +119,7 @@ class UserService:
 
     def _create_user_id(self, email: str) -> str:
         """Create a unique user ID based on email."""
-        return f"user_{hashlib.md5(email.encode()).hexdigest()[:12]}"
+        return f"user_{hashlib.sha256(email.encode()).hexdigest()[:12]}"
 
     async def register_user(self, user_data: UserCreate) -> UserResponse:
         """Register a new user."""

@@ -124,7 +124,7 @@ def run():
 
     uvicorn.run(
         "rag_scholar.main:app",
-        host=os.getenv("HOST", "0.0.0.0"),
+        host=os.getenv("HOST", "0.0.0.0"),  # nosec B104
         port=int(os.getenv("PORT", 8080)),
         reload=settings.debug if settings else False,
         log_level=settings.log_level.lower() if settings else "info",

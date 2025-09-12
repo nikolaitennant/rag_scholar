@@ -44,8 +44,8 @@ class SessionManager:
 
                     self._cache[session_id] = session
                     return session
-            except Exception:
-                pass
+            except Exception as e:
+                self.logger.warning("Failed to load session from storage", session_id=session_id, error=str(e))
 
         # Create new session
         session = {

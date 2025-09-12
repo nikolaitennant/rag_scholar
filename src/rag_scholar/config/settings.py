@@ -92,7 +92,7 @@ class Settings(BaseSettings):
     )
 
     # API Configuration
-    api_host: str = Field(default="0.0.0.0", description="API host")
+    api_host: str = Field(default="0.0.0.0", description="API host")  # nosec B104
     api_port: int = Field(
         default_factory=lambda: int(os.environ.get("PORT", 8080)),
         description="API port (defaults to PORT env var for Cloud Run compatibility)",

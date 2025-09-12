@@ -46,6 +46,7 @@ steps:
       - '--platform=managed'
       - '--image=${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}'
       - '--memory=1Gi'
+      - '--timeout=600'
       - '--labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=${COMMIT_SHA},gcb-build-id=${BUILD_ID}'
       - '--region=${_DEPLOY_REGION}'
       - '--quiet'

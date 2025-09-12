@@ -86,7 +86,7 @@ substitutions:
   _DEPLOY_REGION: europe-west2
   _PLATFORM: managed
   _SERVICE_NAME: ragscholarai
-  _FIREBASE_PROJECT_ID: tough-canto-471207-p6
+  _FIREBASE_PROJECT_ID: ragscholarai
 
 # Available secrets (Firebase service account from Secret Manager)
 availableSecrets:

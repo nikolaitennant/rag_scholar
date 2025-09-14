@@ -417,7 +417,9 @@ class ChatService:
 
         return "\n\n".join(context_parts), citation_map
 
-    def _validate_citations(self, answer: str, citation_map: dict[int, dict[str, Any]]) -> str:
+    def _validate_citations(
+        self, answer: str, citation_map: dict[int, dict[str, Any]]
+    ) -> str:
         """Validate and clean up citations in answer."""
 
         # Find all citations in answer

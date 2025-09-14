@@ -54,7 +54,7 @@ export interface UserProfile {
 
 export enum DomainType {
   GENERAL = 'general',
-  LAW = 'law', 
+  LAW = 'law',
   SCIENCE = 'science',
   MEDICINE = 'medicine',
   BUSINESS = 'business',

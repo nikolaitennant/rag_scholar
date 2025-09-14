@@ -259,7 +259,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       
       case 'documents':
         return (
-          <div className="p-4 space-y-4">
+          <div className="p-2 lg:p-4 space-y-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-white' : 'text-black'
@@ -370,7 +370,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       case 'help':
         return (
-          <div className="p-4 space-y-4">
+          <div className="p-2 lg:p-4 space-y-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-white' : 'text-black'
@@ -483,7 +483,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       case 'history':
         return (
-          <div className="p-4 space-y-4">
+          <div className="p-2 lg:p-4 space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-white' : 'text-black'
@@ -649,7 +649,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       case 'achievements':
         return (
-          <div className="p-4 space-y-4">
+          <div className="p-2 lg:p-4 space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-white' : 'text-black'
@@ -745,7 +745,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       case 'home':
         return (
-          <div className="p-4 space-y-6">
+          <div className="p-2 lg:p-4 space-y-6">
             {/* Show editing form if editing */}
             {editingDomain ? (
               <div className="space-y-4">
@@ -1126,10 +1126,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     const isActive = activeDomain?.id === domain.id;
 
                     return (
-                      <button
+                      <div
                         key={domain.id}
                         onClick={() => onSelectDomain(domain)}
-                        className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group ${
+                        className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group cursor-pointer ${
                           isActive
                             ? theme === 'dark'
                               ? 'bg-white/15 border border-white/20'
@@ -1150,10 +1150,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               }`}>
                                 {domain.name}
                               </div>
-                              <div className={`text-xs ${
+                              <div className={`text-xs flex items-center justify-between ${
                                 theme === 'dark' ? 'text-white/60' : 'text-black/60'
                               }`}>
-                                {typeInfo.label}
+                                <span>{typeInfo.label}</span>
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full ml-2 ${
+                                  theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
+                                }`}>
+                                  {(domain.documents || []).length} doc{(domain.documents || []).length !== 1 ? 's' : ''}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -1192,7 +1197,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             </button>
                           </div>
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -1200,7 +1205,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             {/* Chats Section */}
-            <div>
+            <div className="mt-8">
               <div className="flex items-center justify-between mb-3">
                 <h3 className={`text-sm font-semibold ${
                   theme === 'dark' ? 'text-white' : 'text-black'
@@ -1313,33 +1318,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <div className="flex items-center space-x-2">
                               {!editingSessionId && (
                                 <>
-                                  <button
+                                  <div
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setEditingSessionId(session.id);
                                       setEditingSessionName(session.name);
                                     }}
-                                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${
-                                      theme === 'dark' 
-                                        ? 'hover:bg-white/10 text-white/60 hover:text-white' 
+                                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded cursor-pointer ${
+                                      theme === 'dark'
+                                        ? 'hover:bg-white/10 text-white/60 hover:text-white'
                                         : 'hover:bg-black/10 text-black/60 hover:text-black'
                                     }`}
                                   >
                                     <Edit3 className="w-3 h-3" />
-                                  </button>
-                                  <button
+                                  </div>
+                                  <div
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleDeleteSession(session.id);
                                     }}
-                                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${
-                                      theme === 'dark' 
-                                        ? 'hover:bg-red-500/20 text-white/60 hover:text-red-400' 
+                                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded cursor-pointer ${
+                                      theme === 'dark'
+                                        ? 'hover:bg-red-500/20 text-white/60 hover:text-red-400'
                                         : 'hover:bg-red-500/20 text-black/60 hover:text-red-600'
                                     }`}
                                   >
                                     <Trash2 className="w-3 h-3" />
-                                  </button>
+                                  </div>
                                 </>
                               )}
                             </div>
@@ -1362,19 +1367,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className={`h-full w-96 backdrop-blur-md border-r flex flex-col ${
-      theme === 'dark' 
-        ? 'bg-white/10 border-white/20' 
+    <div className={`h-full w-full lg:w-96 backdrop-blur-md border-r flex flex-col ${
+      theme === 'dark'
+        ? 'bg-white/10 border-white/20'
         : 'bg-black/10 border-black/20'
     }`}>
       {/* Header with tabs */}
-      <div className={`flex items-center justify-between p-4 border-b ${
+      <div className={`flex items-center justify-between p-2 lg:p-4 border-b ${
         theme === 'dark' ? 'border-white/10' : 'border-black/10'
       }`}>
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-1 overflow-x-auto">
           <button
             onClick={() => setActiveTab('home')}
-            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+            className={`px-2 lg:px-3 py-1 text-xs rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'home' 
                 ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
@@ -1384,7 +1389,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('documents')}
-            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+            className={`px-2 lg:px-3 py-1 text-xs rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'documents' 
                 ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
@@ -1394,7 +1399,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('achievements')}
-            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+            className={`px-2 lg:px-3 py-1 text-xs rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'achievements' 
                 ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
@@ -1404,7 +1409,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('help')}
-            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+            className={`px-2 lg:px-3 py-1 text-xs rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'help' 
                 ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')

@@ -14,6 +14,19 @@ from .auth import get_current_user
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 
+def parse_datetime(dt_str):
+    """Parse datetime string to datetime object, handling both strings and datetime objects."""
+    if isinstance(dt_str, str):
+        try:
+            return datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+        except ValueError:
+            return datetime.now()
+    elif isinstance(dt_str, datetime):
+        return dt_str
+    else:
+        return datetime.now()
+
+
 class SessionSummary(BaseModel):
     """Session summary model."""
 
@@ -155,8 +168,8 @@ async def list_user_sessions(
                         SessionSummary(
                             id=session_id,
                             name=name,
-                            created_at=session.get("created_at", datetime.now()),
-                            updated_at=session.get("updated_at", datetime.now()),
+                            created_at=parse_datetime(session.get("created_at", datetime.now())),
+                            updated_at=parse_datetime(session.get("updated_at", datetime.now())),
                             message_count=len(messages),
                             preview=preview,
                         )
@@ -190,8 +203,8 @@ async def create_session(
             "user_id": current_user.id,
             "name": session_data.name or f"New Chat - {now.strftime('%m/%d %H:%M')}",
             "domain": session_data.domain,
-            "created_at": now,
-            "updated_at": now,
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat(),
             "history": [],
             "memory_facts": [],
             "session_facts": [],
@@ -247,8 +260,8 @@ async def get_session(
         return SessionDetail(
             id=session_id,
             name=session.get("name", "Unnamed Chat"),
-            created_at=session.get("created_at", datetime.now()),
-            updated_at=session.get("updated_at", datetime.now()),
+            created_at=parse_datetime(session.get("created_at", datetime.now())),
+            updated_at=parse_datetime(session.get("updated_at", datetime.now())),
             messages=message_dicts,
             domain=session.get("domain"),
         )
@@ -276,7 +289,7 @@ async def update_session(
             raise HTTPException(status_code=404, detail="Session not found")
 
         session["name"] = session_update.name
-        session["updated_at"] = datetime.now()
+        session["updated_at"] = datetime.now().isoformat()
 
         await session_manager.save_session(session_id, session)
 
@@ -292,8 +305,8 @@ async def update_session(
         return SessionSummary(
             id=session_id,
             name=session["name"],
-            created_at=session.get("created_at", datetime.now()),
-            updated_at=session["updated_at"],
+            created_at=parse_datetime(session.get("created_at", datetime.now())),
+            updated_at=parse_datetime(session["updated_at"]),
             message_count=len(messages),
             preview=preview,
         )

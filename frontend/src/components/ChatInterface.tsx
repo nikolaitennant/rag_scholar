@@ -65,7 +65,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               </div>
               <p className={`mb-8 ${
                 theme === 'dark' ? 'text-white/60' : 'text-black/60'
-              }`}>Ask questions about your documents and get AI-powered insights with source citations</p>
+              }`}>
+                <span className="px-4">Ask questions about your documents and get AI-powered insights with source citations</span>
+              </p>
             </div>
           ) : (
             messages.map((message, index) => (
@@ -252,35 +254,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Input */}
-      <div className={`p-4 border-t backdrop-blur-sm flex-shrink-0 ${
-        theme === 'dark'
-          ? 'border-white/20 bg-white/5'
-          : 'border-black/20 bg-black/5'
-      }`}>
-        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
-          <div className="flex space-x-4">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask your research question..."
-                className={`w-full backdrop-blur-sm border rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 ${
-                  theme === 'dark'
-                    ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
-                    : 'bg-black/10 border-black/20 text-black placeholder-black/50'
-                }`}
-                disabled={isLoading}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={!input.trim() || isLoading}
-              className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-4 rounded-2xl transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl backdrop-blur-sm border border-purple-400/20"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </div>
+      <div className="p-4 flex-shrink-0">
+        <form onSubmit={handleSubmit} className="max-w-2xl mx-auto px-4">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask anything..."
+            className={`w-full backdrop-blur-sm border rounded-2xl px-6 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 ${
+              theme === 'dark'
+                ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
+                : 'bg-black/10 border-black/20 text-black placeholder-black/50'
+            }`}
+            disabled={isLoading}
+          />
         </form>
       </div>
     </div>

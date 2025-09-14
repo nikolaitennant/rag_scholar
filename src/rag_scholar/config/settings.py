@@ -18,7 +18,7 @@ class DomainType(str, Enum):
     MEDICINE = "medicine"
     BUSINESS = "business"
     HUMANITIES = "humanities"
-    COMPUTER_SCIENCE = "cs"
+    COMPUTER_SCIENCE = "computer_science"
 
 
 class Settings(BaseSettings):

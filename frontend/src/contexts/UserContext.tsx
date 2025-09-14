@@ -74,7 +74,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       const token = localStorage.getItem('ragScholarToken');
       if (token) {
         try {
-          const response = await fetch(`${API_BASE}/api/v1/auth/me`, {
+          const response = await fetch(`${API_BASE}/auth/me`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
+      const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -124,7 +124,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const signUp = async (name: string, email: string, password: string) => {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/auth/register`, {
+      const response = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -153,7 +153,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/auth/me`, {
+      const response = await fetch(`${API_BASE}/auth/me`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -182,7 +182,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/auth/password`, {
+      const response = await fetch(`${API_BASE}/auth/password`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -208,7 +208,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const token = localStorage.getItem('ragScholarToken');
     if (token) {
       try {
-        const response = await fetch(`${API_BASE}/api/v1/auth/me`, {
+        const response = await fetch(`${API_BASE}/auth/me`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -229,7 +229,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const token = localStorage.getItem('ragScholarToken');
     if (token) {
       try {
-        await fetch(`${API_BASE}/api/v1/auth/logout`, {
+        await fetch(`${API_BASE}/auth/logout`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

@@ -18,7 +18,7 @@ def parse_datetime(dt_str):
     """Parse datetime string to datetime object, handling both strings and datetime objects."""
     if isinstance(dt_str, str):
         try:
-            return datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+            return datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
         except ValueError:
             return datetime.now()
     elif isinstance(dt_str, datetime):
@@ -168,8 +168,12 @@ async def list_user_sessions(
                         SessionSummary(
                             id=session_id,
                             name=name,
-                            created_at=parse_datetime(session.get("created_at", datetime.now())),
-                            updated_at=parse_datetime(session.get("updated_at", datetime.now())),
+                            created_at=parse_datetime(
+                                session.get("created_at", datetime.now())
+                            ),
+                            updated_at=parse_datetime(
+                                session.get("updated_at", datetime.now())
+                            ),
                             message_count=len(messages),
                             preview=preview,
                         )

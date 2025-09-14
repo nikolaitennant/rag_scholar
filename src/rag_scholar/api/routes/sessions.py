@@ -1,6 +1,7 @@
 """Session management endpoints for chat history."""
 
 from datetime import datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from langchain_openai import ChatOpenAI
@@ -14,7 +15,7 @@ from .auth import get_current_user
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 
-def parse_datetime(dt_str):
+def parse_datetime(dt_str: str | datetime | None) -> datetime:
     """Parse datetime string to datetime object, handling both strings and datetime objects."""
     if isinstance(dt_str, str):
         try:
@@ -45,7 +46,7 @@ class SessionDetail(BaseModel):
     name: str
     created_at: datetime
     updated_at: datetime
-    messages: list[dict]
+    messages: list[dict[str, Any]]
     domain: str | None = None
 
 
@@ -67,7 +68,7 @@ settings = get_settings()
 session_manager = SessionManager(settings)
 
 
-def generate_session_name(messages: list[dict]) -> str:
+def generate_session_name(messages: list[dict[str, Any]]) -> str:
     """Generate a name for a session based on its messages using AI."""
     if not messages:
         return f"New Chat - {datetime.now().strftime('%m/%d %H:%M')}"
@@ -99,7 +100,7 @@ The title should be concise and capture the main topic. Examples:
 Title:"""
 
         response = llm.invoke(prompt)
-        title = response.content.strip().strip('"').strip("'")
+        title = str(response.content).strip().strip('"').strip("'")
 
         # Fallback if AI response is too long or empty
         if not title or len(title) > 50:
@@ -202,7 +203,7 @@ async def create_session(
         session_id = f"user_{current_user.id}_{uuid.uuid4().hex[:12]}"
 
         now = datetime.now()
-        session = {
+        session: dict[str, Any] = {
             "id": session_id,
             "user_id": current_user.id,
             "name": session_data.name or f"New Chat - {now.strftime('%m/%d %H:%M')}",
@@ -218,7 +219,7 @@ async def create_session(
 
         return SessionSummary(
             id=session_id,
-            name=session["name"],
+            name=str(session["name"]),
             created_at=now,
             updated_at=now,
             message_count=0,
@@ -308,7 +309,7 @@ async def update_session(
 
         return SessionSummary(
             id=session_id,
-            name=session["name"],
+            name=str(session["name"]),
             created_at=parse_datetime(session.get("created_at", datetime.now())),
             updated_at=parse_datetime(session["updated_at"]),
             message_count=len(messages),

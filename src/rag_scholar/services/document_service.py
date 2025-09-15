@@ -100,37 +100,46 @@ class DocumentService:
             }
 
         except Exception as e:
-            logger.error(f"Failed to process document: {e}")
-            raise
+            logger.error(f"Failed to process document {file_path.name}: {type(e).__name__}: {e}")
+            raise RuntimeError(f"Document processing failed: {e}") from e
 
     async def _update_index(self, collection: str, documents: list[Document]):
         """Update vector store index."""
 
         index_dir = self.settings.index_dir / collection
 
-        # Try to load existing index
-        if index_dir.exists():
-            try:
-                vector_store = FAISS.load_local(
-                    str(index_dir),
-                    self.embeddings,
-                    allow_dangerous_deserialization=True,
-                )
-                # Add new documents
-                vector_store.add_documents(documents)
-            except Exception:
-                # Create new index if loading fails
+        try:
+            # Try to load existing index
+            if index_dir.exists():
+                try:
+                    vector_store = FAISS.load_local(
+                        str(index_dir),
+                        self.embeddings,
+                        allow_dangerous_deserialization=True,
+                    )
+                    # Add new documents
+                    logger.info(f"Adding {len(documents)} documents to existing index")
+                    vector_store.add_documents(documents)
+                except Exception as e:
+                    # Create new index if loading fails
+                    logger.warning(f"Failed to load existing index: {e}, creating new one")
+                    vector_store = FAISS.from_documents(documents, self.embeddings)
+            else:
+                # Create new index
+                logger.info(f"Creating new index with {len(documents)} documents")
                 vector_store = FAISS.from_documents(documents, self.embeddings)
-        else:
-            # Create new index
-            vector_store = FAISS.from_documents(documents, self.embeddings)
 
-        # Save index
-        index_dir.mkdir(parents=True, exist_ok=True)
-        vector_store.save_local(str(index_dir))
+            # Save index
+            index_dir.mkdir(parents=True, exist_ok=True)
+            vector_store.save_local(str(index_dir))
+            logger.info(f"Saved vector store to {index_dir}")
 
-        # Update retrieval service
-        self.retrieval_service.update_indexes(collection, documents, vector_store)
+            # Update retrieval service
+            self.retrieval_service.update_indexes(collection, documents, vector_store)
+
+        except Exception as e:
+            logger.error(f"Failed to update vector index: {type(e).__name__}: {e}")
+            raise RuntimeError(f"Vector indexing failed: {e}") from e
 
     async def list_collections(self) -> list[str]:
         """List available collections."""

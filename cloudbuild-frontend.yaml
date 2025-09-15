@@ -11,6 +11,7 @@ steps:
         npm run build
     env:
       - 'NODE_ENV=production'
+      - 'REACT_APP_API_URL=https://ragscholarai-432924679896.europe-west2.run.app/api/v1'
 
   # Deploy frontend to Firebase (using service account)
   - name: 'node:18'

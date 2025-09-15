@@ -233,9 +233,12 @@ class RetrievalService:
                         self.embeddings,
                         allow_dangerous_deserialization=True,
                     )
+                    logger.info(f"Loaded vector store for collection: {collection}")
                 except Exception as e:
                     logger.error(f"Failed to load vector store: {e}")
                     return None
+            else:
+                logger.info(f"No vector store found at {index_path} for collection: {collection}")
 
         return self.vector_stores.get(collection)
 

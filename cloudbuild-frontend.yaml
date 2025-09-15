@@ -1,5 +1,5 @@
 steps:
-  # Build frontend only
+  # Build frontend
   - name: 'node:18'
     id: 'Build-Frontend'
     entrypoint: 'bash'
@@ -12,7 +12,7 @@ steps:
     env:
       - 'NODE_ENV=production'
 
-  # Deploy frontend to Firebase
+  # Deploy frontend to Firebase (using service account)
   - name: 'node:18'
     id: 'Deploy-Frontend'
     entrypoint: 'bash'
@@ -27,22 +27,24 @@ steps:
     secretEnv: ['FIREBASE_SERVICE_ACCOUNT']
     waitFor: ['Build-Frontend']
 
-# Options
+# Options for optimization
 options:
   logging: CLOUD_LOGGING_ONLY
   substitutionOption: ALLOW_LOOSE
+  # Enable faster builds
   machineType: E2_HIGHCPU_8
+  diskSizeGb: 100
 
 # Environment substitutions
 substitutions:
   _FIREBASE_PROJECT_ID: ragscholarai
 
-# Available secrets
+# Available secrets (Firebase service account from Secret Manager)
 availableSecrets:
   secretManager:
     - versionName: projects/tough-canto-471207-p6/secrets/firebase-service-account/versions/latest
       env: 'FIREBASE_SERVICE_ACCOUNT'
 
 tags:
-  - frontend-only
-  - ragscholarai-frontend
+    - frontend-only
+    - ragscholarai-frontend

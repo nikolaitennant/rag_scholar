@@ -1,0 +1,26 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build for production
+RUN npm run build
+
+# Install Firebase CLI
+RUN npm install -g firebase-tools
+
+# Set up Firebase service account
+ARG FIREBASE_SERVICE_ACCOUNT
+RUN echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/service-account.json
+ENV GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json
+
+# Deploy to Firebase
+CMD ["firebase", "deploy", "--only", "hosting", "--project", "ragscholarai"]

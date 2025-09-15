@@ -19,6 +19,7 @@ from langchain_openai import OpenAIEmbeddings
 
 from rag_scholar.config.settings import Settings
 from rag_scholar.core.document_processor import DocumentProcessor
+from rag_scholar.services.cloud_storage import CloudStorageService
 from rag_scholar.services.retrieval_service import RetrievalService
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ class DocumentService:
     def __init__(self, settings: Settings, retrieval_service: RetrievalService):
         self.settings = settings
         self.retrieval_service = retrieval_service
+        self.cloud_storage = CloudStorageService(settings)
         self.processor = DocumentProcessor(
             chunk_size=settings.chunk_size,
             chunk_overlap=settings.chunk_overlap,
@@ -109,6 +111,11 @@ class DocumentService:
         index_dir = self.settings.index_dir / collection
 
         try:
+            # Download existing index from cloud storage if available
+            if self.cloud_storage.is_available():
+                logger.info(f"Checking cloud storage for collection: {collection}")
+                self.cloud_storage.download_index(collection, index_dir)
+
             # Try to load existing index
             if index_dir.exists():
                 try:
@@ -129,10 +136,19 @@ class DocumentService:
                 logger.info(f"Creating new index with {len(documents)} documents")
                 vector_store = FAISS.from_documents(documents, self.embeddings)
 
-            # Save index
+            # Save index locally
             index_dir.mkdir(parents=True, exist_ok=True)
             vector_store.save_local(str(index_dir))
             logger.info(f"Saved vector store to {index_dir}")
+
+            # Upload to cloud storage if available
+            if self.cloud_storage.is_available():
+                logger.info(f"Uploading index to cloud storage for collection: {collection}")
+                upload_success = self.cloud_storage.upload_index(collection, index_dir)
+                if upload_success:
+                    logger.info(f"Successfully uploaded index for collection: {collection}")
+                else:
+                    logger.warning(f"Failed to upload index for collection: {collection}")
 
             # Update retrieval service
             self.retrieval_service.update_indexes(collection, documents, vector_store)

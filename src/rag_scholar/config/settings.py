@@ -91,6 +91,17 @@ class Settings(BaseSettings):
         default=Path("uploads"), description="Upload directory path"
     )
 
+    # Cloud Storage (for production persistence)
+    use_cloud_storage: bool = Field(
+        default=False, description="Use Google Cloud Storage for vector indexes"
+    )
+    gcs_bucket_name: str = Field(
+        default="", description="Google Cloud Storage bucket name for indexes"
+    )
+    gcs_index_prefix: str = Field(
+        default="indexes/", description="GCS prefix for index files"
+    )
+
     # API Configuration
     api_host: str = Field(default="0.0.0.0", description="API host")  # nosec B104
     api_port: int = Field(

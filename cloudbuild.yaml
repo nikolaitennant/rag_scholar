@@ -47,6 +47,7 @@ steps:
       - '--image=${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}'
       - '--memory=1Gi'
       - '--timeout=600'
+      - '--set-env-vars=USE_CLOUD_STORAGE=true,GCS_BUCKET_NAME=ragscholarai-indexes'
       - '--labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=${COMMIT_SHA},gcb-build-id=${BUILD_ID}'
       - '--region=${_DEPLOY_REGION}'
       - '--quiet'

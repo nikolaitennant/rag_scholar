@@ -10,6 +10,7 @@ from langchain_openai import OpenAIEmbeddings
 from rank_bm25 import BM25Okapi
 
 from rag_scholar.config.settings import Settings
+from rag_scholar.services.cloud_storage import CloudStorageService
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ class RetrievalService:
 
     def __init__(self, settings: Settings):
         self.settings = settings
+        self.cloud_storage = CloudStorageService(settings)
         self.embeddings = OpenAIEmbeddings(
             api_key=settings.openai_api_key,
             model=settings.embedding_model,
@@ -224,8 +226,15 @@ class RetrievalService:
         """Get or load vector store for collection."""
 
         if collection not in self.vector_stores:
-            # Try to load from disk
             index_path = self.settings.index_dir / collection
+
+            # Try to download from cloud storage first
+            if self.cloud_storage.is_available():
+                logger.info(f"Checking cloud storage for collection: {collection}")
+                if self.cloud_storage.download_index(collection, index_path):
+                    logger.info(f"Downloaded index from cloud storage for collection: {collection}")
+
+            # Try to load from local disk
             if index_path.exists():
                 try:
                     self.vector_stores[collection] = FAISS.load_local(

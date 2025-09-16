@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash, RefreshCw, ChevronRight, Upload, File, Trash2, RotateCcw, MessageSquare, X, Sun, Moon, Trophy, BookOpen, Sparkles, Heart, Star, Zap, Award, Settings, History, Edit2, MoreVertical, HelpCircle, Home, Book, Beaker, Briefcase, GraduationCap, Code, Edit3 } from 'lucide-react';
-import { DomainManager } from './DomainManager';
 import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
@@ -10,7 +9,7 @@ import { apiService } from '../services/api';
 interface SidebarProps {
   domains: UserDomain[];
   activeDomain: UserDomain | null;
-  onCreateDomain: (name: string, type: DomainType, description?: string) => void;
+  onCreateDomain: (name: string, type: DomainType, description?: string, selectedDocuments?: string[]) => void;
   onEditDomain?: (domainId: string, name: string, type: DomainType, description?: string) => void;
   onSelectDomain: (domain: UserDomain) => void;
   onDeleteDomain: (domainId: string) => void;
@@ -36,7 +35,18 @@ interface SidebarProps {
   onDeleteSession?: (sessionId: string) => void;
 }
 
-type TabType = 'home' | 'domains' | 'history' | 'documents' | 'achievements' | 'help';
+type TabType = 'home' | 'domains' | 'history' | 'documents' | 'achievements' | 'store' | 'help';
+
+// Helper function for formatting dates
+const formatLocalDate = (dateString: string | Date) => {
+  try {
+    const date = new Date(dateString);
+    const timezone = localStorage.getItem('userTimezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return date.toLocaleDateString('en-US', { timeZone: timezone });
+  } catch {
+    return 'Invalid date';
+  }
+};
 
 export const Sidebar: React.FC<SidebarProps> = ({
   domains,
@@ -75,7 +85,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [editingDomain, setEditingDomain] = useState<UserDomain | null>(null);
   const [editingDomainName, setEditingDomainName] = useState<string>('');
   const [editingDomainType, setEditingDomainType] = useState<DomainType>(DomainType.GENERAL);
-  const [editingDomainDescription, setEditingDomainDescription] = useState<string>('');
   const [editingDomainDocuments, setEditingDomainDocuments] = useState<string[]>([]);
   const [showCreateClassForm, setShowCreateClassForm] = useState(false);
   const [newClassName, setNewClassName] = useState('');
@@ -85,7 +94,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { user } = useUser();
   
   // Use prop sessions if available, fallback to local sessions
-  const currentSessions = propSessions.length > 0 ? propSessions : sessions;
+  const allSessions = propSessions.length > 0 ? propSessions : sessions;
+
+  // Filter sessions by active domain if one is selected
+  const currentSessions = activeDomain
+    ? allSessions.filter(session =>
+        session.class_name === activeDomain.name ||
+        session.class_id === activeDomain.id ||
+        session.domain === activeDomain.type
+      )
+    : allSessions;
+
+  // Console debugging for session data
+  console.log('DEBUG SIDEBAR - Session Data:', {
+    propSessions: propSessions.length,
+    localSessions: sessions.length,
+    currentSessions: currentSessions.length,
+    currentBackendSessionId,
+    sessionId,
+    activeTab
+  });
 
   // Get real user data
   const totalPoints = user?.stats?.total_points || 0;
@@ -185,11 +213,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   if (isCollapsed) {
     return (
-      <div className={`h-full w-16 backdrop-blur-md border-r flex flex-col items-center py-4 space-y-3 ${
-        theme === 'dark' 
-          ? 'bg-white/10 border-white/20' 
+      <div className={`h-full w-16 backdrop-blur-md border-r flex flex-col items-center py-4 ${
+        theme === 'dark'
+          ? 'bg-white/10 border-white/20'
           : 'bg-black/10 border-black/20'
       }`}>
+        <div className="flex flex-col items-center space-y-4 mt-12">
         <button 
           onClick={() => { setActiveTab('home'); onOpenSidebar?.(); }}
           className={`p-2 rounded-lg transition-colors ${
@@ -208,14 +237,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
               : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
           }`}
-          title="Documents"
+          title="Docs"
         >
           <File className="w-4 h-4" />
         </button>
-        <button 
+        <button
           onClick={() => { setActiveTab('achievements'); onOpenSidebar?.(); }}
           className={`p-2 rounded-lg transition-colors ${
-            activeTab === 'achievements' 
+            activeTab === 'achievements'
               ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
               : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
           }`}
@@ -223,7 +252,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <Trophy className="w-4 h-4" />
         </button>
-        <button 
+        <button
+          onClick={() => { setActiveTab('store'); onOpenSidebar?.(); }}
+          className={`p-2 rounded-lg transition-colors ${
+            activeTab === 'store'
+              ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
+              : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
+          }`}
+          title="Store"
+        >
+          <Sparkles className="w-4 h-4" />
+        </button>
+        <button
           onClick={() => { setActiveTab('help'); onOpenSidebar?.(); }}
           className={`p-2 rounded-lg transition-colors ${
             activeTab === 'help' 
@@ -234,7 +274,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <HelpCircle className="w-4 h-4" />
         </button>
-        <div className="mt-auto">
         </div>
       </div>
     );
@@ -244,17 +283,391 @@ export const Sidebar: React.FC<SidebarProps> = ({
     switch (activeTab) {
       case 'domains':
         return (
-          <DomainManager
-            domains={domains}
-            activeDomain={activeDomain}
-            onCreateDomain={onCreateDomain}
-            onEditDomain={onEditDomain}
-            onSelectDomain={onSelectDomain}
-            onDeleteDomain={onDeleteDomain}
-            availableDocuments={availableDocuments}
-            onAssignDocuments={onAssignDocuments}
-            totalDocumentCount={documents.length}
-          />
+          <div className="p-2 lg:p-4 space-y-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className={`text-sm font-semibold ${
+                theme === 'dark' ? 'text-white' : 'text-black'
+              }`}>Your Classes</h3>
+              <button
+                onClick={() => setShowCreateClassForm(!showCreateClassForm)}
+                className={`p-1 rounded-lg transition-colors ${
+                  showCreateClassForm
+                    ? theme === 'dark'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-black/20 text-black'
+                    : theme === 'dark'
+                      ? 'text-white/60 hover:text-white hover:bg-white/10'
+                      : 'text-black/60 hover:text-black hover:bg-black/10'
+                }`}
+                title="Create Class"
+              >
+                <Plus className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Create Class Form */}
+            {showCreateClassForm && (
+              <div className={`mb-4 p-3 rounded-lg border ${
+                theme === 'dark'
+                  ? 'bg-white/5 border-white/20'
+                  : 'bg-black/5 border-black/20'
+              }`}>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={newClassName}
+                    onChange={(e) => setNewClassName(e.target.value)}
+                    placeholder="Class name (e.g., History 101)"
+                    className={`w-full border rounded-lg px-3 py-2 text-sm ${
+                      theme === 'dark'
+                        ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
+                        : 'bg-black/10 border-black/20 text-black placeholder-black/50'
+                    }`}
+                  />
+
+                  <div className="grid grid-cols-3 gap-1">
+                    {Object.entries({
+                      [DomainType.GENERAL]: { icon: Home, label: 'General' },
+                      [DomainType.LAW]: { icon: Book, label: 'Law' },
+                      [DomainType.SCIENCE]: { icon: Beaker, label: 'Science' },
+                      [DomainType.MEDICINE]: { icon: Heart, label: 'Medicine' },
+                      [DomainType.BUSINESS]: { icon: Briefcase, label: 'Business' },
+                      [DomainType.COMPUTER_SCIENCE]: { icon: Code, label: 'Tech' },
+                    }).map(([type, info]) => {
+                      const Icon = info.icon;
+                      return (
+                        <button
+                          key={type}
+                          onClick={() => setNewClassType(type as DomainType)}
+                          className={`p-2 rounded text-xs transition-all duration-200 flex flex-col items-center space-y-1 ${
+                            newClassType === type
+                              ? theme === 'dark'
+                                ? 'bg-white/20 text-white'
+                                : 'bg-black/20 text-black'
+                              : theme === 'dark'
+                                ? 'bg-white/5 text-white/70 hover:bg-white/10'
+                                : 'bg-black/5 text-black/70 hover:bg-black/10'
+                          }`}
+                        >
+                          <Icon className="w-3 h-3" />
+                          <span>{info.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Document Selection */}
+                  {availableDocuments.length > 0 && (
+                    <div>
+                      <label className={`block text-xs font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-black/80'
+                      }`}>
+                        Assign Documents (Optional)
+                      </label>
+                      <div className={`max-h-32 overflow-y-auto space-y-1 rounded-lg p-2 border ${
+                        theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'
+                      }`}>
+                        {availableDocuments.map(doc => (
+                          <button
+                            key={doc.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedDocuments(prev =>
+                                prev.includes(doc.id)
+                                  ? prev.filter(id => id !== doc.id)
+                                  : [...prev, doc.id]
+                              );
+                            }}
+                            className={`w-full text-left p-2 rounded text-xs flex items-center justify-between transition-colors ${
+                              selectedDocuments.includes(doc.id)
+                                ? theme === 'dark'
+                                  ? 'bg-white/15 text-white'
+                                  : 'bg-black/15 text-black'
+                                : theme === 'dark'
+                                  ? 'text-white/70 hover:bg-white/10'
+                                  : 'text-black/70 hover:bg-black/10'
+                            }`}
+                          >
+                            <span className="truncate">{doc.filename}</span>
+                            {selectedDocuments.includes(doc.id) && (
+                              <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0"></div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      {selectedDocuments.length > 0 && (
+                        <div className={`text-xs mt-1 ${
+                          theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                        }`}>
+                          {selectedDocuments.length} document{selectedDocuments.length !== 1 ? 's' : ''} selected
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => {
+                        if (newClassName.trim()) {
+                          onCreateDomain(newClassName, newClassType, undefined, selectedDocuments.length > 0 ? selectedDocuments : undefined);
+                          setNewClassName('');
+                          setNewClassType(DomainType.GENERAL);
+                          setSelectedDocuments([]);
+                          setShowCreateClassForm(false);
+                        }
+                      }}
+                      disabled={!newClassName.trim()}
+                      className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 rounded-lg transition-all duration-200 disabled:opacity-50 text-sm"
+                    >
+                      Create Class
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowCreateClassForm(false);
+                        setNewClassName('');
+                        setNewClassType(DomainType.GENERAL);
+                        setSelectedDocuments([]);
+                      }}
+                      className={`px-3 py-2 rounded-lg transition-colors text-sm ${
+                        theme === 'dark'
+                          ? 'text-white/60 hover:text-white/80 hover:bg-white/10'
+                          : 'text-black/60 hover:text-black/80 hover:bg-black/10'
+                      }`}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Classes List */}
+            {domains.length === 0 ? (
+              <div className="text-center py-8">
+                <GraduationCap className={`w-12 h-12 mx-auto mb-3 ${
+                  theme === 'dark' ? 'text-white/30' : 'text-black/30'
+                }`} />
+                <p className={`text-sm mb-3 ${
+                  theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                }`}>No classes yet</p>
+                <button
+                  onClick={() => setShowCreateClassForm(true)}
+                  className={`text-xs py-1 px-3 rounded-lg transition-colors ${
+                    theme === 'dark'
+                      ? 'bg-white/10 hover:bg-white/20 text-white'
+                      : 'bg-black/10 hover:bg-black/20 text-black'
+                  }`}
+                >
+                  Create Your First Class
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {domains.map((domain) => {
+                  const isActive = activeDomain?.id === domain.id;
+                  return (
+                    <div key={domain.id}>
+                      <div
+                        className={`w-full p-3 rounded-lg transition-all ${
+                          isActive
+                            ? theme === 'dark'
+                              ? 'bg-white/15 border border-white/20'
+                              : 'bg-black/15 border border-black/20'
+                            : theme === 'dark'
+                              ? 'bg-white/5 hover:bg-white/10 border border-transparent'
+                              : 'bg-black/5 hover:bg-black/10 border border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <button
+                            onClick={() => onSelectDomain(domain)}
+                            className="flex-1 text-left"
+                          >
+                            <div>
+                              <h3 className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                                {domain.name}
+                              </h3>
+                              <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                                {domain.type} • {domain.documents?.length || 0} docs
+                              </p>
+                            </div>
+                          </button>
+                          <div className="flex items-center gap-2 ml-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingDomain(domain);
+                                setEditingDomainName(domain.name);
+                                setEditingDomainType(domain.type);
+                                setEditingDomainDocuments(domain.documents || []);
+                              }}
+                              className={`p-1 rounded transition-colors ${
+                                theme === 'dark'
+                                  ? 'hover:bg-white/10 text-white/60 hover:text-white/80'
+                                  : 'hover:bg-black/10 text-black/60 hover:text-black/80'
+                              }`}
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteDomain(domain.id);
+                              }}
+                              className={`p-1 rounded transition-colors ${
+                                theme === 'dark'
+                                  ? 'hover:bg-red-500/20 text-white/60 hover:text-red-400'
+                                  : 'hover:bg-red-500/20 text-black/60 hover:text-red-600'
+                              }`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Edit Form - Show below the specific class being edited */}
+                      {editingDomain?.id === domain.id && (
+                        <div className={`mt-2 p-3 rounded-lg border ${
+                          theme === 'dark'
+                            ? 'bg-white/5 border-white/20'
+                            : 'bg-black/5 border-black/20'
+                        }`}>
+                          <div className="space-y-3">
+                            <input
+                              type="text"
+                              value={editingDomainName}
+                              onChange={(e) => setEditingDomainName(e.target.value)}
+                              placeholder="Class name (e.g., History 101)"
+                              className={`w-full border rounded-lg px-3 py-2 text-sm ${
+                                theme === 'dark'
+                                  ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
+                                  : 'bg-black/10 border-black/20 text-black placeholder-black/50'
+                              }`}
+                            />
+
+                            <div className="grid grid-cols-3 gap-1">
+                              {Object.entries({
+                                [DomainType.GENERAL]: { icon: Home, label: 'General' },
+                                [DomainType.LAW]: { icon: Book, label: 'Law' },
+                                [DomainType.SCIENCE]: { icon: Beaker, label: 'Science' },
+                                [DomainType.MEDICINE]: { icon: Heart, label: 'Medicine' },
+                                [DomainType.BUSINESS]: { icon: Briefcase, label: 'Business' },
+                                [DomainType.COMPUTER_SCIENCE]: { icon: Code, label: 'Tech' },
+                              }).map(([type, info]) => {
+                                const Icon = info.icon;
+                                return (
+                                  <button
+                                    key={type}
+                                    onClick={() => setEditingDomainType(type as DomainType)}
+                                    className={`p-2 rounded text-xs transition-all duration-200 flex flex-col items-center space-y-1 ${
+                                      editingDomainType === type
+                                        ? theme === 'dark'
+                                          ? 'bg-white/20 text-white'
+                                          : 'bg-black/20 text-black'
+                                        : theme === 'dark'
+                                          ? 'bg-white/5 text-white/70 hover:bg-white/10'
+                                          : 'bg-black/5 text-black/70 hover:bg-black/10'
+                                    }`}
+                                  >
+                                    <Icon className="w-3 h-3" />
+                                    <span>{info.label}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {/* Document Selection */}
+                            {availableDocuments.length > 0 && (
+                              <div>
+                                <label className={`block text-xs font-medium mb-2 ${
+                                  theme === 'dark' ? 'text-white/80' : 'text-black/80'
+                                }`}>
+                                  Assign Documents (Optional)
+                                </label>
+                                <div className={`max-h-32 overflow-y-auto space-y-1 rounded-lg p-2 border ${
+                                  theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'
+                                }`}>
+                                  {availableDocuments.map(doc => (
+                                    <button
+                                      key={doc.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingDomainDocuments(prev =>
+                                          prev.includes(doc.id)
+                                            ? prev.filter(id => id !== doc.id)
+                                            : [...prev, doc.id]
+                                        );
+                                      }}
+                                      className={`w-full text-left p-2 rounded text-xs flex items-center justify-between transition-colors ${
+                                        editingDomainDocuments.includes(doc.id)
+                                          ? theme === 'dark'
+                                            ? 'bg-white/15 text-white'
+                                            : 'bg-black/15 text-black'
+                                          : theme === 'dark'
+                                            ? 'text-white/70 hover:bg-white/10'
+                                            : 'text-black/70 hover:bg-black/10'
+                                      }`}
+                                    >
+                                      <span className="truncate">{doc.filename}</span>
+                                      {editingDomainDocuments.includes(doc.id) && (
+                                        <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0"></div>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                                {editingDomainDocuments.length > 0 && (
+                                  <div className={`text-xs mt-1 ${
+                                    theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                                  }`}>
+                                    {editingDomainDocuments.length} document{editingDomainDocuments.length !== 1 ? 's' : ''} selected
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => {
+                                  if (editingDomainName.trim()) {
+                                    onEditDomain?.(editingDomain.id, editingDomainName, editingDomainType);
+                                    onAssignDocuments(editingDomain.id, editingDomainDocuments);
+                                    setEditingDomain(null);
+                                    setEditingDomainName('');
+                                    setEditingDomainType(DomainType.GENERAL);
+                                    setEditingDomainDocuments([]);
+                                  }
+                                }}
+                                disabled={!editingDomainName.trim()}
+                                className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 rounded-lg transition-all duration-200 disabled:opacity-50 text-sm"
+                              >
+                                Update Class
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingDomain(null);
+                                  setEditingDomainName('');
+                                  setEditingDomainType(DomainType.GENERAL);
+                                  setEditingDomainDocuments([]);
+                                }}
+                                className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                                  theme === 'dark'
+                                    ? 'text-white/60 hover:text-white/80 hover:bg-white/10'
+                                    : 'text-black/60 hover:text-black/80 hover:bg-black/10'
+                                }`}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         );
       
       case 'documents':
@@ -314,7 +727,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </label>
               </div>
             ) : (
-              <div className="space-y-2 overflow-y-auto" style={{maxHeight: 'calc(100vh - 400px)'}}>
+              <div className="space-y-2 max-h-[70vh] overflow-y-auto scrollbar-none">
                 {documents.map(doc => (
                   <div key={doc.id} className={`rounded-lg p-2 transition-colors group ${
                     theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-black/5 hover:bg-black/10'
@@ -479,12 +892,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-white' : 'text-black'
-              }`}>Chats</h3>
+              }`}>
+                {activeDomain ? `${activeDomain.name} Chats` : 'All Chats'}
+              </h3>
               <div className="flex items-center gap-2">
                 <button
                   onClick={async () => {
                     try {
-                      const newSession = await apiService.createSession();
+                      const newSession = await apiService.createSession(
+                        undefined, // name
+                        activeDomain?.type, // domain
+                        activeDomain?.id, // classId
+                        activeDomain?.name // className
+                      );
                       onSelectSession?.(newSession.id);
                       setSessions(prev => [newSession, ...prev]);
                     } catch (error) {
@@ -501,19 +921,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
 
-            <div className="space-y-2 overflow-y-auto" style={{maxHeight: 'calc(100vh - 400px)'}}>
-              {sessions.length === 0 ? (
+            <div className="space-y-2 max-h-[70vh] overflow-y-auto scrollbar-none">
+              {currentSessions.length === 0 ? (
                 <div className="text-center py-8">
                   <MessageSquare className={`w-12 h-12 mx-auto mb-3 ${
                     theme === 'dark' ? 'text-white/30' : 'text-black/30'
                   }`} />
                   <p className={`text-sm mb-3 ${
                     theme === 'dark' ? 'text-white/60' : 'text-black/60'
-                  }`}>No chat history yet</p>
+                  }`}>
+                    {activeDomain ? `No chats in ${activeDomain.name} yet` : 'No chat history yet'}
+                  </p>
                   <button
                     onClick={async () => {
                       try {
-                        const newSession = await apiService.createSession();
+                        const newSession = await apiService.createSession(
+                          undefined, // name
+                          activeDomain?.type, // domain
+                          activeDomain?.id, // classId
+                          activeDomain?.name // className
+                        );
                         onSelectSession?.(newSession.id);
                         setSessions([newSession]);
                       } catch (error) {
@@ -530,15 +957,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
                 </div>
               ) : (
-                sessions.map(session => (
+                currentSessions.map(session => (
                   <div
                     key={session.id}
                     className={`group rounded-lg p-3 transition-all duration-200 cursor-pointer ${
                       sessionId === session.id
-                        ? (theme === 'dark' ? 'bg-white/15 shadow-lg' : 'bg-black/15 shadow-lg')
+                        ? (theme === 'dark' ? 'bg-blue-500/20 border border-blue-400/40 shadow-lg' : 'bg-blue-500/20 border border-blue-500/40 shadow-lg')
                         : (theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-black/5 hover:bg-black/10')
                     }`}
-                    onClick={() => onSelectSession?.(session.id)}
+                      onClick={() => onSelectSession?.(session.id)}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -588,8 +1015,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <div className={`text-xs mt-2 ${
                               theme === 'dark' ? 'text-white/50' : 'text-black/50'
                             }`}>
-                              {session.message_count} messages • {new Date(session.updated_at).toLocaleDateString()}
+                              {session.message_count} messages • {formatLocalDate(session.updated_at)}
                             </div>
+                            {/* Show class name like desktop mode */}
+                            {(() => {
+                              const sessionDomain = domains.find(d => d.id === session.domain);
+                              return sessionDomain ? (
+                                <div className={`text-xs mt-1 ${
+                                  theme === 'dark' ? 'text-white/40' : 'text-black/40'
+                                }`}>
+                                  {sessionDomain.name}
+                                </div>
+                              ) : null;
+                            })()}
                           </>
                         )}
                       </div>
@@ -643,9 +1081,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return (
           <div className="p-2 lg:p-4 space-y-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-sm font-semibold ${
-                theme === 'dark' ? 'text-white' : 'text-black'
-              }`}>Rewards</h3>
+              <div>
+                <h3 className={`text-sm font-semibold ${
+                  theme === 'dark' ? 'text-white' : 'text-black'
+                }`}>Rewards</h3>
+                <p className={`text-xs mt-1 ${
+                  theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                }`}>Your study progress and rewards</p>
+              </div>
               <div className="flex items-center gap-2">
                 <Star className="w-4 h-4 text-yellow-400" />
                 <span className={`font-semibold text-sm ${
@@ -654,7 +1097,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 overflow-y-auto" style={{maxHeight: 'calc(100vh - 300px)'}}>
+            <div className="grid grid-cols-1 gap-3 max-h-[70vh] overflow-y-auto scrollbar-none">
               {achievements.map(achievement => {
                 const Icon = getAchievementIcon(achievement.type);
                 const isUnlocked = achievement.unlocked_at !== null;
@@ -735,6 +1178,40 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         );
 
+      case 'store':
+        return (
+          <div className="p-2 lg:p-4 space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className={`text-sm font-semibold ${
+                  theme === 'dark' ? 'text-white' : 'text-black'
+                }`}>Store</h3>
+                <p className={`text-xs mt-1 ${
+                  theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                }`}>Redeem your points for rewards</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-yellow-400" />
+                <span className={`font-semibold text-sm ${
+                  theme === 'dark' ? 'text-white' : 'text-black'
+                }`}>{totalPoints} pts</span>
+              </div>
+            </div>
+
+            <div className="text-center py-8">
+              <Trophy className={`w-12 h-12 mx-auto mb-3 ${
+                theme === 'dark' ? 'text-white/30' : 'text-black/30'
+              }`} />
+              <p className={`text-sm mb-3 ${
+                theme === 'dark' ? 'text-white/60' : 'text-black/60'
+              }`}>Store coming soon!</p>
+              <p className={`text-xs ${
+                theme === 'dark' ? 'text-white/40' : 'text-black/40'
+              }`}>Redeem points for premium features and rewards</p>
+            </div>
+          </div>
+        );
+
       case 'home':
         return (
           <div className="p-2 lg:p-4 space-y-6">
@@ -750,7 +1227,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       setEditingDomain(null);
                       setEditingDomainName('');
                       setEditingDomainType(DomainType.GENERAL);
-                      setEditingDomainDescription('');
                       setEditingDomainDocuments([]);
                     }}
                     className={`p-1 rounded-lg transition-colors ${
@@ -820,23 +1296,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 </div>
 
-                <div>
-                  <label className={`block text-xs font-medium mb-2 ${
-                    theme === 'dark' ? 'text-white/80' : 'text-black/80'
-                  }`}>
-                    Description (Optional)
-                  </label>
-                  <textarea
-                    value={editingDomainDescription}
-                    onChange={(e) => setEditingDomainDescription(e.target.value)}
-                    placeholder="Describe what this class is about..."
-                    className={`w-full border rounded-lg px-3 py-2 text-sm h-20 resize-none ${
-                      theme === 'dark'
-                        ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
-                        : 'bg-black/10 border-black/20 text-black placeholder-black/50'
-                    }`}
-                  />
-                </div>
 
                 {availableDocuments.length > 0 && (
                   <div>
@@ -883,13 +1342,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <button
                     onClick={() => {
                       if (editingDomainName.trim()) {
-                        onEditDomain?.(editingDomain.id, editingDomainName, editingDomainType, editingDomainDescription);
+                        onEditDomain?.(editingDomain.id, editingDomainName, editingDomainType);
                         onAssignDocuments(editingDomain.id, editingDomainDocuments);
                         setEditingDomain(null);
                         setEditingDomainName('');
                         setEditingDomainType(DomainType.GENERAL);
-                        setEditingDomainDescription('');
-                        setEditingDomainDocuments([]);
+                          setEditingDomainDocuments([]);
                       }
                     }}
                     disabled={!editingDomainName.trim()}
@@ -902,7 +1360,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       setEditingDomain(null);
                       setEditingDomainName('');
                       setEditingDomainType(DomainType.GENERAL);
-                      setEditingDomainDescription('');
                       setEditingDomainDocuments([]);
                     }}
                     className={`px-3 py-2 rounded-lg transition-colors text-sm ${
@@ -1044,17 +1501,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <button
                         onClick={() => {
                           if (newClassName.trim()) {
-                            onCreateDomain(newClassName, newClassType);
-                            // Assign documents to the newly created domain
-                            if (selectedDocuments.length > 0) {
-                              // Get the most recently created domain (it will be the last one)
-                              setTimeout(() => {
-                                const newDomain = domains[domains.length - 1];
-                                if (newDomain) {
-                                  onAssignDocuments(newDomain.id, selectedDocuments);
-                                }
-                              }, 100);
-                            }
+                            onCreateDomain(newClassName, newClassType, undefined, selectedDocuments.length > 0 ? selectedDocuments : undefined);
                             setNewClassName('');
                             setNewClassType(DomainType.GENERAL);
                             setSelectedDocuments([]);
@@ -1103,7 +1550,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[70vh] overflow-y-auto scrollbar-none">
                   {domains.map(domain => {
                     const typeInfo = {
                       [DomainType.GENERAL]: { icon: Home, label: 'General', color: 'blue' },
@@ -1161,7 +1608,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 setEditingDomain(domain);
                                 setEditingDomainName(domain.name);
                                 setEditingDomainType(domain.type);
-                                setEditingDomainDescription(domain.description || '');
                                 setEditingDomainDocuments(domain.documents || []);
                               }}
                               className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${
@@ -1213,7 +1659,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   New Chat
                 </button>
               </div>
-              
+
               {currentSessions.length === 0 ? (
                 <div className="text-center py-6">
                   <MessageSquare className={`w-8 h-8 mx-auto mb-3 ${
@@ -1234,40 +1680,52 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {currentSessions.map(session => {
-                    const isActive = currentBackendSessionId === session.id;
+                <div className="space-y-2 max-h-[70vh] overflow-y-auto scrollbar-none">
+                  {currentSessions.map((session, index) => {
+                    const isActive = sessionId === session.id;
+                    // For the active session, use real-time messageCount prop, for others use session.message_count
+                    const currentMessageCount = isActive ? messageCount : session.message_count;
+                    const isPreview = session.isPreview || (index === 0 && currentMessageCount === 0);
                     // Find which domain this session belongs to
                     const sessionDomain = domains.find(d => d.id === session.domain);
-                    
+
+                    // Debug logging for each session
+                    console.log(`DEBUG DESKTOP Session ${session.id}:`, {
+                      name: session.name,
+                      isActive,
+                      isPreview,
+                      session_message_count: session.message_count,
+                      current_message_count: currentMessageCount,
+                      real_time_messageCount: messageCount,
+                      class_name: session.class_name,
+                      domain: session.domain,
+                      sessionId: sessionId,
+                      currentBackendSessionId
+                    });
+
                     return (
                       <div key={session.id}>
                         <button
                           onClick={() => onSelectSession?.(session.id)}
                           className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group ${
-                            isActive
+                            isPreview
                               ? theme === 'dark'
-                                ? 'bg-white/15 border border-white/20'
-                                : 'bg-black/15 border border-black/20'
-                              : theme === 'dark'
-                                ? 'bg-white/5 hover:bg-white/10 border border-transparent'
-                                : 'bg-black/5 hover:bg-black/10 border border-transparent'
+                                ? 'bg-green-500/20 hover:bg-green-500/30 border border-green-500/40'
+                                : 'bg-green-500/20 hover:bg-green-500/30 border border-green-500/40'
+                              : isActive
+                                ? theme === 'dark'
+                                  ? 'bg-blue-500/20 border border-blue-400/40 shadow-lg'
+                                  : 'bg-blue-500/20 border border-blue-500/40 shadow-lg'
+                                : theme === 'dark'
+                                  ? 'bg-white/5 hover:bg-white/10 border border-transparent'
+                                  : 'bg-black/5 hover:bg-black/10 border border-transparent'
                           }`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3 flex-1">
-                              {/* Class Badge - Far Left */}
-                              <div className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
-                                theme === 'dark' 
-                                  ? 'bg-white/10 text-white/60' 
-                                  : 'bg-black/10 text-black/60'
-                              }`}>
-                                {sessionDomain ? sessionDomain.name : 'General'}
-                              </div>
-                              
                               {/* Chat Content */}
                               <div className="flex-1 min-w-0">
-                                <div className={`font-medium text-sm truncate ${
+                                <div className={`flex items-center gap-2 font-medium text-sm ${
                                   theme === 'dark' ? 'text-white' : 'text-black'
                                 }`}>
                                   {editingSessionId === session.id ? (
@@ -1297,13 +1755,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                       onClick={(e) => e.stopPropagation()}
                                     />
                                   ) : (
-                                    session.name
+                                    <div className="flex items-center gap-2">
+                                      <span className="truncate">{session.name}</span>
+                                      {isPreview && (
+                                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 font-medium">
+                                          NEW
+                                        </span>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
-                                <div className={`text-xs ${
+                                <div className={`text-xs flex items-center gap-2 ${
                                   theme === 'dark' ? 'text-white/60' : 'text-black/60'
                                 }`}>
-                                  {new Date(session.updated_at).toLocaleDateString()}
+                                  <span>{session.class_name || (sessionDomain ? sessionDomain.name : 'General')}</span>
+                                  <span>•</span>
+                                  <span>{currentMessageCount || 0} messages</span>
+                                  <span>•</span>
+                                  <span>{formatLocalDate(session.updated_at)}</span>
                                 </div>
                               </div>
                             </div>
@@ -1359,16 +1828,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className={`h-full w-full lg:w-96 backdrop-blur-md border-r flex flex-col ${
+    <div className={`h-full w-full lg:w-[28rem] backdrop-blur-md border-r flex flex-col ${
       theme === 'dark'
         ? 'bg-white/10 border-white/20'
         : 'bg-black/10 border-black/20'
     }`}>
       {/* Header with tabs */}
-      <div className={`flex items-center justify-between p-2 lg:p-4 border-b ${
+      <div className={`flex items-center justify-end p-1 lg:p-4 border-b ${
         theme === 'dark' ? 'border-white/10' : 'border-black/10'
       }`}>
-        <div className="flex items-center space-x-1 overflow-x-auto">
+        <div className="flex items-center space-x-3 overflow-x-auto mr-8">
           <button
             onClick={() => setActiveTab('home')}
             className={`px-2 lg:px-3 py-1 text-xs rounded-lg transition-colors whitespace-nowrap ${
@@ -1387,17 +1856,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
             }`}
           >
-            Documents
+            Docs
           </button>
           <button
             onClick={() => setActiveTab('achievements')}
             className={`px-2 lg:px-3 py-1 text-xs rounded-lg transition-colors whitespace-nowrap ${
-              activeTab === 'achievements' 
+              activeTab === 'achievements'
                 ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
             }`}
           >
             Rewards
+          </button>
+          <button
+            onClick={() => setActiveTab('store')}
+            className={`px-2 lg:px-3 py-1 text-xs rounded-lg transition-colors whitespace-nowrap ${
+              activeTab === 'store'
+                ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
+                : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
+            }`}
+          >
+            Store
           </button>
           <button
             onClick={() => setActiveTab('help')}
@@ -1423,7 +1902,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="flex-1 overflow-y-auto min-h-0 scrollbar-none">
         {renderTabContent()}
       </div>
       

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, MessageSquare, Sparkles, User, Bot, Heart } from 'lucide-react';
+import { Send, MessageSquare, Sparkles, User, Bot, Heart, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { Message } from '../types';
 import ReactMarkdown from 'react-markdown';
 import { useTheme } from '../contexts/ThemeContext';
@@ -11,6 +11,7 @@ interface ChatInterfaceProps {
   currentDomain: string;
   activeCollection: string;
   userName?: string;
+  sidebarOpen?: boolean;
 }
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -20,13 +21,39 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   currentDomain,
   activeCollection,
   userName = 'User',
+  sidebarOpen = true,
 }) => {
   const { theme } = useTheme();
   const [input, setInput] = useState('');
+  const [expandedCitations, setExpandedCitations] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const toggleCitation = (messageIndex: number, citationIndex: number) => {
+    const citationId = `${messageIndex}-${citationIndex}`;
+    setExpandedCitations(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(citationId)) {
+        newSet.delete(citationId);
+      } else {
+        newSet.add(citationId);
+      }
+      return newSet;
+    });
+  };
+
+  // Dynamic width calculation based on sidebar state and viewport
+  const getResponsiveWidth = () => {
+    if (sidebarOpen) {
+      // Sidebar open: use full available width
+      return "w-full px-4 lg:px-8";
+    } else {
+      // Sidebar collapsed: use full available width
+      return "w-full px-8 lg:px-16";
+    }
   };
 
   useEffect(() => {
@@ -44,15 +71,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden">
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 min-h-0">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {messages.length === 0 ? (
-            <div className={`text-center mt-32 ${
+      {messages.length === 0 ? (
+        /* ChatGPT-style centered layout for empty state */
+        <div className="flex-1 flex flex-col items-center justify-center p-4">
+          <div className={`mx-auto ${getResponsiveWidth()}`}>
+            <div className={`text-center mb-12 ${
               theme === 'dark' ? 'text-white/70' : 'text-black/70'
             }`}>
-              <div className={`text-2xl font-semibold flex items-center justify-center gap-2 mb-6 ${
+              <div className={`text-3xl font-semibold flex items-center justify-center gap-2 mb-6 ${
                 theme === 'dark' ? 'text-white' : 'text-black'
               }`}>
                 {(() => {
@@ -61,16 +87,54 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   if (hour < 17) return `Good afternoon, ${userName}!`;
                   return `Good evening, ${userName}!`;
                 })()}
-                <Heart className="w-5 h-5 text-pink-400 animate-pulse" />
+                <Heart className="w-6 h-6 text-pink-400 animate-pulse" />
               </div>
-              <p className={`mb-8 ${
+              <p className={`text-lg mb-8 ${
                 theme === 'dark' ? 'text-white/60' : 'text-black/60'
               }`}>
-                <span className="px-4">Ask questions about your documents and get AI-powered insights with source citations</span>
+                Ask questions about your documents and get AI-powered insights with source citations
               </p>
             </div>
-          ) : (
-            messages.map((message, index) => (
+
+            {/* Large centered input */}
+            <form onSubmit={handleSubmit} className="w-full max-w-3xl mx-auto">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask anything..."
+                  className={`w-full backdrop-blur-sm border rounded-full px-6 py-5 text-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 shadow-lg ${
+                    theme === 'dark'
+                      ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
+                      : 'bg-black/10 border-black/20 text-black placeholder-black/50'
+                  }`}
+                  disabled={isLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={!input.trim() || isLoading}
+                  className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-xl transition-all duration-200 ${
+                    input.trim() && !isLoading
+                      ? 'bg-purple-500 hover:bg-purple-600 text-white shadow-md'
+                      : theme === 'dark'
+                        ? 'bg-white/10 text-white/40'
+                        : 'bg-black/10 text-black/40'
+                  }`}
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : (
+        /* Regular chat layout with messages */
+        <>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 min-h-0 scrollbar-none">
+            <div className={`mx-auto space-y-6 ${getResponsiveWidth()}`}>
+            {messages.map((message, index) => (
               <div
                 key={index}
                 className={`flex ${
@@ -79,7 +143,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div
-                  className={`max-w-2xl flex ${
+                  className={`${
+                    message.role === 'user'
+                      ? sidebarOpen ? 'max-w-2xl' : 'max-w-3xl'  // User messages: more compact
+                      : 'max-w-none w-full'  // AI messages: full width like ChatGPT
+                  } flex ${
                     message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
                   } items-start space-x-3`}
                 >
@@ -163,63 +231,122 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             : 'text-black/80'
                         }`}>
                           <Sparkles className="w-3 h-3 mr-1" />
-                          {message.citations.length} sources referenced
+                          {(() => {
+                            const uniqueSources = new Set(message.citations.map(c => c.source));
+                            const sourceCount = uniqueSources.size;
+                            const chunkCount = message.citations.length;
+
+                            if (sourceCount === 1) {
+                              return `1 source referenced (${chunkCount} ${chunkCount === 1 ? 'chunk' : 'chunks'})`;
+                            } else {
+                              return `${sourceCount} sources referenced (${chunkCount} ${chunkCount === 1 ? 'chunk' : 'chunks'})`;
+                            }
+                          })()}
                         </div>
                         <div className="space-y-2">
-                          {message.citations.map((citation, i) => (
-                            <div key={i} className={`backdrop-blur-sm p-3 rounded-lg border ${
-                              message.role === 'user' || theme === 'dark'
-                                ? 'bg-black/20 border-white/10'
-                                : 'bg-white/20 border-black/10'
-                            }`}>
-                              <div className={`font-medium text-xs mb-1 ${
+                          {message.citations.map((citation, i) => {
+                            const citationId = `${index}-${i}`;
+                            const isExpanded = expandedCitations.has(citationId);
+
+                            return (
+                              <div key={i} className={`backdrop-blur-sm p-3 rounded-lg border transition-all duration-200 ${
                                 message.role === 'user' || theme === 'dark'
-                                  ? 'text-white/90'
-                                  : 'text-black/90'
+                                  ? 'bg-black/20 border-white/10 hover:bg-black/30'
+                                  : 'bg-white/20 border-black/10 hover:bg-white/30'
                               }`}>
-                                [{i + 1}] {citation.source}
-                                {citation.page && ` - Page ${citation.page}`}
-                              </div>
-                              <div className={`text-xs mb-2 line-clamp-2 ${
-                                message.role === 'user' || theme === 'dark'
-                                  ? 'text-white/70'
-                                  : 'text-black/70'
-                              }`}>
-                                {citation.preview}
-                              </div>
-                              <div className="flex items-center justify-between text-xs">
-                                <span className={
+                                {/* Citation Header */}
+                                <div className="flex items-center justify-between">
+                                  <div className={`font-medium text-xs mb-1 ${
+                                    message.role === 'user' || theme === 'dark'
+                                      ? 'text-white/90'
+                                      : 'text-black/90'
+                                  }`}>
+                                    [{i + 1}] {citation.source}
+                                    {citation.page && ` - Page ${citation.page}`}
+                                  </div>
+
+                                  {/* Expand/Collapse Button */}
+                                  <button
+                                    onClick={() => toggleCitation(index, i)}
+                                    className={`p-1 rounded-md transition-colors ${
+                                      message.role === 'user' || theme === 'dark'
+                                        ? 'hover:bg-white/10 text-white/60 hover:text-white/80'
+                                        : 'hover:bg-black/10 text-black/60 hover:text-black/80'
+                                    }`}
+                                    title={isExpanded ? 'Show less' : 'Show full text'}
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronUp className="w-3 h-3" />
+                                    ) : (
+                                      <ChevronDown className="w-3 h-3" />
+                                    )}
+                                  </button>
+                                </div>
+
+                                {/* Citation Summary */}
+                                <div className={`text-xs mb-2 ${
                                   message.role === 'user' || theme === 'dark'
-                                    ? 'text-white/60'
-                                    : 'text-black/60'
-                                }>
-                                  Relevance: {(citation.relevance_score * 100).toFixed(1)}%
-                                </span>
-                                <div className={`w-16 rounded-full h-1 ${
-                                  message.role === 'user' || theme === 'dark'
-                                    ? 'bg-white/10'
-                                    : 'bg-black/10'
-                                }`}>
-                                  <div 
-                                    className="bg-gradient-to-r from-green-400 to-blue-500 h-1 rounded-full transition-all duration-500"
-                                    style={{ width: `${citation.relevance_score * 100}%` }}
-                                  />
+                                    ? 'text-white/70'
+                                    : 'text-black/70'
+                                } ${isExpanded ? '' : 'line-clamp-2'}`}>
+                                  {citation.summary || citation.preview}
+                                </div>
+
+                                {/* Full Text (when expanded) */}
+                                {isExpanded && citation.full_text && (
+                                  <div className={`text-xs mb-3 p-2 rounded border max-h-40 overflow-y-auto ${
+                                    message.role === 'user' || theme === 'dark'
+                                      ? 'bg-black/20 border-white/10 text-white/80'
+                                      : 'bg-white/20 border-black/10 text-black/80'
+                                  }`}>
+                                    <div className={`flex items-center gap-1 mb-2 text-xs font-medium ${
+                                      message.role === 'user' || theme === 'dark'
+                                        ? 'text-white/60'
+                                        : 'text-black/60'
+                                    }`}>
+                                      <Eye className="w-3 h-3" />
+                                      Full Source Text
+                                    </div>
+                                    <div className="whitespace-pre-wrap">
+                                      {citation.full_text}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Relevance Score */}
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className={
+                                    message.role === 'user' || theme === 'dark'
+                                      ? 'text-white/60'
+                                      : 'text-black/60'
+                                  }>
+                                    Relevance: {(citation.relevance_score * 100).toFixed(1)}%
+                                  </span>
+                                  <div className={`w-16 rounded-full h-1 ${
+                                    message.role === 'user' || theme === 'dark'
+                                      ? 'bg-white/10'
+                                      : 'bg-black/10'
+                                  }`}>
+                                    <div
+                                      className="bg-gradient-to-r from-green-400 to-blue-500 h-1 rounded-full transition-all duration-500"
+                                      style={{ width: `${citation.relevance_score * 100}%` }}
+                                    />
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
-            ))
-          )}
-          
+            ))}
+
           {isLoading && (
             <div className="flex justify-start animate-in slide-in-from-bottom-5">
-              <div className="max-w-2xl flex items-start space-x-3">
+              <div className="max-w-none w-full flex items-start space-x-3">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 flex items-center justify-center">
                   <Bot className="w-4 h-4 text-white" />
                 </div>
@@ -255,21 +382,38 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Input */}
       <div className="p-4 flex-shrink-0">
-        <form onSubmit={handleSubmit} className="max-w-2xl mx-auto px-4">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask anything..."
-            className={`w-full backdrop-blur-sm border rounded-2xl px-6 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 ${
-              theme === 'dark'
-                ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
-                : 'bg-black/10 border-black/20 text-black placeholder-black/50'
-            }`}
-            disabled={isLoading}
-          />
+        <form onSubmit={handleSubmit} className={`mx-auto px-4 ${getResponsiveWidth()}`}>
+          <div className="relative">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask anything..."
+              className={`w-full backdrop-blur-sm border rounded-full px-6 py-3 pr-14 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 ${
+                theme === 'dark'
+                  ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
+                  : 'bg-black/10 border-black/20 text-black placeholder-black/50'
+              }`}
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              disabled={!input.trim() || isLoading}
+              className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-xl transition-all duration-200 ${
+                input.trim() && !isLoading
+                  ? 'bg-purple-500 hover:bg-purple-600 text-white shadow-md'
+                  : theme === 'dark'
+                    ? 'bg-white/10 text-white/40'
+                    : 'bg-black/10 text-black/40'
+              }`}
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
         </form>
       </div>
+      </>
+      )}
     </div>
   );
 };

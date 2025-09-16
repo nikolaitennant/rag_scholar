@@ -1,5 +1,6 @@
 """Enhanced chat service preserving all existing features."""
 
+import logging
 import re
 import uuid
 from typing import Any
@@ -14,6 +15,8 @@ from rag_scholar.services.memory_service import MemoryService
 from rag_scholar.services.retrieval_service import RetrievalService
 from rag_scholar.services.session_manager import SessionManager
 from rag_scholar.services.user_service import user_service
+
+logger = logging.getLogger(__name__)
 
 
 class SpecialCommand(BaseModel):
@@ -96,7 +99,25 @@ class ChatService:
         if "persona" not in session:
             session["persona"] = None
         if "active_class" not in session:
-            session["active_class"] = active_class or "default"
+            # Use class_id if available, otherwise use active_class parameter or default
+            session["active_class"] = session.get("class_id") or active_class or "default"
+
+        # If active_class parameter is provided and different from session, update session
+        # But prioritize class_id over class names
+        if active_class and active_class != session.get("active_class"):
+            # Check if active_class looks like a class ID (hex string)
+            if len(active_class) <= 16 and all(c in '0123456789abcdef' for c in active_class.lower()):
+                # It's a class ID, store it properly
+                session["class_id"] = active_class
+                session["active_class"] = active_class
+            elif session.get("class_id"):
+                # We have a class_id in session, don't override with class name
+                pass  # Keep existing class_id
+            else:
+                # No class_id in session, use the provided active_class (could be name)
+                session["active_class"] = active_class
+        if "domain" not in session:
+            session["domain"] = domain.value
 
         # Check for special commands
         query_lower = query.lower()
@@ -208,17 +229,42 @@ class ChatService:
         # Enhance query with domain knowledge
         enhanced_query = domain_handler.enhance_query(query)
 
-        # Always use default collection since all documents are stored there
-        # Document filtering is handled by selected_documents parameter
-        collection = "default"
+        # Determine collection: prioritize class IDs over names
+        collection = None
 
-        # Retrieve relevant documents
+        # First, try to use class_id from session (most reliable)
+        if session.get("class_id"):
+            collection = session.get("class_id")
+        # Then check if active_class parameter looks like a class ID
+        elif active_class and len(active_class) <= 16 and all(c in '0123456789abcdef' for c in active_class.lower()):
+            collection = active_class
+        # Then fall back to active_class from session (could be name or ID)
+        elif session.get("active_class") and session.get("active_class") != "default":
+            session_active = session.get("active_class")
+            if len(session_active) <= 16 and all(c in '0123456789abcdef' for c in session_active.lower()):
+                collection = session_active  # It's an ID
+            else:
+                # It's a class name - this should not be used as collection
+                # Log a warning and fall back to domain
+                print(f"⚠️  WARNING: Using class name '{session_active}' as collection - should use class ID")
+                collection = domain.value
+        # Finally, fall back to domain
+        else:
+            collection = domain.value
+
+        print(f"🔍 COLLECTION: '{collection}' (active_class: {active_class}, session_class_id: {session.get('class_id')}, session_class: {session.get('active_class')}, domain: {domain.value})")
+        if selected_documents:
+            print(f"🔍 SELECTED DOCS: {selected_documents}")
+
+
+        # Retrieve relevant documents (temporarily disable selected_files filtering)
         retrieved_docs = await self.retrieval_service.retrieve(
             query=enhanced_query,
             collection=collection,
-            selected_files=selected_documents,
+            selected_files=None,  # Temporarily disable filtering
             k=self.settings.retrieval_k,
         )
+
 
         # Check if we have enough information
         if (
@@ -328,7 +374,7 @@ class ChatService:
         answer = self._validate_citations(answer, citation_map)
 
         # Extract used citations
-        citations = self._extract_citations(answer, citation_map, retrieved_docs)
+        citations = await self._extract_citations(answer, citation_map, retrieved_docs)
 
         # Add messages to memory service for enhanced memory functionality
         self.memory_service.add_message(session_id, domain.value, "user", query)
@@ -346,7 +392,13 @@ class ChatService:
         if len(session["history"]) > 20:
             session["history"] = session["history"][-20:]
 
+
         await self.session_manager.save_session(session_id, session)
+
+        # Auto-generate session name at key intervals
+        message_count = len(session.get("history", []))
+        if message_count in [1, 10, 20] and not session.get("name_locked", False):
+            await self._update_session_name(session_id, session)
 
         # Update user statistics if user_id is provided
         if user_id:
@@ -370,6 +422,7 @@ class ChatService:
         domain: DomainType | None = None,
         session_id: str | None = None,
         selected_documents: list[str] | None = None,
+        active_class: str | None = None,
         user_context: dict[str, Any] | None = None,
         user_id: str | None = None,
     ) -> Any:
@@ -381,6 +434,7 @@ class ChatService:
             domain=domain,
             session_id=session_id,
             selected_documents=selected_documents,
+            active_class=active_class,
             user_context=user_context,
             user_id=user_id,
         )
@@ -404,12 +458,28 @@ class ChatService:
         citation_map = {}
 
         for i, doc in enumerate(documents, 1):
-            # Create citation entry
+            # Create citation entry with longer, more useful preview
+            content = doc["content"]
+            # Take first 500 chars or up to end of sentence, whichever comes first
+            preview_length = min(500, len(content))
+            preview = content[:preview_length]
+
+            # Try to end at a sentence boundary for better readability
+            if preview_length < len(content):
+                last_period = preview.rfind('. ')
+                last_newline = preview.rfind('\n')
+                if last_period > 200:  # Only if we have a reasonable amount of text
+                    preview = preview[:last_period + 1]
+                elif last_newline > 200:
+                    preview = preview[:last_newline]
+                else:
+                    preview = preview + "..."
+
             citation_map[i] = {
                 "source": doc.get("source", "Unknown"),
                 "page": doc.get("page"),
-                "preview": doc["content"][:200] + "...",
-                "full": doc["content"],
+                "preview": preview,
+                "full": content,
             }
 
             # Add to context
@@ -437,13 +507,13 @@ class ChatService:
 
         return answer
 
-    def _extract_citations(
+    async def _extract_citations(
         self,
         answer: str,
         citation_map: dict[int, dict[str, Any]],
         documents: list[dict[str, Any]],
-    ) -> list[dict[str, Any]]:
-        """Extract and format citations from answer."""
+        ) -> list[dict[str, Any]]:
+        """Extract and format citations from answer with enhanced summaries."""
 
         # Find citation numbers in answer
         cited_nums = set(self.citation_pattern.findall(answer))
@@ -461,17 +531,94 @@ class ChatService:
                     else 0.0
                 )
 
+                # Get full text from the document
+                full_text = documents[doc_idx].get("page_content", cite_info["preview"])
+
+                # Generate smart summary using fast LLM or simple fallback
+                if self.settings.use_llm_citation_summaries:
+                    summary = await self._generate_smart_summary(full_text, answer)
+                else:
+                    summary = self._generate_simple_summary(full_text)
+
                 citations.append(
                     {
                         "id": num,
                         "source": cite_info["source"],
                         "page": cite_info.get("page"),
                         "preview": cite_info["preview"],
+                        "summary": summary,
+                        "full_text": full_text,
                         "relevance_score": score,
                     }
                 )
 
         return sorted(citations, key=lambda x: x["id"])
+
+    async def _generate_smart_summary(self, full_text: str, answer_context: str) -> str:
+        """Generate a smart summary using fast LLM."""
+        try:
+            # Use the fast citation LLM model
+            citation_llm = ChatOpenAI(
+                model=self.settings.citation_llm_model,
+                temperature=0.1,
+                max_tokens=60,  # Keep it short and fast
+                api_key=self.settings.openai_api_key
+            )
+
+            prompt = f"""Summarize this source text in 1 clear sentence (max 50 words) explaining what information it provides:
+
+Source: {full_text[:400]}
+
+Context: This supports an answer about: {answer_context[:100]}
+
+Summary:"""
+
+            messages = [
+                SystemMessage(content="You are an expert at creating concise, informative citation summaries."),
+                HumanMessage(content=prompt)
+            ]
+
+            response = await citation_llm.ainvoke(messages)
+            summary = str(response.content).strip()
+
+            # Fallback to simple if too long or empty
+            if not summary or len(summary) > 200:
+                return self._generate_simple_summary(full_text)
+
+            return summary
+
+        except Exception as e:
+            logger.warning(f"Failed to generate smart summary, falling back to simple: {e}")
+            return self._generate_simple_summary(full_text)
+
+    def _generate_simple_summary(self, full_text: str) -> str:
+        """Generate a simple, fast summary of the citation content."""
+        try:
+            # Take first sentence or first 150 characters, whichever is shorter
+            text = full_text.strip()
+
+            # Find first sentence
+            sentence_endings = ['. ', '.\n', '? ', '?\n', '! ', '!\n']
+            first_sentence_end = len(text)
+
+            for ending in sentence_endings:
+                pos = text.find(ending)
+                if pos != -1 and pos < first_sentence_end:
+                    first_sentence_end = pos + 1
+
+            # Get first sentence or 150 chars max
+            if first_sentence_end < 150:
+                summary = text[:first_sentence_end].strip()
+            else:
+                summary = text[:150].strip()
+                if not summary.endswith('.'):
+                    summary += "..."
+
+            return summary if summary else "Source provides supporting evidence for the cited claim."
+
+        except Exception as e:
+            logger.warning(f"Failed to generate simple summary: {e}")
+            return "Source provides supporting evidence for the cited claim."
 
     async def switch_class(
         self,
@@ -523,3 +670,85 @@ class ChatService:
     ) -> None:
         """Remember a fact in the session context."""
         self.memory_service.remember_fact(session_id, domain_id, key, value)
+
+    async def _update_session_name(self, session_id: str, session: dict[str, Any]) -> None:
+        """Generate and update session name using AI."""
+        try:
+            import logging
+            from datetime import datetime
+
+            logger = logging.getLogger(__name__)
+
+            messages = session.get("history", [])
+            if not messages:
+                return
+
+            # Get first user message for context
+            first_user_message = None
+            recent_messages = []
+
+            for msg in messages:
+                if hasattr(msg, "content"):
+                    content = msg.content
+                    msg_type = getattr(msg, "type", "unknown")
+                elif isinstance(msg, dict):
+                    content = msg.get("content", "")
+                    msg_type = msg.get("type", msg.get("role", "unknown"))
+                else:
+                    continue
+
+                if msg_type in ["human", "user"] and not first_user_message:
+                    first_user_message = content
+
+                # Collect recent messages for context (last 6)
+                recent_messages.append(f"{msg_type}: {content[:100]}")
+
+            if not first_user_message:
+                return
+
+            # Build context from recent messages
+            recent_context = "\n".join(recent_messages[-6:])
+
+            # Generate title using GPT-3.5
+            prompt = f"""Generate a short, descriptive title (2-5 words) for a chat session. The title should be concise and capture the main topic.
+
+First message: "{first_user_message[:200]}"
+
+Recent conversation context:
+{recent_context}
+
+Examples of good titles:
+- "Python Data Analysis"
+- "Recipe for Pasta"
+- "Travel to Japan"
+- "Resume Writing Help"
+- "Machine Learning Basics"
+
+Generate only the title, no quotes or extra text:"""
+
+            llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.3, max_tokens=30)
+            from langchain_core.messages import SystemMessage, HumanMessage
+
+            messages_for_llm = [
+                SystemMessage(content="You generate concise, descriptive chat titles."),
+                HumanMessage(content=prompt)
+            ]
+
+            response = await llm.ainvoke(messages_for_llm)
+            title = str(response.content).strip().strip('"').strip("'")
+
+            # Fallback if AI response is too long or empty
+            if not title or len(title) > 50:
+                words = first_user_message.split()[:3]
+                title = " ".join(words).title() if words else f"Chat - {datetime.now().strftime('%m/%d %H:%M')}"
+
+            # Update session with new name
+            session["name"] = title
+            session["updated_at"] = datetime.now().isoformat()
+            await self.session_manager.save_session(session_id, session)
+
+            logger.info(f"Updated session {session_id} name to: {title}")
+
+        except Exception as e:
+            logger.error(f"Failed to update session name: {e}")
+            # Don't fail the entire chat operation if naming fails

@@ -11,6 +11,8 @@ export interface Citation {
   source: string;
   page?: number;
   preview: string;
+  summary?: string;
+  full_text?: string;
   relevance_score: number;
 }
 

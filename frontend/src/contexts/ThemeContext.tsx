@@ -21,8 +21,14 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [background, setBackgroundState] = useState<BackgroundType>('none');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    return savedTheme || 'dark';
+  });
+  const [background, setBackgroundState] = useState<BackgroundType>(() => {
+    const savedBackground = localStorage.getItem('background') as BackgroundType | null;
+    return savedBackground || 'none';
+  });
 
   const backgroundClasses = {
     none: theme === 'dark' 
@@ -42,16 +48,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       : 'bg-gradient-to-br from-green-200 via-emerald-100 to-cyan-200',
   };
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    const savedBackground = localStorage.getItem('background') as BackgroundType | null;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    }
-    if (savedBackground) {
-      setBackgroundState(savedBackground);
-    }
-  }, []);
 
   useEffect(() => {
     document.documentElement.classList.remove('light', 'dark');

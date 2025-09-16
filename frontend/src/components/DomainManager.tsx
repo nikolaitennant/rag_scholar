@@ -41,15 +41,14 @@ export const DomainManager: React.FC<DomainManagerProps> = ({
   const [editingDomain, setEditingDomain] = useState<UserDomain | null>(null);
   const [newDomainName, setNewDomainName] = useState('');
   const [newDomainType, setNewDomainType] = useState<DomainType>(DomainType.GENERAL);
-  const [newDomainDescription, setNewDomainDescription] = useState('');
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
 
   const handleCreateDomain = () => {
     if (newDomainName.trim()) {
       if (editingDomain) {
-        onEditDomain?.(editingDomain.id, newDomainName, newDomainType, newDomainDescription);
+        onEditDomain?.(editingDomain.id, newDomainName, newDomainType);
       } else {
-        onCreateDomain(newDomainName, newDomainType, newDomainDescription);
+        onCreateDomain(newDomainName, newDomainType);
       }
       resetForm();
     }
@@ -57,7 +56,6 @@ export const DomainManager: React.FC<DomainManagerProps> = ({
 
   const resetForm = () => {
     setNewDomainName('');
-    setNewDomainDescription('');
     setNewDomainType(DomainType.GENERAL);
     setSelectedDocuments([]);
     setShowCreateForm(false);
@@ -68,7 +66,6 @@ export const DomainManager: React.FC<DomainManagerProps> = ({
     setEditingDomain(domain);
     setNewDomainName(domain.name);
     setNewDomainType(domain.type);
-    setNewDomainDescription(domain.description || '');
     setSelectedDocuments(domain.documents || []);
     setShowCreateForm(true);
   };
@@ -125,47 +122,36 @@ export const DomainManager: React.FC<DomainManagerProps> = ({
           }`}>
             Class Type
           </label>
-          <div className="grid grid-cols-2 gap-2">
-            {Object.entries(DOMAIN_TYPE_INFO).map(([type, info]) => {
+          <div className="grid grid-cols-3 gap-1">
+            {Object.entries({
+              [DomainType.GENERAL]: { icon: Home, label: 'General' },
+              [DomainType.LAW]: { icon: Book, label: 'Law' },
+              [DomainType.SCIENCE]: { icon: Beaker, label: 'Science' },
+              [DomainType.MEDICINE]: { icon: Heart, label: 'Medicine' },
+              [DomainType.BUSINESS]: { icon: Briefcase, label: 'Business' },
+              [DomainType.COMPUTER_SCIENCE]: { icon: Code, label: 'Tech' },
+            }).map(([type, info]) => {
               const Icon = info.icon;
               return (
                 <button
                   key={type}
                   onClick={() => setNewDomainType(type as DomainType)}
-                  className={`p-2 rounded-lg border transition-all duration-200 flex items-center space-x-2 ${
+                  className={`p-2 rounded text-xs transition-all duration-200 flex flex-col items-center space-y-1 ${
                     newDomainType === type
                       ? theme === 'dark'
-                        ? 'bg-white/20 border-white/40 text-white'
-                        : 'bg-black/20 border-black/40 text-black'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-black/20 text-black'
                       : theme === 'dark'
-                        ? 'bg-white/5 border-white/20 text-white/70 hover:bg-white/10'
-                        : 'bg-black/5 border-black/20 text-black/70 hover:bg-black/10'
+                        ? 'bg-white/5 text-white/70 hover:bg-white/10'
+                        : 'bg-black/5 text-black/70 hover:bg-black/10'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span className="text-xs">{info.label}</span>
+                  <Icon className="w-3 h-3" />
+                  <span>{info.label}</span>
                 </button>
               );
             })}
           </div>
-        </div>
-
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${
-            theme === 'dark' ? 'text-white/80' : 'text-black/80'
-          }`}>
-            Description (Optional)
-          </label>
-          <textarea
-            value={newDomainDescription}
-            onChange={(e) => setNewDomainDescription(e.target.value)}
-            placeholder="Describe what this class is about..."
-            className={`w-full border rounded-lg px-3 py-2 text-sm h-20 resize-none ${
-              theme === 'dark'
-                ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
-                : 'bg-black/10 border-black/20 text-black placeholder-black/50'
-            }`}
-          />
         </div>
 
         {availableDocuments.length > 0 && (

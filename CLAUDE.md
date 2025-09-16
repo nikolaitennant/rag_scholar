@@ -1,0 +1,2 @@
+- Domain = Subject type (Law, History, Medicine, etc.) - not unique
+- Class = Specific class like "Medicine 101" - unique

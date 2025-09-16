@@ -58,6 +58,12 @@ class Settings(BaseSettings):
     llm_model: str = Field(
         default="gpt-4-turbo-preview", description="LLM model to use"
     )
+    citation_llm_model: str = Field(
+        default="gpt-4o-mini", description="Fast LLM model for citation summaries"
+    )
+    use_llm_citation_summaries: bool = Field(
+        default=True, description="Use LLM to generate smart citation summaries"
+    )
     embedding_model: str = Field(
         default="text-embedding-3-small", description="Embedding model to use"
     )

@@ -157,6 +157,53 @@ class DocumentService:
             logger.error(f"Failed to update vector index: {type(e).__name__}: {e}")
             raise RuntimeError(f"Vector indexing failed: {e}") from e
 
+    async def _rebuild_index(self, collection: str, documents: list[Document]):
+        """Rebuild vector store index from scratch, removing all existing data."""
+
+        index_dir = self.settings.index_dir / collection
+
+        try:
+            # Remove existing index directory completely
+            if index_dir.exists():
+                import shutil
+                shutil.rmtree(index_dir)
+                logger.info(f"Removed existing index directory: {index_dir}")
+
+            # Create new index from documents
+            if documents:
+                logger.info(f"Creating new index with {len(documents)} documents")
+                vector_store = FAISS.from_documents(documents, self.embeddings)
+
+                # Save index locally
+                index_dir.mkdir(parents=True, exist_ok=True)
+                vector_store.save_local(str(index_dir))
+                logger.info(f"Saved new vector store to {index_dir}")
+
+                # Upload to cloud storage if available
+                if self.cloud_storage.is_available():
+                    logger.info(f"Uploading rebuilt index to cloud storage for collection: {collection}")
+                    upload_success = self.cloud_storage.upload_index(collection, index_dir)
+                    if upload_success:
+                        logger.info(f"Successfully uploaded rebuilt index for collection: {collection}")
+                    else:
+                        logger.warning(f"Failed to upload rebuilt index for collection: {collection}")
+
+                # Update retrieval service
+                self.retrieval_service.update_indexes(collection, documents, vector_store)
+            else:
+                logger.info(f"No documents to index for collection: {collection}")
+                # Clear the retrieval service cache for this collection
+                if collection in self.retrieval_service.vector_stores:
+                    del self.retrieval_service.vector_stores[collection]
+                if collection in self.retrieval_service.bm25_indexes:
+                    del self.retrieval_service.bm25_indexes[collection]
+                if collection in self.retrieval_service.document_cache:
+                    del self.retrieval_service.document_cache[collection]
+
+        except Exception as e:
+            logger.error(f"Failed to rebuild vector index: {type(e).__name__}: {e}")
+            raise RuntimeError(f"Vector index rebuild failed: {e}") from e
+
     async def list_collections(self) -> list[str]:
         """List available collections."""
 
@@ -180,7 +227,12 @@ class DocumentService:
         documents = []
         collection_dir = self.settings.upload_dir / collection
 
+        # Get total chunks from vector store
+        total_chunks = await self._get_collection_chunk_count(collection)
+
         if collection_dir.exists():
+            file_count = sum(1 for path in collection_dir.iterdir() if path.is_file())
+
             for file_path in collection_dir.iterdir():
                 if file_path.is_file():
                     # Generate document ID
@@ -188,17 +240,50 @@ class DocumentService:
                         f"{collection}:{file_path.name}".encode()
                     ).hexdigest()[:16]
 
+                    # Estimate chunks per file (total chunks / number of files)
+                    # This is an approximation since we don't track per-file chunks
+                    chunks_per_file = total_chunks // file_count if file_count > 0 else 0
+                    if total_chunks % file_count != 0 and file_count > 0:
+                        chunks_per_file += 1  # Add remainder to first file
+
                     documents.append(
                         {
                             "id": doc_id,
                             "filename": file_path.name,
                             "size": file_path.stat().st_size,
-                            "chunks": 0,  # TODO: Track this properly
+                            "chunks": chunks_per_file,
                             "status": "indexed",
                         }
                     )
 
         return documents
+
+    async def _get_collection_chunk_count(self, collection: str) -> int:
+        """Get total number of chunks in a collection from the vector store."""
+        try:
+            from langchain_community.vectorstores import FAISS
+            from langchain_openai import OpenAIEmbeddings
+
+            index_path = self.settings.index_dir / collection
+
+            if index_path.exists():
+                embeddings = OpenAIEmbeddings(
+                    api_key=self.settings.openai_api_key,
+                    model=self.settings.embedding_model,
+                )
+
+                vector_store = FAISS.load_local(
+                    str(index_path),
+                    embeddings,
+                    allow_dangerous_deserialization=True,
+                )
+
+                return vector_store.index.ntotal
+
+        except Exception as e:
+            logger.warning(f"Could not get chunk count for collection {collection}: {e}")
+
+        return 0
 
     async def delete_document(self, collection: str, doc_id: str):
         """Delete a document from collection."""
@@ -233,7 +318,7 @@ class DocumentService:
         await self.reindex_collection(collection)
 
     async def reindex_collection(self, collection: str) -> dict[str, Any]:
-        """Rebuild index for a collection."""
+        """Rebuild index for a collection from scratch."""
 
         collection_dir = self.settings.upload_dir / collection
         all_documents = []
@@ -242,10 +327,26 @@ class DocumentService:
             for file_path in collection_dir.iterdir():
                 if file_path.is_file() and file_path.suffix.lower() in self.loader_map:
                     try:
-                        result = await self.process_document(file_path, collection)
-                        all_documents.extend(result.get("chunks", []))
+                        # Load document
+                        loader_class = self.loader_map.get(file_path.suffix.lower())
+                        loader = loader_class(str(file_path))
+                        documents = loader.load()
+
+                        if documents:
+                            # Process document
+                            for doc in documents:
+                                processed = self.processor.process_document(
+                                    content=doc.page_content,
+                                    source=file_path.name,
+                                    metadata=doc.metadata,
+                                )
+                                all_documents.extend(processed.chunks)
+
                     except Exception as e:
                         logger.error(f"Failed to reindex {file_path}: {e}")
+
+        # Rebuild index from scratch
+        await self._rebuild_index(collection, all_documents)
 
         # Get index size
         index_dir = self.settings.index_dir / collection
@@ -256,7 +357,7 @@ class DocumentService:
                     index_size += file.stat().st_size
 
         return {
-            "total_documents": len(list(collection_dir.iterdir()))
+            "total_documents": len([f for f in collection_dir.iterdir() if f.is_file()])
             if collection_dir.exists()
             else 0,
             "total_chunks": len(all_documents),

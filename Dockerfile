@@ -49,7 +49,5 @@ ENV PYTHONPATH=/app/src
 # Expose port (Cloud Run will set PORT env var)
 EXPOSE 8080
 
-# Health check removed - Cloud Run handles this automatically
-
 # Default command (can be overridden)
 CMD sh -c "python -m uvicorn rag_scholar.main:app --host 0.0.0.0 --port ${PORT:-8080}"

@@ -51,6 +51,7 @@ export const apiService = {
     domain: string;
     session_id: string;
     selected_documents?: string[];
+    active_class?: string;
     user_context?: {
       name: string;
       bio: string | null;
@@ -97,6 +98,11 @@ export const apiService = {
     return response.data;
   },
 
+  updateDocumentName: async (documentId: string, newName: string): Promise<any> => {
+    const response = await api.put(`/documents/${documentId}`, { filename: newName });
+    return response.data;
+  },
+
   reindexCollection: async (collection: string): Promise<any> => {
     const response = await api.post(`/documents/collections/${collection}/reindex`);
     return response.data;
@@ -108,8 +114,13 @@ export const apiService = {
     return response.data;
   },
 
-  createSession: async (name?: string, domain?: string): Promise<any> => {
-    const response = await api.post('/sessions/', { name, domain });
+  createSession: async (name?: string, domain?: string, classId?: string, className?: string): Promise<any> => {
+    const response = await api.post('/sessions/', {
+      name,
+      domain,
+      class_id: classId,
+      class_name: className
+    });
     return response.data;
   },
 
@@ -123,8 +134,34 @@ export const apiService = {
     return response.data;
   },
 
+  updateSessionName: async (sessionId: string, name: string): Promise<any> => {
+    return apiService.updateSession(sessionId, name);
+  },
+
   deleteSession: async (sessionId: string): Promise<void> => {
     await api.delete(`/sessions/${sessionId}`);
+  },
+
+  deleteSessionsByClass: async (classId: string): Promise<any> => {
+    const response = await api.delete(`/sessions/class/${classId}`);
+    return response.data;
+  },
+
+  createClassWithDocuments: async (name: string, domain?: string, selectedDocuments?: string[]): Promise<any> => {
+    const response = await api.post('/sessions/create-class', {
+      name,
+      domain: domain || 'general',
+      selected_documents: selectedDocuments || []
+    });
+    return response.data;
+  },
+
+  transferDocuments: async (classId: string, documentIds: string[]): Promise<any> => {
+    const response = await api.post('/sessions/transfer-documents', {
+      class_id: classId,
+      document_ids: documentIds
+    });
+    return response.data;
   },
 };
 

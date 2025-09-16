@@ -6,10 +6,16 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from google.cloud import storage
-from google.cloud.exceptions import NotFound
-
 from rag_scholar.config.settings import Settings
+
+try:
+    from google.cloud import storage
+    from google.cloud.exceptions import NotFound
+    GCS_AVAILABLE = True
+except ImportError:
+    storage = None
+    NotFound = Exception
+    GCS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +27,10 @@ class CloudStorageService:
         self.settings = settings
         self.client = None
         self.bucket = None
+
+        if not GCS_AVAILABLE:
+            logger.warning("Google Cloud Storage not available - cloud storage disabled")
+            return
 
         if settings.use_cloud_storage and settings.gcs_bucket_name:
             try:

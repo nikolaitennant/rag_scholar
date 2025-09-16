@@ -219,7 +219,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
               : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
           }`}
-          title="Achievements"
+          title="Rewards"
         >
           <Trophy className="w-4 h-4" />
         </button>
@@ -383,17 +383,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }`}>
                 <div className={`text-xs mb-1 ${
                   theme === 'dark' ? 'text-white/60' : 'text-black/60'
-                }`}>Session ID</div>
-                <div className={`text-xs font-mono truncate ${
-                  theme === 'dark' ? 'text-white' : 'text-black'
-                }`}>{sessionId}</div>
-              </div>
-
-              <div className={`rounded-lg p-3 ${
-                theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
-              }`}>
-                <div className={`text-xs mb-1 ${
-                  theme === 'dark' ? 'text-white/60' : 'text-black/60'
                 }`}>User Messages</div>
                 <div className={`text-sm font-semibold ${
                   theme === 'dark' ? 'text-white' : 'text-black'
@@ -428,19 +417,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }`}>
                 <div className={`text-xs mb-2 ${
                   theme === 'dark' ? 'text-white/60' : 'text-black/60'
-                }`}>Commands</div>
+                }`}>Special Commands</div>
                 <div className={`space-y-2 text-xs ${
                   theme === 'dark' ? 'text-white/70' : 'text-black/70'
                 }`}>
                   <div><span className={`font-mono px-1 rounded ${
                     theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
-                  }`}>/search</span> - Search documents</div>
+                  }`}>remember:</span> - Remember fact permanently</div>
                   <div><span className={`font-mono px-1 rounded ${
                     theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
-                  }`}>/summarize</span> - Summarize content</div>
+                  }`}>memo:</span> - Add session-only fact</div>
                   <div><span className={`font-mono px-1 rounded ${
                     theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
-                  }`}>/background</span> - Get background uncited info</div>
+                  }`}>role:</span> - Set AI persona/role</div>
+                  <div><span className={`font-mono px-1 rounded ${
+                    theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
+                  }`}>background:</span> - Get background info</div>
                 </div>
               </div>
 
@@ -653,7 +645,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-white' : 'text-black'
-              }`}>Achievements</h3>
+              }`}>Rewards</h3>
               <div className="flex items-center gap-2">
                 <Star className="w-4 h-4 text-yellow-400" />
                 <span className={`font-semibold text-sm ${
@@ -1405,7 +1397,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
             }`}
           >
-            Achievements
+            Rewards
           </button>
           <button
             onClick={() => setActiveTab('help')}

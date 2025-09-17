@@ -43,7 +43,7 @@ substitutions:
 # Available secrets (Firebase service account from Secret Manager)
 availableSecrets:
   secretManager:
-    - versionName: projects/tough-canto-471207-p6/secrets/firebase-service-account/versions/latest
+    - versionName: projects/ragscholarai/secrets/firebase-service-account/versions/latest
       env: 'FIREBASE_SERVICE_ACCOUNT'
 
 tags:

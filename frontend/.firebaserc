@@ -4,10 +4,10 @@
     "main": "ragscholarai"
   },
   "targets": {
-    "tough-canto-471207-p6": {
+    "ragscholarai": {
       "hosting": {
         "rag-scholar": [
-          "tough-canto-471207-p6"
+          "ragscholarai"
         ]
       }
     }

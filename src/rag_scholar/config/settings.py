@@ -107,6 +107,9 @@ class Settings(BaseSettings):
     gcs_index_prefix: str = Field(
         default="indexes/", description="GCS prefix for index files"
     )
+    gcs_data_prefix: str = Field(
+        default="data/", description="GCS prefix for data files (users, sessions)"
+    )
 
     # API Configuration
     api_host: str = Field(default="0.0.0.0", description="API host")  # nosec B104

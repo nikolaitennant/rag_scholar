@@ -9,6 +9,7 @@ from typing import Any
 
 import structlog
 
+from ..config.settings import Settings
 from ..models.user import (
     AchievementType,
     User,
@@ -19,6 +20,7 @@ from ..models.user import (
     UserUpdate,
     create_default_achievements,
 )
+from .cloud_storage import CloudStorageService
 
 logger = structlog.get_logger()
 
@@ -26,8 +28,12 @@ logger = structlog.get_logger()
 class UserService:
     """Service for user authentication and management."""
 
-    def __init__(self, data_dir: Path | None = None) -> None:
-        """Initialize user service with data directory."""
+    def __init__(self, settings: Settings | None = None, data_dir: Path | None = None) -> None:
+        """Initialize user service with cloud storage support."""
+        self.settings = settings
+        self.cloud_storage = CloudStorageService(settings) if settings else None
+
+        # Local fallback
         self.data_dir = data_dir or Path("data/users")
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.users_file = self.data_dir / "users.json"
@@ -38,26 +44,62 @@ class UserService:
         self.tokens: dict[str, dict[str, Any]] = self._load_tokens()
 
     def _load_users(self) -> dict[str, User]:
-        """Load users from JSON file."""
-        try:
-            if self.users_file.exists():
-                with open(self.users_file) as f:
-                    data = json.load(f)
-                    return {uid: User(**user_data) for uid, user_data in data.items()}
-        except Exception as e:
-            logger.warning("Failed to load users", error=str(e))
+        """Load users from cloud storage or local file."""
+        data = None
+
+        # Try cloud storage first
+        if self.cloud_storage and self.cloud_storage.is_available():
+            try:
+                cloud_data = self.cloud_storage.download_json("data/users.json")
+                if cloud_data:
+                    data = cloud_data
+                    logger.info("Loaded users from cloud storage")
+            except Exception as e:
+                logger.warning("Failed to load users from cloud storage", error=str(e))
+
+        # Fallback to local file
+        if not data:
+            try:
+                if self.users_file.exists():
+                    with open(self.users_file) as f:
+                        data = json.load(f)
+                        logger.info("Loaded users from local file")
+            except Exception as e:
+                logger.warning("Failed to load users from local file", error=str(e))
+
+        if data:
+            try:
+                return {uid: User(**user_data) for uid, user_data in data.items()}
+            except Exception as e:
+                logger.error("Failed to parse user data", error=str(e))
+
         return {}
 
     def _load_tokens(self) -> dict[str, dict[str, Any]]:
-        """Load tokens from JSON file."""
-        try:
-            if self.tokens_file.exists():
-                with open(self.tokens_file) as f:
-                    data = json.load(f)
-                    return data  # type: ignore[no-any-return]
-        except Exception as e:
-            logger.warning("Failed to load tokens", error=str(e))
-        return {}
+        """Load tokens from cloud storage or local file."""
+        data = None
+
+        # Try cloud storage first
+        if self.cloud_storage and self.cloud_storage.is_available():
+            try:
+                cloud_data = self.cloud_storage.download_json("data/tokens.json")
+                if cloud_data:
+                    data = cloud_data
+                    logger.info("Loaded tokens from cloud storage")
+            except Exception as e:
+                logger.warning("Failed to load tokens from cloud storage", error=str(e))
+
+        # Fallback to local file
+        if not data:
+            try:
+                if self.tokens_file.exists():
+                    with open(self.tokens_file) as f:
+                        data = json.load(f)
+                        logger.info("Loaded tokens from local file")
+            except Exception as e:
+                logger.warning("Failed to load tokens from local file", error=str(e))
+
+        return data or {}
 
     def _save_users(self) -> None:
         """Save users to JSON file."""
@@ -88,16 +130,50 @@ class UserService:
 
                 data[uid] = user_dict
 
-            with open(self.users_file, "w") as f:
-                json.dump(data, f, indent=2)
+            # Save to cloud storage if available
+            cloud_saved = False
+            if self.cloud_storage and self.cloud_storage.is_available():
+                try:
+                    cloud_saved = self.cloud_storage.upload_json(data, "data/users.json")
+                    if cloud_saved:
+                        logger.info("Saved users to cloud storage")
+                except Exception as e:
+                    logger.warning("Failed to save users to cloud storage", error=str(e))
+
+            # Always save locally as backup/fallback
+            try:
+                with open(self.users_file, "w") as f:
+                    json.dump(data, f, indent=2)
+                if not cloud_saved:
+                    logger.info("Saved users to local file")
+            except Exception as e:
+                logger.error("Failed to save users to local file", error=str(e))
+
         except Exception as e:
-            logger.error("Failed to save users", error=str(e))
+            logger.error("Failed to process user data for saving", error=str(e))
 
     def _save_tokens(self) -> None:
-        """Save tokens to JSON file."""
+        """Save tokens to cloud storage and local file."""
         try:
-            with open(self.tokens_file, "w") as f:
-                json.dump(self.tokens, f, indent=2)
+            # Save to cloud storage if available
+            cloud_saved = False
+            if self.cloud_storage and self.cloud_storage.is_available():
+                try:
+                    cloud_saved = self.cloud_storage.upload_json(self.tokens, "data/tokens.json")
+                    if cloud_saved:
+                        logger.info("Saved tokens to cloud storage")
+                except Exception as e:
+                    logger.warning("Failed to save tokens to cloud storage", error=str(e))
+
+            # Always save locally as backup/fallback
+            try:
+                with open(self.tokens_file, "w") as f:
+                    json.dump(self.tokens, f, indent=2)
+                if not cloud_saved:
+                    logger.info("Saved tokens to local file")
+            except Exception as e:
+                logger.error("Failed to save tokens to local file", error=str(e))
+
         except Exception as e:
             logger.error("Failed to save tokens", error=str(e))
 
@@ -360,5 +436,12 @@ class UserService:
         return True
 
 
-# Global service instance
-user_service = UserService()
+# Global service instance (will be initialized in dependencies)
+user_service: UserService | None = None
+
+def get_user_service(settings: Settings | None = None) -> UserService:
+    """Get or create the global user service instance."""
+    global user_service
+    if user_service is None:
+        user_service = UserService(settings)
+    return user_service

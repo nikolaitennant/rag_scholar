@@ -167,3 +167,76 @@ class CloudStorageService:
         except Exception as e:
             logger.error(f"Failed to delete index for collection '{collection}': {e}")
             return False
+
+    def upload_json(self, data: dict, blob_path: str) -> bool:
+        """Upload JSON data to cloud storage."""
+        if not self.is_available():
+            logger.warning("Cloud storage not available, skipping JSON upload")
+            return False
+
+        try:
+            import json
+            # Use data prefix for non-index files
+            full_path = f"{self.settings.gcs_data_prefix}{blob_path}"
+            blob = self.bucket.blob(full_path)
+            blob.upload_from_string(
+                json.dumps(data, indent=2),
+                content_type='application/json'
+            )
+            logger.info(f"Uploaded JSON data to GCS: {full_path}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to upload JSON to '{blob_path}': {e}")
+            return False
+
+    def download_json(self, blob_path: str) -> dict | None:
+        """Download JSON data from cloud storage."""
+        if not self.is_available():
+            logger.warning("Cloud storage not available, skipping JSON download")
+            return None
+
+        try:
+            import json
+            # Use data prefix for non-index files
+            full_path = f"{self.settings.gcs_data_prefix}{blob_path}"
+            blob = self.bucket.blob(full_path)
+
+            if not blob.exists():
+                logger.info(f"JSON file not found in GCS: {full_path}")
+                return None
+
+            data = blob.download_as_text()
+            result = json.loads(data)
+            logger.info(f"Downloaded JSON data from GCS: {full_path}")
+            return result
+
+        except NotFound:
+            logger.info(f"JSON file not found in GCS: {full_path}")
+            return None
+        except Exception as e:
+            logger.error(f"Failed to download JSON from '{blob_path}': {e}")
+            return None
+
+    def delete_json(self, blob_path: str) -> bool:
+        """Delete JSON data from cloud storage."""
+        if not self.is_available():
+            logger.warning("Cloud storage not available, skipping JSON delete")
+            return False
+
+        try:
+            # Use data prefix for non-index files
+            full_path = f"{self.settings.gcs_data_prefix}{blob_path}"
+            blob = self.bucket.blob(full_path)
+
+            if blob.exists():
+                blob.delete()
+                logger.info(f"Deleted JSON from GCS: {full_path}")
+                return True
+            else:
+                logger.info(f"JSON file not found in GCS: {full_path}")
+                return False
+
+        except Exception as e:
+            logger.error(f"Failed to delete JSON from '{blob_path}': {e}")
+            return False

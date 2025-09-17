@@ -11,10 +11,17 @@ from ...models.user import (
     UserResponse,
     UserUpdate,
 )
-from ...services.user_service import user_service
+from ...config.settings import get_settings
+from ...services.user_service import get_user_service
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/auth", tags=["authentication"])
+
+
+def get_user_service_dep():
+    """Dependency to get user service with settings."""
+    settings = get_settings()
+    return get_user_service(settings)
 
 
 async def get_current_user(authorization: str | None = Header(None)) -> UserResponse:
@@ -31,6 +38,7 @@ async def get_current_user(authorization: str | None = Header(None)) -> UserResp
             status_code=401, detail="Invalid authorization header format"
         )
 
+    user_service = get_user_service_dep()
     user = await user_service.verify_token(token)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
@@ -39,7 +47,7 @@ async def get_current_user(authorization: str | None = Header(None)) -> UserResp
 
 
 @router.post("/register", response_model=AuthToken)
-async def register(user_data: UserCreate):
+async def register(user_data: UserCreate, user_service = Depends(get_user_service_dep)):
     """Register a new user."""
     try:
         user = await user_service.register_user(user_data)
@@ -57,7 +65,7 @@ async def register(user_data: UserCreate):
 
 
 @router.post("/login", response_model=AuthToken)
-async def login(login_data: UserLogin):
+async def login(login_data: UserLogin, user_service = Depends(get_user_service_dep)):
     """Authenticate user and return token."""
     try:
         user = await user_service.authenticate_user(login_data)
@@ -85,7 +93,9 @@ async def get_current_user_info(current_user: UserResponse = Depends(get_current
 
 @router.put("/me", response_model=UserResponse)
 async def update_current_user(
-    update_data: UserUpdate, current_user: UserResponse = Depends(get_current_user)
+    update_data: UserUpdate,
+    current_user: UserResponse = Depends(get_current_user),
+    user_service = Depends(get_user_service_dep)
 ):
     """Update current user information."""
     try:
@@ -109,7 +119,7 @@ async def logout(current_user: UserResponse = Depends(get_current_user)):
 
 
 @router.get("/leaderboard", response_model=list[UserResponse])
-async def get_leaderboard():
+async def get_leaderboard(user_service = Depends(get_user_service_dep)):
     """Get user leaderboard by points."""
     try:
         leaderboard = await user_service.get_leaderboard()
@@ -123,6 +133,7 @@ async def get_leaderboard():
 async def change_password(
     password_data: PasswordChange,
     current_user: UserResponse = Depends(get_current_user),
+    user_service = Depends(get_user_service_dep)
 ):
     """Change user password."""
     try:

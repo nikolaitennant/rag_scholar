@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AlertCircle, Menu, MessageSquare, Home, Upload, Settings, Trophy, Plus, Book, Edit, GraduationCap, Briefcase, Beaker, Heart, Code, X, Check, ChevronRight, Trash2, MoreHorizontal } from 'lucide-react';
+import { AlertCircle, Menu, MessageSquare, Home, Upload, Settings, Trophy, Plus, Book, Edit, GraduationCap, Briefcase, Beaker, Heart, Code, MoreHorizontal, Trash2, Check, X } from 'lucide-react';
 import { ChatInterface } from './components/ChatInterface';
 import { Sidebar } from './components/Sidebar';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -21,7 +21,7 @@ const DOMAIN_TYPE_INFO = {
 };
 
 const AppContent: React.FC = () => {
-  const { theme, toggleTheme, getBackgroundClass } = useTheme();
+  const { theme, themeMode, toggleTheme, getBackgroundClass } = useTheme();
   const { user, login, signUp, refreshUser, isAuthenticated, loading } = useUser();
   const [messages, setMessages] = useState<Message[]>([]);
   const [userDomains, setUserDomains] = useState<UserDomain[]>([]);
@@ -52,10 +52,10 @@ const AppContent: React.FC = () => {
     const cached = localStorage.getItem('sessionMessageCache');
     return cached ? JSON.parse(cached) : {};
   }); // Cache messages for each session
-  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
-  const [sessionEditName, setSessionEditName] = useState('');
   const [docEditName, setDocEditName] = useState('');
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [sessionEditName, setSessionEditName] = useState('');
 
   // Load initial data
   const loadDocuments = useCallback(async () => {
@@ -128,6 +128,53 @@ const AppContent: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Auto-delete empty sessions when clicking outside chat area
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      const chatArea = document.querySelector('[data-chat-area]');
+      const sidebar = document.querySelector('[data-sidebar]');
+
+      // If clicking outside both chat area and sidebar, and we have an empty session
+      if (sessionId && messages.length === 0 && chatArea && sidebar) {
+        const isClickOutsideChatAndSidebar = !chatArea.contains(target) && !sidebar.contains(target);
+
+        if (isClickOutsideChatAndSidebar) {
+          // Auto-delete the empty session
+          console.log(`🗑️ Auto-deleting empty session due to outside click: ${sessionId}`);
+
+          // Remove from preview session if it exists
+          if (previewSession && previewSession.id === sessionId) {
+            setPreviewSession(null);
+          }
+
+          // If it's a backend session, delete it from the server
+          if (currentBackendSessionId === sessionId) {
+            apiService.deleteSession(sessionId)
+              .then(() => loadSessions())
+              .catch(error => console.error('Failed to delete empty session:', error));
+          }
+
+          // Clear from cache
+          setSessionMessageCache(prev => {
+            const newCache = { ...prev };
+            delete newCache[sessionId];
+            return newCache;
+          });
+
+          // Create a new session
+          const newSessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+          setSessionId(newSessionId);
+          setCurrentBackendSessionId(null);
+          setMessages([]);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [sessionId, messages.length, previewSession, currentBackendSessionId]);
 
   // Clear preview session when navigating away from chat page without sending a message
   // Only clear if user actually navigates away AND stays away for a significant time
@@ -578,17 +625,19 @@ const AppContent: React.FC = () => {
     setPreviewSession(null);
   };
 
-  const handleEditSessionName = async (sessionId: string, newName: string) => {
+  const handleRenameSession = async (sessionId: string, newName: string) => {
     try {
-      await apiService.updateSessionName(sessionId, newName);
+      console.log(`🔄 Renaming session ${sessionId} to: "${newName}"`);
+      await apiService.updateSession(sessionId, newName);
+      console.log(`✅ Session renamed successfully`);
       await loadSessions();
-      setEditingSessionId(null);
-      setSessionEditName('');
+      console.log(`✅ Sessions reloaded after rename`);
     } catch (error) {
-      console.error('Failed to update session name:', error);
-      alert('Failed to update chat name');
+      console.error('❌ Failed to rename session:', error);
+      throw error; // Re-throw so Sidebar can handle the error
     }
   };
+
 
   const handleDeleteSession = async (sessionId: string) => {
     const session = sessions.find(s => s.id === sessionId);
@@ -647,6 +696,33 @@ const AppContent: React.FC = () => {
   };
 
   const handleSelectSession = async (newSessionId: string) => {
+    // Auto-delete empty sessions when switching away
+    if (sessionId && messages.length === 0) {
+      console.log(`🗑️ Auto-deleting empty session: ${sessionId}`);
+
+      // Remove from preview session if it exists
+      if (previewSession && previewSession.id === sessionId) {
+        setPreviewSession(null);
+      }
+
+      // If it's a backend session, delete it from the server
+      if (currentBackendSessionId === sessionId) {
+        try {
+          await apiService.deleteSession(sessionId);
+          await loadSessions(); // Refresh the session list
+        } catch (error) {
+          console.error('Failed to delete empty session:', error);
+        }
+      }
+
+      // Clear from cache
+      setSessionMessageCache(prev => {
+        const newCache = { ...prev };
+        delete newCache[sessionId];
+        return newCache;
+      });
+    }
+
     // Save current session messages to cache before switching
     if (sessionId && messages.length > 0) {
       setSessionMessageCache(prev => ({
@@ -1362,46 +1438,6 @@ const AppContent: React.FC = () => {
                               ? 'bg-white/5 border border-transparent'
                               : 'bg-black/5 border border-transparent'
                       }`}>
-                        {editingSessionId === session.id ? (
-                          <div className="p-3">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={sessionEditName}
-                                onChange={(e) => setSessionEditName(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleEditSessionName(session.id, sessionEditName);
-                                  } else if (e.key === 'Escape') {
-                                    setEditingSessionId(null);
-                                    setSessionEditName('');
-                                  }
-                                }}
-                                className={`flex-1 text-sm px-2 py-1 rounded border ${
-                                  theme === 'dark'
-                                    ? 'bg-white/10 border-white/20 text-white'
-                                    : 'bg-black/10 border-black/20 text-black'
-                                }`}
-                                autoFocus
-                              />
-                              <button
-                                onClick={() => handleEditSessionName(session.id, sessionEditName)}
-                                className={`p-1 rounded text-green-400 hover:bg-green-400/20`}
-                              >
-                                <Check className="w-3 h-3" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setEditingSessionId(null);
-                                  setSessionEditName('');
-                                }}
-                                className={`p-1 rounded text-red-400 hover:bg-red-400/20`}
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
                           <div className="flex items-center">
                             <button
                               onClick={async () => {
@@ -1411,9 +1447,38 @@ const AppContent: React.FC = () => {
                               className="flex-1 p-3 text-left"
                             >
                               <div className="flex items-center gap-2 mb-1">
-                                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                                  {session.name || 'Untitled Chat'}
-                                </p>
+                                {editingSessionId === session.id ? (
+                                  <input
+                                    type="text"
+                                    value={sessionEditName}
+                                    onChange={(e) => setSessionEditName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        if (sessionEditName.trim() && sessionEditName !== session.name) {
+                                          handleRenameSession(session.id, sessionEditName.trim());
+                                        }
+                                        setEditingSessionId(null);
+                                        setSessionEditName('');
+                                      } else if (e.key === 'Escape') {
+                                        setEditingSessionId(null);
+                                        setSessionEditName('');
+                                      }
+                                    }}
+                                    onBlur={() => {
+                                      if (sessionEditName.trim() && sessionEditName !== session.name) {
+                                        handleRenameSession(session.id, sessionEditName.trim());
+                                      }
+                                      setEditingSessionId(null);
+                                      setSessionEditName('');
+                                    }}
+                                    className={`text-sm font-medium bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-500 rounded px-1 -mx-1 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
+                                    autoFocus
+                                  />
+                                ) : (
+                                  <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                                    {session.name || 'Untitled Chat'}
+                                  </p>
+                                )}
                                 {session.isPreview && (
                                   <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 font-medium">
                                     NEW
@@ -1425,7 +1490,7 @@ const AppContent: React.FC = () => {
                               </p>
                               <div className="flex items-center gap-2 mt-1">
                                 <span className={`text-xs ${theme === 'dark' ? 'text-white/40' : 'text-black/40'}`}>
-                                  {session.message_count || 0} messages
+                                  {getSessionMessageCount(session)} messages
                                 </span>
                                 <span className={`text-xs ${theme === 'dark' ? 'text-white/40' : 'text-black/40'}`}>•</span>
                                 <span className={`text-xs ${theme === 'dark' ? 'text-white/40' : 'text-black/40'}`}>
@@ -1448,12 +1513,12 @@ const AppContent: React.FC = () => {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setEditingSessionId(session.id);
-                                    setSessionEditName(session.name || '');
+                                    setSessionEditName(session.name || 'Untitled Chat');
                                   }}
                                   className={`p-1.5 rounded transition-colors ${
                                     theme === 'dark'
-                                      ? 'hover:bg-white/10 text-white/60 hover:text-white/80'
-                                      : 'hover:bg-black/10 text-black/60 hover:text-black/80'
+                                      ? 'hover:bg-blue-400/20 text-white/60 hover:text-blue-400'
+                                      : 'hover:bg-blue-400/20 text-black/60 hover:text-blue-600'
                                   }`}
                                 >
                                   <Edit className="w-3 h-3" />
@@ -1474,7 +1539,6 @@ const AppContent: React.FC = () => {
                               </div>
                             )}
                           </div>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -1951,20 +2015,24 @@ const AppContent: React.FC = () => {
   };
 
   const getUserMessageCount = () => {
-    // If we have a current backend session, get count from the session
-    if (currentBackendSessionId) {
-      const session = sessions.find(s => s.id === currentBackendSessionId);
-      if (session && typeof session.message_count === 'number') {
-        // Return half the message count (since message_count includes both user and assistant messages)
-        const userCount = Math.floor(session.message_count / 2);
-        console.log(`Session ${currentBackendSessionId}: total=${session.message_count}, user=${userCount}`);
-        return userCount;
-      }
-    }
-    // Fallback to counting current messages
+    // Always use current frontend messages count for consistency
+    // This avoids the async timing issues with backend session data
     const currentCount = messages.filter(msg => msg.role === 'user').length;
-    console.log(`Using current messages: ${currentCount}`);
+    console.log(`📊 Using current frontend messages: ${currentCount} (session: ${currentBackendSessionId})`);
     return currentCount;
+  };
+
+  const getSessionMessageCount = (session: any) => {
+    // For the currently active session, always use the live frontend message count
+    if (session.id === sessionId) {
+      const frontendCount = messages.filter(msg => msg.role === 'user').length;
+      console.log(`📊 Session ${session.id} (ACTIVE): frontend=${frontendCount}, backend=${session.message_count || 0}`);
+      return frontendCount;
+    }
+    // For other sessions, use the backend message count
+    const backendCount = session.message_count || 0;
+    console.log(`📊 Session ${session.id} (INACTIVE): backend=${backendCount}`);
+    return backendCount;
   };
 
   // Show loading screen while checking authentication
@@ -2024,16 +2092,10 @@ const AppContent: React.FC = () => {
 
   return (
       <div className={`h-screen flex relative overflow-hidden ${getBackgroundClass()}`}>
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-purple-500/5 to-blue-500/5 rounded-full blur-3xl animate-ping" style={{animationDuration: '4s'}}></div>
-      </div>
       {/* Sidebar - Desktop only, mobile uses page navigation */}
       <div className={`hidden lg:block relative z-50 transition-all duration-300 ease-out will-change-transform ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      } ${sidebarOpen ? 'lg:w-[28rem]' : 'lg:w-16'}`}>
+      } ${sidebarOpen ? 'lg:w-[28rem]' : 'lg:w-16'}`} data-sidebar>
         <Sidebar
           domains={userDomains}
           activeDomain={activeDomain}
@@ -2048,6 +2110,7 @@ const AppContent: React.FC = () => {
           onClearChat={handleClearChat}
           onNewSession={handleNewSession}
           onSelectSession={handleSelectSession}
+          onRenameSession={handleRenameSession}
           sessions={previewSession ? [previewSession, ...sessions.filter(s => s.id !== previewSession.id)] : sessions}
           onDeleteSession={async (sessionId) => {
             await apiService.deleteSession(sessionId);
@@ -2085,11 +2148,11 @@ const AppContent: React.FC = () => {
         }`}
         onMouseEnter={() => setThemeToggleVisible(true)}
       >
-        <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        <ThemeToggle theme={theme} themeMode={themeMode} onToggle={toggleTheme} />
       </div>
       
       {/* Main content area - Desktop: Chat Interface, Mobile: Page-based navigation */}
-      <div className="flex-1 bg-white/5 backdrop-blur-sm transition-all duration-300 ease-out will-change-transform flex flex-col min-h-0 pb-16 lg:pb-0">
+      <div className="flex-1 bg-white/5 backdrop-blur-sm transition-all duration-300 ease-out will-change-transform flex flex-col min-h-0 pb-16 lg:pb-0" data-chat-area>
         <div className="flex-1 min-h-0">
           {/* Desktop: Always show chat interface */}
           <div className="hidden lg:block h-full">
@@ -2112,7 +2175,7 @@ const AppContent: React.FC = () => {
       </div>
       
       {/* Mobile Bottom Tab Bar - Only show on small screens */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-md border-t border-white/10">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-md border-t border-white/10" data-sidebar>
         <div className="flex items-center justify-around py-2">
           <button
             onClick={() => setMobilePage('chat')}

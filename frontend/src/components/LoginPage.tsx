@@ -9,7 +9,7 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp }) => {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, themeMode, toggleTheme } = useTheme();
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -49,7 +49,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp }) => {
       }
     } catch (error) {
       console.error('Authentication error:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred during authentication');
+      setError(
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+            ? error
+            : error && typeof error === 'object' && 'message' in error
+              ? String(error.message)
+              : 'An error occurred during authentication'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -61,16 +69,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp }) => {
         ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900'
         : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'
     }`}>
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-purple-500/5 to-blue-500/5 rounded-full blur-3xl animate-ping" style={{animationDuration: '4s'}}></div>
-      </div>
 
       {/* Theme Toggle */}
       <div className="fixed top-4 right-4 z-10">
-        <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        <ThemeToggle theme={theme} themeMode={themeMode} onToggle={toggleTheme} />
       </div>
 
       {/* Left side - Branding */}

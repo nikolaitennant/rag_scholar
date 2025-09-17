@@ -20,6 +20,7 @@ interface SidebarProps {
   onClearChat: () => void;
   onNewSession: () => void;
   onSelectSession?: (sessionId: string) => void;
+  onRenameSession?: (sessionId: string, newName: string) => Promise<void>;
   isCollapsed?: boolean;
   documents: Document[];
   onUpload: (file: File) => Promise<void>;
@@ -62,6 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClearChat,
   onNewSession,
   onSelectSession,
+  onRenameSession,
   isCollapsed,
   documents,
   onUpload,
@@ -88,6 +90,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [editingDomainDocuments, setEditingDomainDocuments] = useState<string[]>([]);
   const [showCreateClassForm, setShowCreateClassForm] = useState(false);
   const [newClassName, setNewClassName] = useState('');
+
+  const getSessionMessageCount = (session: any) => {
+    // For the currently active session, use the live messageCount prop
+    if (session.id === sessionId) {
+      console.log(`📊 Active session ${session.id} message count: ${messageCount} (live)`);
+      return messageCount;
+    }
+    // For other sessions, use the backend message count
+    const count = session.message_count || 0;
+    console.log(`📊 Session ${session.id} message count: ${count} (backend)`);
+    return count;
+  };
   const [newClassType, setNewClassType] = useState<DomainType>(DomainType.GENERAL);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const { theme } = useTheme();
@@ -200,8 +214,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleRenameSession = async (sessionId: string, newName: string) => {
     try {
-      await apiService.updateSession(sessionId, newName);
-      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, name: newName } : s));
+      if (onRenameSession) {
+        await onRenameSession(sessionId, newName);
+      } else {
+        await apiService.updateSession(sessionId, newName);
+        setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, name: newName } : s));
+      }
     } catch (error) {
       console.error('Failed to rename session:', error);
     } finally {
@@ -1015,7 +1033,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <div className={`text-xs mt-2 ${
                               theme === 'dark' ? 'text-white/50' : 'text-black/50'
                             }`}>
-                              {session.message_count} messages • {formatLocalDate(session.updated_at)}
+                              {getSessionMessageCount(session)} messages • {formatLocalDate(session.updated_at)}
                             </div>
                             {/* Show class name like desktop mode */}
                             {(() => {
@@ -1097,7 +1115,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 max-h-[70vh] overflow-y-auto scrollbar-none">
+            <div className="grid grid-cols-1 gap-3 min-h-[calc(100vh-16rem)] overflow-y-auto scrollbar-none">
               {achievements.map(achievement => {
                 const Icon = getAchievementIcon(achievement.type);
                 const isUnlocked = achievement.unlocked_at !== null;

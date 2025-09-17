@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 type BackgroundType = 'none' | 'mountain' | 'ocean' | 'sunset' | 'forest';
+type ThemeMode = 'light' | 'dark' | 'auto';
 
 interface ThemeContextType {
   theme: 'light' | 'dark';
+  themeMode: ThemeMode;
   background: BackgroundType;
   toggleTheme: () => void;
+  setThemeMode: (mode: ThemeMode) => void;
   setBackground: (bg: BackgroundType) => void;
   getBackgroundClass: () => string;
 }
@@ -21,10 +24,27 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
+    const savedThemeMode = localStorage.getItem('themeMode') as ThemeMode | null;
+    return savedThemeMode || 'auto';
+  });
+
+  const getAutoTheme = (): 'light' | 'dark' => {
+    const now = new Date();
+    const hour = now.getHours();
+    // Light mode from 6 AM to 6 PM, dark mode otherwise
+    return (hour >= 6 && hour < 18) ? 'light' : 'dark';
+  };
+
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const savedThemeMode = localStorage.getItem('themeMode') as ThemeMode | null;
+    if (savedThemeMode === 'auto') {
+      return getAutoTheme();
+    }
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
     return savedTheme || 'dark';
   });
+
   const [background, setBackgroundState] = useState<BackgroundType>(() => {
     const savedBackground = localStorage.getItem('background') as BackgroundType | null;
     return savedBackground || 'none';
@@ -49,18 +69,57 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
 
+  // Effect to handle theme mode changes and auto mode
+  useEffect(() => {
+    if (themeMode === 'auto') {
+      const updateAutoTheme = () => {
+        const autoTheme = getAutoTheme();
+        setTheme(autoTheme);
+      };
+
+      // Update immediately
+      updateAutoTheme();
+
+      // Set up interval to check every minute
+      const interval = setInterval(updateAutoTheme, 60000);
+
+      return () => clearInterval(interval);
+    } else {
+      // For manual modes, set theme directly
+      setTheme(themeMode as 'light' | 'dark');
+    }
+  }, [themeMode]);
+
   useEffect(() => {
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+    // Only save theme to localStorage if not in auto mode
+    if (themeMode !== 'auto') {
+      localStorage.setItem('theme', theme);
+    }
+  }, [theme, themeMode]);
+
+  useEffect(() => {
+    localStorage.setItem('themeMode', themeMode);
+  }, [themeMode]);
 
   useEffect(() => {
     localStorage.setItem('background', background);
   }, [background]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    // Cycle through: auto -> light -> dark -> auto
+    if (themeMode === 'auto') {
+      setThemeModeState('light');
+    } else if (themeMode === 'light') {
+      setThemeModeState('dark');
+    } else {
+      setThemeModeState('auto');
+    }
+  };
+
+  const setThemeMode = (mode: ThemeMode) => {
+    setThemeModeState(mode);
   };
 
   const setBackground = (bg: BackgroundType) => {
@@ -72,12 +131,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <ThemeContext.Provider value={{ 
-      theme, 
-      background, 
-      toggleTheme, 
-      setBackground, 
-      getBackgroundClass 
+    <ThemeContext.Provider value={{
+      theme,
+      themeMode,
+      background,
+      toggleTheme,
+      setThemeMode,
+      setBackground,
+      getBackgroundClass
     }}>
       {children}
     </ThemeContext.Provider>

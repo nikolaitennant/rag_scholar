@@ -90,7 +90,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp }) => {
             <p className={`text-lg ${
               theme === 'dark' ? 'text-white/70' : 'text-black/70'
             }`}>
-              Your AI-powered research assistant with citation-backed answers
+              Your AI-powered study buddy with citation-backed answers
             </p>
           </div>
 

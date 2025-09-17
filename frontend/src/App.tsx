@@ -985,10 +985,10 @@ const AppContent: React.FC = () => {
             <div className="max-w-md mx-auto space-y-6">
               <div className="text-center">
                 <h1 className={`text-2xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                  Welcome to RAG Scholar
+                  🤠 YEEHAW! Welcome to RAG Scholar 🤠
                 </h1>
                 <p className={`text-sm ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                  Your AI study buddy
+                  Your AI study buddy - NOW ON NEW PROJECT!
                 </p>
               </div>
 

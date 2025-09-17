@@ -24,6 +24,7 @@ share/python-wheels/
 MANIFEST
 
 # Virtual environments
+.env.local
 .env
 .venv
 env/

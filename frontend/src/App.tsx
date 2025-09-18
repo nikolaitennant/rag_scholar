@@ -2035,10 +2035,10 @@ const AppContent: React.FC = () => {
           onDeleteDomain={handleDeleteDomain}
           availableDocuments={documents.map(doc => ({ id: doc.id, filename: doc.filename }))}
           onAssignDocuments={handleAssignDocuments}
-          sessionId={sessionId}
+          sessionId={chatSessionId}
           messageCount={getUserMessageCount()}
           onClearChat={handleClearChat}
-          onNewSession={handleNewSession}
+          onNewSession={handleNewChat}
           onSelectSession={handleSelectSession}
           onRenameSession={handleRenameSession}
           sessions={previewSession ? [previewSession, ...sessions.filter(s => s.id !== previewSession.id)] : sessions}

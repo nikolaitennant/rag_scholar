@@ -950,19 +950,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </h3>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={async () => {
-                    try {
-                      const newSession = await apiService.createSession(
-                        undefined, // name
-                        activeDomain?.type, // domain
-                        activeDomain?.id, // classId
-                        activeDomain?.name // className
-                      );
-                      onSelectSession?.(newSession.id);
-                      setSessions(prev => [newSession, ...prev]);
-                    } catch (error) {
-                      console.error('Failed to create session:', error);
-                    }
+                  onClick={() => {
+                    onNewSession();
                   }}
                   className={`p-1 rounded-lg transition-colors ${
                     theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10'
@@ -986,19 +975,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {activeDomain ? `No chats in ${activeDomain.name} yet` : 'No chat history yet'}
                   </p>
                   <button
-                    onClick={async () => {
-                      try {
-                        const newSession = await apiService.createSession(
-                          undefined, // name
-                          activeDomain?.type, // domain
-                          activeDomain?.id, // classId
-                          activeDomain?.name // className
-                        );
-                        onSelectSession?.(newSession.id);
-                        setSessions([newSession]);
-                      } catch (error) {
-                        console.error('Failed to create session:', error);
-                      }
+                    onClick={() => {
+                      onNewSession();
                     }}
                     className={`text-xs py-2 px-4 rounded-lg transition-colors ${
                       theme === 'dark'

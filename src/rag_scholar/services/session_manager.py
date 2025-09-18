@@ -7,6 +7,7 @@ import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from rag_scholar.config.settings import Settings
+from .cloud_storage import CloudStorageService
 
 
 class SessionManager:
@@ -14,6 +15,9 @@ class SessionManager:
 
     def __init__(self, settings: Settings):
         self.settings = settings
+        self.cloud_storage = CloudStorageService(settings)
+
+        # Local fallback
         self.sessions_dir = settings.data_dir / "sessions"
         self.sessions_dir.mkdir(parents=True, exist_ok=True)
 
@@ -21,14 +25,41 @@ class SessionManager:
         self._cache: dict[str, dict[str, Any]] = {}
         self.logger = structlog.get_logger()
 
-    async def get_session(self, session_id: str) -> dict[str, Any]:
+    async def get_session(self, session_id: str, user_id: str | None = None) -> dict[str, Any]:
         """Get or create a session."""
 
         # Check cache first
         if session_id in self._cache:
             return self._cache[session_id]
 
-        # Try to load from disk
+        # Try to load from cloud storage first
+        if self.cloud_storage.is_available() and user_id:
+            try:
+                path_prefix = self.cloud_storage.get_user_path_prefix(user_id)
+                blob_path = f"{path_prefix}{session_id}.json"
+                session_data = self.cloud_storage.download_json(blob_path, bucket_type='sessions')
+
+                if session_data:
+                    # Reconstruct messages
+                    if "history" in session_data:
+                        messages = []
+                        for msg in session_data["history"]:
+                            if msg["role"] == "human":
+                                messages.append(HumanMessage(content=msg["content"]))
+                            else:
+                                messages.append(SystemMessage(content=msg["content"]))
+                        session_data["history"] = messages
+
+                    self._cache[session_id] = session_data
+                    return session_data
+            except Exception as e:
+                self.logger.warning(
+                    "Failed to load session from cloud storage",
+                    session_id=session_id,
+                    error=str(e),
+                )
+
+        # Try to load from local disk as fallback
         session_file = self.sessions_dir / f"{session_id}.json"
         if session_file.exists():
             try:
@@ -48,7 +79,7 @@ class SessionManager:
                     return session
             except Exception as e:
                 self.logger.warning(
-                    "Failed to load session from storage",
+                    "Failed to load session from local storage",
                     session_id=session_id,
                     error=str(e),
                 )
@@ -67,8 +98,8 @@ class SessionManager:
         self._cache[session_id] = session
         return session
 
-    async def save_session(self, session_id: str, session: dict[str, Any]) -> None:
-        """Save session to disk."""
+    async def save_session(self, session_id: str, session: dict[str, Any], user_id: str | None = None) -> None:
+        """Save session to cloud storage and local disk."""
 
         # Update cache
         self._cache[session_id] = session
@@ -84,7 +115,21 @@ class SessionManager:
                     messages.append({"role": "system", "content": msg.content})
             session_copy["history"] = messages
 
-        # Save to disk
+        # Save to cloud storage first
+        if self.cloud_storage.is_available() and user_id:
+            try:
+                path_prefix = self.cloud_storage.get_user_path_prefix(user_id)
+                blob_path = f"{path_prefix}{session_id}.json"
+                self.cloud_storage.upload_json(session_copy, blob_path, bucket_type='sessions')
+                self.logger.info(f"Saved session {session_id} to cloud storage")
+            except Exception as e:
+                self.logger.warning(
+                    "Failed to save session to cloud storage",
+                    session_id=session_id,
+                    error=str(e),
+                )
+
+        # Save to local disk as backup
         session_file = self.sessions_dir / f"{session_id}.json"
         with open(session_file, "w") as f:
             json.dump(session_copy, f, indent=2)
@@ -94,11 +139,12 @@ class SessionManager:
         session_id: str,
         query: str | None = None,
         response: str | None = None,
+        user_id: str | None = None,
         **kwargs: Any,
     ) -> None:
         """Update session with new interaction."""
 
-        session = await self.get_session(session_id)
+        session = await self.get_session(session_id, user_id)
 
         # Add to history
         if query:
@@ -114,7 +160,7 @@ class SessionManager:
         for key, value in kwargs.items():
             session[key] = value
 
-        await self.save_session(session_id, session)
+        await self.save_session(session_id, session, user_id)
 
     async def clear_session(self, session_id: str) -> None:
         """Clear a session."""

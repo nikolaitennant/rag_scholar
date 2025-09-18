@@ -78,7 +78,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <div className={`text-center mb-12 ${
               theme === 'dark' ? 'text-white/70' : 'text-black/70'
             }`}>
-              <div className={`text-3xl font-semibold flex items-center justify-center gap-2 mb-6 ${
+              <div className={`text-xl font-semibold flex items-center justify-center gap-2 mb-4 ${
                 theme === 'dark' ? 'text-white' : 'text-black'
               }`}>
                 {(() => {
@@ -87,12 +87,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   if (hour < 17) return `Good afternoon, ${userName}!`;
                   return `Good evening, ${userName}!`;
                 })()}
-                <Heart className="w-6 h-6 text-pink-400 animate-pulse" />
+                <Heart className="w-5 h-5 text-pink-400 animate-pulse" />
               </div>
-              <p className={`text-lg mb-8 ${
+              <p className={`text-sm mb-6 ${
                 theme === 'dark' ? 'text-white/60' : 'text-black/60'
               }`}>
-                Ask questions about your documents and get AI-powered insights with source citations
+                Ask questions about your documents
               </p>
             </div>
 
@@ -104,7 +104,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask anything..."
-                  className={`w-full backdrop-blur-sm border rounded-full px-6 py-5 text-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 shadow-lg ${
+                  className={`w-full backdrop-blur-sm border rounded-full px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 shadow-lg ${
                     theme === 'dark'
                       ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
                       : 'bg-black/10 border-black/20 text-black placeholder-black/50'
@@ -114,7 +114,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <button
                   type="submit"
                   disabled={!input.trim() || isLoading}
-                  className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-xl transition-all duration-200 ${
+                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 rounded-xl transition-all duration-200 ${
                     input.trim() && !isLoading
                       ? 'bg-purple-500 hover:bg-purple-600 text-white shadow-md'
                       : theme === 'dark'
@@ -389,7 +389,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask anything..."
-              className={`w-full backdrop-blur-sm border rounded-full px-6 py-3 pr-14 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 ${
+              className={`w-full backdrop-blur-sm border rounded-full px-4 py-2 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 ${
                 theme === 'dark'
                   ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
                   : 'bg-black/10 border-black/20 text-black placeholder-black/50'
@@ -399,7 +399,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <button
               type="submit"
               disabled={!input.trim() || isLoading}
-              className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-xl transition-all duration-200 ${
+              className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 rounded-xl transition-all duration-200 ${
                 input.trim() && !isLoading
                   ? 'bg-purple-500 hover:bg-purple-600 text-white shadow-md'
                   : theme === 'dark'

@@ -26,27 +26,55 @@ class CloudStorageService:
     def __init__(self, settings: Settings):
         self.settings = settings
         self.client = None
-        self.bucket = None
+        self.buckets = {}
 
         if not GCS_AVAILABLE:
             logger.warning("Google Cloud Storage not available - cloud storage disabled")
             return
 
-        if settings.use_cloud_storage and settings.gcs_bucket_name:
+        if settings.use_gcs:
             try:
                 self.client = storage.Client()
-                self.bucket = self.client.bucket(settings.gcs_bucket_name)
-                logger.info(f"Initialized GCS client for bucket: {settings.gcs_bucket_name}")
+                # Initialize buckets
+                bucket_configs = {
+                    'indexes': settings.gcs_bucket_indexes,
+                    'documents': settings.gcs_bucket_documents,
+                    'users': settings.gcs_bucket_users,
+                    'sessions': settings.gcs_bucket_sessions,
+                }
+
+                for bucket_type, bucket_name in bucket_configs.items():
+                    if bucket_name:
+                        self.buckets[bucket_type] = self.client.bucket(bucket_name)
+                        logger.info(f"Initialized GCS client for {bucket_type} bucket: {bucket_name}")
+
             except Exception as e:
                 logger.error(f"Failed to initialize GCS client: {e}")
                 self.client = None
-                self.bucket = None
+                self.buckets = {}
 
     def is_available(self) -> bool:
         """Check if cloud storage is available."""
-        return self.client is not None and self.bucket is not None
+        return self.client is not None and len(self.buckets) > 0
 
-    def upload_index(self, collection: str, local_index_dir: Path) -> bool:
+    def get_bucket(self, bucket_type: str):
+        """Get a specific bucket by type."""
+        return self.buckets.get(bucket_type)
+
+    def get_user_path_prefix(self, user_id: str | None = None) -> str:
+        """Get path prefix with user folder for user-specific data."""
+        base_prefix = self.settings.get_gcs_path_prefix()
+        if user_id and user_id in ['users', 'tokens']:
+            # Global data - no user folder
+            return base_prefix
+        elif user_id:
+            # User-specific data - include user folder
+            return f"{base_prefix}{user_id}/"
+        else:
+            # Fallback to base prefix
+            return base_prefix
+
+    def upload_index(self, collection: str, local_index_dir: Path, user_id: str | None = None) -> bool:
         """Upload FAISS index to cloud storage."""
         if not self.is_available():
             logger.warning("Cloud storage not available, skipping upload")
@@ -67,9 +95,14 @@ class CloudStorageService:
                             arcname = file_path.relative_to(local_index_dir)
                             zipf.write(file_path, arcname)
 
-                # Upload to GCS
-                blob_name = f"{self.settings.gcs_index_prefix}{collection}.zip"
-                blob = self.bucket.blob(blob_name)
+                # Upload to GCS indexes bucket
+                path_prefix = self.get_user_path_prefix(user_id)
+                blob_name = f"{path_prefix}{collection}.zip"
+                indexes_bucket = self.get_bucket('indexes')
+                if not indexes_bucket:
+                    logger.error("Indexes bucket not available")
+                    return False
+                blob = indexes_bucket.blob(blob_name)
 
                 blob.upload_from_filename(str(temp_path))
                 logger.info(f"Uploaded index for collection '{collection}' to GCS: {blob_name}")
@@ -83,15 +116,20 @@ class CloudStorageService:
             logger.error(f"Failed to upload index for collection '{collection}': {e}")
             return False
 
-    def download_index(self, collection: str, local_index_dir: Path) -> bool:
+    def download_index(self, collection: str, local_index_dir: Path, user_id: str | None = None) -> bool:
         """Download FAISS index from cloud storage."""
         if not self.is_available():
             logger.warning("Cloud storage not available, skipping download")
             return False
 
         try:
-            blob_name = f"{self.settings.gcs_index_prefix}{collection}.zip"
-            blob = self.bucket.blob(blob_name)
+            path_prefix = self.get_user_path_prefix(user_id)
+            blob_name = f"{path_prefix}{collection}.zip"
+            indexes_bucket = self.get_bucket('indexes')
+            if not indexes_bucket:
+                logger.error("Indexes bucket not available")
+                return False
+            blob = indexes_bucket.blob(blob_name)
 
             if not blob.exists():
                 logger.info(f"Index for collection '{collection}' not found in GCS: {blob_name}")
@@ -168,7 +206,7 @@ class CloudStorageService:
             logger.error(f"Failed to delete index for collection '{collection}': {e}")
             return False
 
-    def upload_json(self, data: dict, blob_path: str) -> bool:
+    def upload_json(self, data: dict, blob_path: str, bucket_type: str = 'users') -> bool:
         """Upload JSON data to cloud storage."""
         if not self.is_available():
             logger.warning("Cloud storage not available, skipping JSON upload")
@@ -176,21 +214,24 @@ class CloudStorageService:
 
         try:
             import json
-            # Use data prefix for non-index files
-            full_path = f"{self.settings.gcs_data_prefix}{blob_path}"
-            blob = self.bucket.blob(full_path)
+            # Use specified bucket for JSON data
+            bucket = self.get_bucket(bucket_type)
+            if not bucket:
+                logger.error(f"{bucket_type.title()} bucket not available")
+                return False
+            blob = bucket.blob(blob_path)
             blob.upload_from_string(
                 json.dumps(data, indent=2),
                 content_type='application/json'
             )
-            logger.info(f"Uploaded JSON data to GCS: {full_path}")
+            logger.info(f"Uploaded JSON data to GCS: {blob_path}")
             return True
 
         except Exception as e:
             logger.error(f"Failed to upload JSON to '{blob_path}': {e}")
             return False
 
-    def download_json(self, blob_path: str) -> dict | None:
+    def download_json(self, blob_path: str, bucket_type: str = 'users') -> dict | None:
         """Download JSON data from cloud storage."""
         if not self.is_available():
             logger.warning("Cloud storage not available, skipping JSON download")
@@ -198,21 +239,24 @@ class CloudStorageService:
 
         try:
             import json
-            # Use data prefix for non-index files
-            full_path = f"{self.settings.gcs_data_prefix}{blob_path}"
-            blob = self.bucket.blob(full_path)
+            # Use specified bucket for JSON data
+            bucket = self.get_bucket(bucket_type)
+            if not bucket:
+                logger.error(f"{bucket_type.title()} bucket not available")
+                return None
+            blob = bucket.blob(blob_path)
 
             if not blob.exists():
-                logger.info(f"JSON file not found in GCS: {full_path}")
+                logger.info(f"JSON file not found in GCS: {blob_path}")
                 return None
 
             data = blob.download_as_text()
             result = json.loads(data)
-            logger.info(f"Downloaded JSON data from GCS: {full_path}")
+            logger.info(f"Downloaded JSON data from GCS: {blob_path}")
             return result
 
         except NotFound:
-            logger.info(f"JSON file not found in GCS: {full_path}")
+            logger.info(f"JSON file not found in GCS: {blob_path}")
             return None
         except Exception as e:
             logger.error(f"Failed to download JSON from '{blob_path}': {e}")

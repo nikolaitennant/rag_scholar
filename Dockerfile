@@ -39,8 +39,8 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY src/ ./src/
 COPY pyproject.toml ./
 
-# Create necessary directories
-RUN mkdir -p data/uploads data/indexes data/sessions
+# Download NLTK data
+RUN python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger'); nltk.download('averaged_perceptron_tagger_eng')"
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

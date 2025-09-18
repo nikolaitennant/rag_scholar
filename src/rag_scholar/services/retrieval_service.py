@@ -32,8 +32,9 @@ class RetrievalService:
     async def retrieve(
         self,
         query: str,
-        collection: str = "default",
-        selected_files: list[str] | None = None,
+        collection: str = "database",
+        selected_documents: list[str] | None = None,
+        user_id: str | None = None,
         k: int = 5,
         use_hybrid: bool | None = None,
     ) -> list[dict[str, Any]]:
@@ -44,11 +45,25 @@ class RetrievalService:
         )
 
         # Get vector store for collection
-        vector_store = await self._get_vector_store(collection)
+        vector_store = await self._get_vector_store(collection, user_id)
 
         if not vector_store:
             logger.warning(f"No vector store found for collection: {collection}")
             return []
+
+        # Debug: Check vector store content
+        if hasattr(vector_store, 'index') and hasattr(vector_store.index, 'ntotal'):
+            total_vectors = vector_store.index.ntotal
+            print(f"🔍 Vector store has {total_vectors} total vectors")
+
+        # Debug: Sample some documents to see their metadata
+        if hasattr(vector_store, 'docstore') and hasattr(vector_store.docstore, '_dict'):
+            sample_docs = list(vector_store.docstore._dict.items())[:3]
+            for doc_id, doc in sample_docs:
+                metadata = doc.metadata if hasattr(doc, 'metadata') else {}
+                print(f"🔍 Sample doc {doc_id}: source={metadata.get('source', 'N/A')}, doc_id={metadata.get('doc_id', 'N/A')}, assigned_classes={metadata.get('assigned_classes', 'N/A')}")
+
+        print(f"🔍 About to filter with: selected_documents={selected_documents}")
 
         # Perform retrieval
         if use_hybrid:
@@ -56,14 +71,14 @@ class RetrievalService:
                 query=query,
                 collection=collection,
                 vector_store=vector_store,
-                selected_files=selected_files,
+                selected_documents=selected_documents,
                 k=k,
             )
         else:
             results = await self._vector_retrieve(
                 query=query,
                 vector_store=vector_store,
-                selected_files=selected_files,
+                selected_documents=selected_documents,
                 k=k,
             )
 
@@ -73,26 +88,51 @@ class RetrievalService:
         self,
         query: str,
         vector_store: FAISS,
-        selected_files: list[str] | None = None,
+        selected_documents: list[str] | None = None,
         k: int = 5,
     ) -> list[dict[str, Any]]:
         """Pure vector similarity search."""
 
         # Create retriever with optional filter
-        search_kwargs = {"k": k}
+        search_kwargs = {"k": k * 3}  # Get more results to filter
 
-        if selected_files:
+        # Simple document ID filter
+        def document_filter(metadata):
+            doc_id = metadata.get("doc_id", "")
+            source = metadata.get("source", "")
+            print(f"🔍 FILTERING: {source} (doc_id: {doc_id})")
 
-            def file_filter(metadata):
-                source = metadata.get("source", "")
-                return any(selected in source for selected in selected_files)
+            # If specific documents are selected, ONLY allow those documents
+            if selected_documents is not None:
+                print(f"🔍 DOCUMENT CHECK: selected_documents={selected_documents}")
 
-            search_kwargs["filter"] = file_filter
+                # If selected_documents is empty list, no documents match
+                if not selected_documents:
+                    print(f"🔍 REJECTED: empty selected_documents")
+                    return False
+
+                # Check if this document ID is in the selected list
+                if doc_id in selected_documents:
+                    print(f"🔍 ACCEPTED: {doc_id} in selected documents")
+                    return True
+                else:
+                    print(f"🔍 REJECTED: {doc_id} not in {selected_documents}")
+                    return False
+
+            print(f"🔍 ACCEPTED: no document filter, allowing {doc_id}")
+            return True
+
+        # Apply filter if we have document constraints
+        if selected_documents is not None:
+            search_kwargs["filter"] = document_filter
 
         retriever = vector_store.as_retriever(search_kwargs=search_kwargs)
 
         # Retrieve documents
         docs = await retriever.ainvoke(query)
+
+        # Limit to requested k results after filtering
+        docs = docs[:k]
 
         # Format results
         results = []
@@ -107,6 +147,7 @@ class RetrievalService:
                 }
             )
 
+        print(f"🔍 Vector search found {len(results)} results")
         return results
 
     async def _hybrid_retrieve(
@@ -114,7 +155,7 @@ class RetrievalService:
         query: str,
         collection: str,
         vector_store: FAISS,
-        selected_files: list[str] | None = None,
+        selected_documents: list[str] | None = None,
         k: int = 5,
     ) -> list[dict[str, Any]]:
         """Hybrid search combining vector and BM25."""
@@ -124,25 +165,30 @@ class RetrievalService:
 
         if not bm25_index:
             # Fallback to vector-only search
-            return await self._vector_retrieve(query, vector_store, selected_files, k)
+            return await self._vector_retrieve(query, vector_store, selected_documents, k)
 
         # Get documents for BM25
         documents = self.document_cache.get(collection, [])
 
-        # Filter documents if needed
-        if selected_files:
-            documents = [
-                doc
-                for doc in documents
-                if any(
-                    selected in doc.metadata.get("source", "")
-                    for selected in selected_files
-                )
-            ]
+        # Filter documents by selected document IDs
+        if selected_documents is not None:
+            filtered_docs = []
+            for doc in documents:
+                doc_id = doc.metadata.get("doc_id", "")
+
+                # If selected_documents is empty list, no documents match
+                if not selected_documents:
+                    continue
+
+                # Check if this document ID is in the selected list
+                if doc_id in selected_documents:
+                    filtered_docs.append(doc)
+
+            documents = filtered_docs
 
         # Vector search
         vector_results = await self._vector_retrieve(
-            query, vector_store, selected_files, k * 2
+            query, vector_store, selected_documents, k * 2
         )
 
         # BM25 search
@@ -222,7 +268,7 @@ class RetrievalService:
 
         return combined
 
-    async def _get_vector_store(self, collection: str) -> FAISS | None:
+    async def _get_vector_store(self, collection: str, user_id: str | None = None) -> FAISS | None:
         """Get or load vector store for collection."""
 
         if collection not in self.vector_stores:
@@ -231,7 +277,7 @@ class RetrievalService:
             # Try to download from cloud storage first
             if self.cloud_storage.is_available():
                 logger.info(f"Checking cloud storage for collection: {collection}")
-                if self.cloud_storage.download_index(collection, index_path):
+                if self.cloud_storage.download_index(collection, index_path, user_id):
                     logger.info(f"Downloaded index from cloud storage for collection: {collection}")
 
             # Try to load from local disk

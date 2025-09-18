@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     app_name: str = Field(default="RAG Scholar", description="Application name")
     app_version: str = Field(default="2.0.0", description="Application version")
     debug: bool = Field(default=False, description="Debug mode")
+    environment: str = Field(default="dev", description="Environment (dev/prod)")
     max_file_size_mb: int = Field(
         default=50, description="Maximum file upload size in MB"
     )
@@ -97,18 +98,24 @@ class Settings(BaseSettings):
         default=Path("uploads"), description="Upload directory path"
     )
 
-    # Cloud Storage (for production persistence)
-    use_cloud_storage: bool = Field(
-        default=False, description="Use Google Cloud Storage for vector indexes"
+    # Cloud Storage (multi-bucket architecture)
+    use_gcs: bool = Field(
+        default=True, description="Use Google Cloud Storage"
     )
-    gcs_bucket_name: str = Field(
-        default="", description="Google Cloud Storage bucket name for indexes"
+    gcp_project_id: str = Field(
+        default="", description="Google Cloud Project ID"
     )
-    gcs_index_prefix: str = Field(
-        default="indexes/", description="GCS prefix for index files"
+    gcs_bucket_indexes: str = Field(
+        default="", description="GCS bucket for vector indexes"
     )
-    gcs_data_prefix: str = Field(
-        default="data/", description="GCS prefix for data files (users, sessions)"
+    gcs_bucket_documents: str = Field(
+        default="", description="GCS bucket for documents"
+    )
+    gcs_bucket_users: str = Field(
+        default="", description="GCS bucket for users"
+    )
+    gcs_bucket_sessions: str = Field(
+        default="", description="GCS bucket for sessions"
     )
 
     # API Configuration
@@ -218,6 +225,12 @@ class Settings(BaseSettings):
             },
         }
         return configs.get(domain, configs[DomainType.GENERAL])
+
+    def get_gcs_path_prefix(self) -> str:
+        """Get GCS path prefix based on environment."""
+        if self.environment in ("production", "prod"):
+            return ""  # No prefix for production (root level)
+        return "dev/"  # dev/ prefix for development
 
 
 def get_settings() -> Settings:

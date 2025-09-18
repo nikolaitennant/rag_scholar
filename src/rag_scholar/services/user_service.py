@@ -44,28 +44,19 @@ class UserService:
         self.tokens: dict[str, dict[str, Any]] = self._load_tokens()
 
     def _load_users(self) -> dict[str, User]:
-        """Load users from cloud storage or local file."""
+        """Load users from cloud storage only."""
         data = None
 
-        # Try cloud storage first
+        # Load from cloud storage (environment-aware)
         if self.cloud_storage and self.cloud_storage.is_available():
             try:
-                cloud_data = self.cloud_storage.download_json("data/users.json")
+                path_prefix = self.settings.get_gcs_path_prefix() if self.settings else "dev/"
+                cloud_data = self.cloud_storage.download_json(f"{path_prefix}users.json")
                 if cloud_data:
                     data = cloud_data
                     logger.info("Loaded users from cloud storage")
             except Exception as e:
                 logger.warning("Failed to load users from cloud storage", error=str(e))
-
-        # Fallback to local file
-        if not data:
-            try:
-                if self.users_file.exists():
-                    with open(self.users_file) as f:
-                        data = json.load(f)
-                        logger.info("Loaded users from local file")
-            except Exception as e:
-                logger.warning("Failed to load users from local file", error=str(e))
 
         if data:
             try:
@@ -76,28 +67,19 @@ class UserService:
         return {}
 
     def _load_tokens(self) -> dict[str, dict[str, Any]]:
-        """Load tokens from cloud storage or local file."""
+        """Load tokens from cloud storage only."""
         data = None
 
-        # Try cloud storage first
+        # Load from cloud storage (environment-aware)
         if self.cloud_storage and self.cloud_storage.is_available():
             try:
-                cloud_data = self.cloud_storage.download_json("data/tokens.json")
+                path_prefix = self.settings.get_gcs_path_prefix() if self.settings else "dev/"
+                cloud_data = self.cloud_storage.download_json(f"{path_prefix}tokens.json")
                 if cloud_data:
                     data = cloud_data
                     logger.info("Loaded tokens from cloud storage")
             except Exception as e:
                 logger.warning("Failed to load tokens from cloud storage", error=str(e))
-
-        # Fallback to local file
-        if not data:
-            try:
-                if self.tokens_file.exists():
-                    with open(self.tokens_file) as f:
-                        data = json.load(f)
-                        logger.info("Loaded tokens from local file")
-            except Exception as e:
-                logger.warning("Failed to load tokens from local file", error=str(e))
 
         return data or {}
 
@@ -130,49 +112,39 @@ class UserService:
 
                 data[uid] = user_dict
 
-            # Save to cloud storage if available
-            cloud_saved = False
+            # Save to cloud storage only (environment-aware)
             if self.cloud_storage and self.cloud_storage.is_available():
                 try:
-                    cloud_saved = self.cloud_storage.upload_json(data, "data/users.json")
+                    path_prefix = self.settings.get_gcs_path_prefix() if self.settings else "dev/"
+                    cloud_saved = self.cloud_storage.upload_json(data, f"{path_prefix}users.json")
                     if cloud_saved:
                         logger.info("Saved users to cloud storage")
+                    else:
+                        logger.error("Failed to save users to cloud storage")
                 except Exception as e:
-                    logger.warning("Failed to save users to cloud storage", error=str(e))
-
-            # Always save locally as backup/fallback
-            try:
-                with open(self.users_file, "w") as f:
-                    json.dump(data, f, indent=2)
-                if not cloud_saved:
-                    logger.info("Saved users to local file")
-            except Exception as e:
-                logger.error("Failed to save users to local file", error=str(e))
+                    logger.error("Failed to save users to cloud storage", error=str(e))
+            else:
+                logger.error("Cloud storage not available for saving users")
 
         except Exception as e:
             logger.error("Failed to process user data for saving", error=str(e))
 
     def _save_tokens(self) -> None:
-        """Save tokens to cloud storage and local file."""
+        """Save tokens to cloud storage only."""
         try:
-            # Save to cloud storage if available
-            cloud_saved = False
+            # Save to cloud storage only (environment-aware)
             if self.cloud_storage and self.cloud_storage.is_available():
                 try:
-                    cloud_saved = self.cloud_storage.upload_json(self.tokens, "data/tokens.json")
+                    path_prefix = self.settings.get_gcs_path_prefix() if self.settings else "dev/"
+                    cloud_saved = self.cloud_storage.upload_json(self.tokens, f"{path_prefix}tokens.json")
                     if cloud_saved:
                         logger.info("Saved tokens to cloud storage")
+                    else:
+                        logger.error("Failed to save tokens to cloud storage")
                 except Exception as e:
-                    logger.warning("Failed to save tokens to cloud storage", error=str(e))
-
-            # Always save locally as backup/fallback
-            try:
-                with open(self.tokens_file, "w") as f:
-                    json.dump(self.tokens, f, indent=2)
-                if not cloud_saved:
-                    logger.info("Saved tokens to local file")
-            except Exception as e:
-                logger.error("Failed to save tokens to local file", error=str(e))
+                    logger.error("Failed to save tokens to cloud storage", error=str(e))
+            else:
+                logger.error("Cloud storage not available for saving tokens")
 
         except Exception as e:
             logger.error("Failed to save tokens", error=str(e))

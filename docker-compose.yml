@@ -9,9 +9,9 @@ services:
       - PORT=8000
       - PYTHONPATH=/app/src
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - GOOGLE_CLOUD_PROJECT=ragscholarai
     env_file:
       - .env
-      - .env.local
     volumes:
       - ./src:/app/src
       - ./data:/app/data

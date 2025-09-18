@@ -104,6 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
   const [newClassType, setNewClassType] = useState<DomainType>(DomainType.GENERAL);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [documentClassFilter, setDocumentClassFilter] = useState<string>('');
   const { theme } = useTheme();
   const { user } = useUser();
   
@@ -721,6 +722,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
 
+            {/* Class Filter */}
+            <div className="mb-3">
+              <label className={`block text-xs font-medium mb-2 ${
+                theme === 'dark' ? 'text-white/80' : 'text-black/80'
+              }`}>
+                Filter by Class
+              </label>
+              <select
+                value={documentClassFilter}
+                onChange={(e) => setDocumentClassFilter(e.target.value)}
+                className={`w-full border rounded-lg px-3 py-2 text-sm ${
+                  theme === 'dark'
+                    ? 'bg-white/10 border-white/20 text-white'
+                    : 'bg-black/10 border-black/20 text-black'
+                }`}
+              >
+                <option value="">All Documents</option>
+                {domains.map(domain => (
+                  <option key={domain.id} value={domain.id}>
+                    {domain.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {documents.length === 0 ? (
               <div className="text-center py-8">
                 <File className={`w-12 h-12 mx-auto mb-3 ${
@@ -746,7 +772,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             ) : (
               <div className="space-y-2 max-h-[70vh] overflow-y-auto scrollbar-none">
-                {documents.map(doc => (
+                {documents
+                  .filter(doc => {
+                    if (!documentClassFilter) return true; // Show all if no filter
+                    // Find the domain/class that contains this document
+                    const containingDomain = domains.find(domain =>
+                      domain.documents?.includes(doc.id)
+                    );
+                    return containingDomain?.id === documentClassFilter;
+                  })
+                  .map(doc => (
                   <div key={doc.id} className={`rounded-lg p-2 transition-colors group ${
                     theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-black/5 hover:bg-black/10'
                   }`}>
@@ -1858,8 +1893,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex items-center space-x-3 overflow-x-auto mr-8">
           <button
             onClick={() => setActiveTab('home')}
-            className={`px-2 lg:px-3 py-1 text-xs rounded-lg transition-colors whitespace-nowrap ${
-              activeTab === 'home' 
+            className={`relative px-4 lg:px-5 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+              activeTab === 'home'
                 ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
             }`}
@@ -1868,8 +1903,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('documents')}
-            className={`px-2 lg:px-3 py-1 text-xs rounded-lg transition-colors whitespace-nowrap ${
-              activeTab === 'documents' 
+            className={`relative px-4 lg:px-5 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+              activeTab === 'documents'
                 ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
             }`}
@@ -1878,7 +1913,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('achievements')}
-            className={`px-2 lg:px-3 py-1 text-xs rounded-lg transition-colors whitespace-nowrap ${
+            className={`relative px-4 lg:px-5 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
               activeTab === 'achievements'
                 ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
@@ -1888,7 +1923,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('store')}
-            className={`px-2 lg:px-3 py-1 text-xs rounded-lg transition-colors whitespace-nowrap ${
+            className={`relative px-4 lg:px-5 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
               activeTab === 'store'
                 ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
@@ -1898,8 +1933,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('help')}
-            className={`px-2 lg:px-3 py-1 text-xs rounded-lg transition-colors whitespace-nowrap ${
-              activeTab === 'help' 
+            className={`relative px-4 lg:px-5 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+              activeTab === 'help'
                 ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
             }`}

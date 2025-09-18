@@ -14,7 +14,7 @@ from rag_scholar.core.domains import DomainFactory
 from rag_scholar.services.memory_service import MemoryService
 from rag_scholar.services.retrieval_service import RetrievalService
 from rag_scholar.services.session_manager import SessionManager
-from rag_scholar.services.user_service import user_service
+from rag_scholar.services.user_service import get_user_service
 
 logger = logging.getLogger(__name__)
 
@@ -229,39 +229,51 @@ class ChatService:
         # Enhance query with domain knowledge
         enhanced_query = domain_handler.enhance_query(query)
 
-        # Determine collection: prioritize class IDs over names
-        collection = None
+        # Always use "database" collection (master storage)
+        collection = "database"
+
+        # Determine class_id for filtering: prioritize class IDs over names
+        class_filter_id = None
 
         # First, try to use class_id from session (most reliable)
         if session.get("class_id"):
-            collection = session.get("class_id")
-        # Then check if active_class parameter looks like a class ID
-        elif active_class and len(active_class) <= 16 and all(c in '0123456789abcdef' for c in active_class.lower()):
-            collection = active_class
+            class_filter_id = session.get("class_id")
+        # Then check if active_class parameter looks like a class ID (simple alphanumeric string)
+        elif active_class and len(active_class) > 8 and active_class.replace('-', '').isalnum():
+            class_filter_id = active_class
+            print(f"🆔 Using active_class as class ID: {class_filter_id}")
         # Then fall back to active_class from session (could be name or ID)
         elif session.get("active_class") and session.get("active_class") != "default":
             session_active = session.get("active_class")
-            if len(session_active) <= 16 and all(c in '0123456789abcdef' for c in session_active.lower()):
-                collection = session_active  # It's an ID
+            # Check if it's already a class ID (simple alphanumeric string > 8 chars)
+            if len(session_active) > 8 and session_active.replace('-', '').isalnum():
+                class_filter_id = session_active  # It's already a class ID
+                print(f"🆔 Using existing class ID: {class_filter_id}")
             else:
-                # It's a class name - this should not be used as collection
-                # Log a warning and fall back to domain
-                print(f"⚠️  WARNING: Using class name '{session_active}' as collection - should use class ID")
-                collection = domain.value
-        # Finally, fall back to domain
+                # It's a class name - generate a simple unique class ID
+                import hashlib
+                import time
+                unique_string = f"{session_active}-{int(time.time())}-{hash(session_active) % 10000}"
+                class_filter_id = hashlib.sha256(unique_string.encode()).hexdigest()[:12]
+                print(f"🆔 Generated simple class ID '{class_filter_id}' for class name '{session_active}'")
+                # Update session with the generated class ID
+                session["class_id"] = class_filter_id
+                session["active_class"] = class_filter_id
+        # For no class context, don't filter by class (show all documents)
         else:
-            collection = domain.value
+            class_filter_id = None
+            print(f"🔍 No class context - will search all documents in master collection")
 
-        print(f"🔍 COLLECTION: '{collection}' (active_class: {active_class}, session_class_id: {session.get('class_id')}, session_class: {session.get('active_class')}, domain: {domain.value})")
-        if selected_documents:
-            print(f"🔍 SELECTED DOCS: {selected_documents}")
+        print(f"🔍 SELECTED DOCS: {selected_documents}")
+        print(f"🔍 CLASS FILTER: {class_filter_id}")
+        logger.info(f"Collection: {collection}, Class filter: {class_filter_id}, Selected docs: {len(selected_documents) if selected_documents else 0}")
 
-
-        # Retrieve relevant documents (temporarily disable selected_files filtering)
+        # Retrieve relevant documents using selected documents only
         retrieved_docs = await self.retrieval_service.retrieve(
             query=enhanced_query,
-            collection=collection,
-            selected_files=None,  # Temporarily disable filtering
+            collection=collection,  # Always "database"
+            selected_documents=selected_documents,  # Use selected documents for filtering
+            user_id=user_id,  # User ID for user-specific storage
             k=self.settings.retrieval_k,
         )
 
@@ -402,18 +414,22 @@ class ChatService:
 
         # Update user statistics if user_id is provided
         if user_id:
-            await user_service.update_user_stats(user_id, "chat", 1)
+            try:
+                user_service = get_user_service(self.settings)
+                await user_service.update_user_stats(user_id, "chat", 1)
 
-            # Add domain to user's explored domains if it's a new domain
-            if domain:
-                await user_service.add_domain_explored(user_id, domain.value)
+                # Add domain to user's explored domains if it's a new domain
+                if domain:
+                    await user_service.add_domain_explored(user_id, domain.value)
+            except Exception as e:
+                logger.warning(f"Failed to update user stats: {e}")
 
         return {
             "answer": answer,
             "citations": citations,
             "domain": domain.value,
             "session_id": session_id,
-            "active_class": collection,
+            "active_class": class_filter_id or "all",
         }
 
     async def stream_query(

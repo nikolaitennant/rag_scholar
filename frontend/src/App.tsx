@@ -323,7 +323,7 @@ const AppContent: React.FC = () => {
         query: content,
         domain: activeDomain?.type || DomainType.GENERAL,
         session_id: effectiveSessionId,
-        selected_documents: activeDomain?.documents || [],
+        selected_documents: selectedDocuments,
         active_class: activeDomain?.id || 'default',
         user_context: user ? {
           name: user.name,
@@ -521,6 +521,9 @@ const AppContent: React.FC = () => {
 
     // Switch to new domain
     setActiveDomain(domain);
+
+    // Select all documents in this class by default
+    setSelectedDocuments(domain.documents || []);
 
     // Start fresh when selecting a class - clear current session
     setCurrentBackendSessionId(null);

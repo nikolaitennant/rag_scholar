@@ -60,7 +60,9 @@ class DocumentService:
     async def process_document(
         self,
         file_path: Path,
-        collection: str = "default",
+        collection: str = "database",
+        class_id: str | None = None,
+        user_id: str | None = None,
     ) -> dict[str, Any]:
         """Process and index a document."""
 
@@ -79,15 +81,24 @@ class DocumentService:
             # Process document
             processed_docs = []
             for doc in documents:
+                # Enhance metadata with class assignment
+                enhanced_metadata = doc.metadata.copy()
+                if class_id:
+                    enhanced_metadata["assigned_classes"] = [class_id]
+                    logger.info(f"Assigning document {file_path.name} to class: {class_id}")
+                else:
+                    enhanced_metadata["assigned_classes"] = []
+                    logger.info(f"Document {file_path.name} uploaded without class assignment")
+
                 processed = self.processor.process_document(
                     content=doc.page_content,
                     source=file_path.name,
-                    metadata=doc.metadata,
+                    metadata=enhanced_metadata,
                 )
                 processed_docs.extend(processed.chunks)
 
             # Update vector store
-            await self._update_index(collection, processed_docs)
+            await self._update_index(collection, processed_docs, user_id)
 
             # Generate document ID
             doc_id = hashlib.sha256(
@@ -105,7 +116,7 @@ class DocumentService:
             logger.error(f"Failed to process document {file_path.name}: {type(e).__name__}: {e}")
             raise RuntimeError(f"Document processing failed: {e}") from e
 
-    async def _update_index(self, collection: str, documents: list[Document]):
+    async def _update_index(self, collection: str, documents: list[Document], user_id: str | None = None):
         """Update vector store index."""
 
         index_dir = self.settings.index_dir / collection
@@ -114,7 +125,7 @@ class DocumentService:
             # Download existing index from cloud storage if available
             if self.cloud_storage.is_available():
                 logger.info(f"Checking cloud storage for collection: {collection}")
-                self.cloud_storage.download_index(collection, index_dir)
+                self.cloud_storage.download_index(collection, index_dir, user_id)
 
             # Try to load existing index
             if index_dir.exists():
@@ -144,7 +155,7 @@ class DocumentService:
             # Upload to cloud storage if available
             if self.cloud_storage.is_available():
                 logger.info(f"Uploading index to cloud storage for collection: {collection}")
-                upload_success = self.cloud_storage.upload_index(collection, index_dir)
+                upload_success = self.cloud_storage.upload_index(collection, index_dir, user_id)
                 if upload_success:
                     logger.info(f"Successfully uploaded index for collection: {collection}")
                 else:
@@ -157,7 +168,7 @@ class DocumentService:
             logger.error(f"Failed to update vector index: {type(e).__name__}: {e}")
             raise RuntimeError(f"Vector indexing failed: {e}") from e
 
-    async def _rebuild_index(self, collection: str, documents: list[Document]):
+    async def _rebuild_index(self, collection: str, documents: list[Document], user_id: str | None = None):
         """Rebuild vector store index from scratch, removing all existing data."""
 
         index_dir = self.settings.index_dir / collection
@@ -182,7 +193,7 @@ class DocumentService:
                 # Upload to cloud storage if available
                 if self.cloud_storage.is_available():
                     logger.info(f"Uploading rebuilt index to cloud storage for collection: {collection}")
-                    upload_success = self.cloud_storage.upload_index(collection, index_dir)
+                    upload_success = self.cloud_storage.upload_index(collection, index_dir, user_id)
                     if upload_success:
                         logger.info(f"Successfully uploaded rebuilt index for collection: {collection}")
                     else:
@@ -215,46 +226,119 @@ class DocumentService:
                 if path.is_dir():
                     collections.append(path.name)
 
-        # Always include default
-        if "default" not in collections:
-            collections.append("default")
+        # Always include database
+        if "database" not in collections:
+            collections.append("database")
 
         return sorted(collections)
 
-    async def list_documents(self, collection: str) -> list[dict[str, Any]]:
-        """List documents in a collection."""
+    async def get_documents_from_vector_store(self, collection: str) -> list[dict[str, Any]]:
+        """Get document IDs directly from the vector store metadata."""
+        try:
+            index_path = self.settings.index_dir / collection
+            if not index_path.exists():
+                return []
+
+            # Load vector store to get document metadata
+            vector_store = FAISS.load_local(
+                str(index_path),
+                self.embeddings,
+                allow_dangerous_deserialization=True,
+            )
+
+            # Get all document metadata from the vector store
+            # This is a workaround since FAISS doesn't expose metadata directly
+            # We'll extract it by doing a very broad search
+            docs = vector_store.similarity_search("", k=1000)  # Get many documents
+
+            doc_map = {}
+            for doc in docs:
+                source = doc.metadata.get("source", "Unknown")
+                doc_id = doc.metadata.get("doc_id", "")
+
+                if source and doc_id and source not in doc_map:
+                    doc_map[source] = doc_id
+
+            return [{"filename": filename, "doc_id": doc_id} for filename, doc_id in doc_map.items()]
+
+        except Exception as e:
+            logger.error(f"Failed to get documents from vector store: {e}")
+            return []
+
+    async def list_documents(self, collection: str, class_id: str | None = None, user_id: str | None = None) -> list[dict[str, Any]]:
+        """List documents in master collection, optionally filtered by class."""
 
         documents = []
-        collection_dir = self.settings.upload_dir / collection
 
-        # Get total chunks from vector store
-        total_chunks = await self._get_collection_chunk_count(collection)
+        # Always use master "database" collection
+        master_collection = "database"
 
-        if collection_dir.exists():
-            file_count = sum(1 for path in collection_dir.iterdir() if path.is_file())
+        # Get real document IDs from vector store
+        vector_docs = await self.get_documents_from_vector_store(master_collection)
+        vector_doc_map = {doc["filename"]: doc["doc_id"] for doc in vector_docs}
 
-            for file_path in collection_dir.iterdir():
-                if file_path.is_file():
-                    # Generate document ID
-                    doc_id = hashlib.sha256(
-                        f"{collection}:{file_path.name}".encode()
-                    ).hexdigest()[:16]
+        # Try to get documents from GCS first
+        if self.cloud_storage and self.cloud_storage.is_available():
+            try:
+                path_prefix = self.cloud_storage.get_user_path_prefix(user_id)
+                documents_bucket = self.cloud_storage.get_bucket('documents')
 
-                    # Estimate chunks per file (total chunks / number of files)
-                    # This is an approximation since we don't track per-file chunks
-                    chunks_per_file = total_chunks // file_count if file_count > 0 else 0
-                    if total_chunks % file_count != 0 and file_count > 0:
-                        chunks_per_file += 1  # Add remainder to first file
+                if documents_bucket:
+                    # List all documents in the master database collection
+                    prefix = f"{path_prefix}{master_collection}/"
+                    blobs = documents_bucket.list_blobs(prefix=prefix)
 
-                    documents.append(
-                        {
+                    for blob in blobs:
+                        if not blob.name.endswith('/'):  # Skip directories
+                            filename = blob.name.split('/')[-1]  # Get just the filename
+
+                            # Use real doc_id from vector store, fallback to generated one
+                            doc_id = vector_doc_map.get(filename, hashlib.sha256(
+                                f"{master_collection}:{filename}".encode()
+                            ).hexdigest()[:16])
+
+                            documents.append({
+                                "id": doc_id,
+                                "filename": filename,
+                                "size": blob.size or 0,
+                                "chunks": 0,  # Will be updated below
+                                "status": "indexed",
+                            })
+
+                    logger.info(f"Found {len(documents)} documents in GCS database collection")
+
+            except Exception as e:
+                logger.error(f"Failed to list documents from GCS: {e}")
+
+        # If no documents from GCS, try local fallback
+        if not documents:
+            collection_dir = self.settings.upload_dir / master_collection
+            if collection_dir.exists():
+                for file_path in collection_dir.iterdir():
+                    if file_path.is_file():
+                        filename = file_path.name
+
+                        # Use real doc_id from vector store, fallback to generated one
+                        doc_id = vector_doc_map.get(filename, hashlib.sha256(
+                            f"{master_collection}:{filename}".encode()
+                        ).hexdigest()[:16])
+
+                        documents.append({
                             "id": doc_id,
-                            "filename": file_path.name,
+                            "filename": filename,
                             "size": file_path.stat().st_size,
-                            "chunks": chunks_per_file,
+                            "chunks": 0,
                             "status": "indexed",
-                        }
-                    )
+                        })
+
+        # Get total chunks and distribute among files
+        total_chunks = await self._get_collection_chunk_count(master_collection)
+        if documents and total_chunks > 0:
+            chunks_per_file = total_chunks // len(documents)
+            remainder = total_chunks % len(documents)
+
+            for i, doc in enumerate(documents):
+                doc["chunks"] = chunks_per_file + (1 if i < remainder else 0)
 
         return documents
 
@@ -285,12 +369,42 @@ class DocumentService:
 
         return 0
 
-    async def delete_document(self, collection: str, doc_id: str):
+    async def delete_document(self, collection: str, doc_id: str, user_id: str | None = None):
         """Delete a document from collection."""
 
-        collection_dir = self.settings.upload_dir / collection
+        filename_found = None
 
-        # Find and delete the physical file
+        # First, try to find the document by checking GCS or local files
+        # Check GCS first since that's where documents are primarily stored
+        if self.cloud_storage and self.cloud_storage.is_available():
+            try:
+                path_prefix = self.cloud_storage.get_user_path_prefix(user_id)
+                documents_bucket = self.cloud_storage.get_bucket('documents')
+
+                if documents_bucket:
+                    prefix = f"{path_prefix}{collection}/"
+                    blobs = documents_bucket.list_blobs(prefix=prefix)
+
+                    for blob in blobs:
+                        if not blob.name.endswith('/'):  # Skip directories
+                            filename = blob.name.split('/')[-1]  # Get just the filename
+
+                            # Generate document ID to match
+                            file_doc_id = hashlib.sha256(
+                                f"{collection}:{filename}".encode()
+                            ).hexdigest()[:16]
+
+                            if file_doc_id == doc_id:
+                                filename_found = filename
+                                # Delete from GCS
+                                blob.delete()
+                                logger.info(f"Deleted document from GCS: {blob.name}")
+                                break
+            except Exception as e:
+                logger.error(f"Failed to delete document from GCS: {e}")
+
+        # Also try to delete from local storage if it exists
+        collection_dir = self.settings.upload_dir / collection
         if collection_dir.exists():
             for file_path in collection_dir.iterdir():
                 if file_path.is_file():
@@ -300,19 +414,17 @@ class DocumentService:
                     ).hexdigest()[:16]
 
                     if file_doc_id == doc_id:
+                        filename_found = file_path.name
                         try:
                             file_path.unlink()  # Delete the physical file
-                            logger.info(f"Deleted file: {file_path}")
+                            logger.info(f"Deleted local file: {file_path}")
                         except Exception as e:
-                            logger.error(f"Failed to delete file {file_path}: {e}")
-                            raise
+                            logger.error(f"Failed to delete local file {file_path}: {e}")
                         break
-            else:
-                raise ValueError(
-                    f"Document {doc_id} not found in collection {collection}"
-                )
-        else:
-            raise ValueError(f"Collection {collection} not found")
+
+        # If no file was found anywhere, raise error
+        if not filename_found:
+            raise ValueError(f"Document {doc_id} not found in collection {collection}")
 
         # Rebuild the index to remove document chunks
         await self.reindex_collection(collection)
@@ -365,10 +477,117 @@ class DocumentService:
             "last_updated": datetime.now().isoformat(),
         }
 
+    async def assign_document_to_class(
+        self,
+        collection: str,
+        doc_id: str,
+        class_id: str,
+        user_id: str | None = None,
+    ) -> None:
+        """Assign a document to a class by updating its metadata in the vector store."""
+
+        # Find the document filename from doc_id
+        filename_found = None
+
+        # Check GCS first since that's where documents are primarily stored
+        if self.cloud_storage and self.cloud_storage.is_available():
+            try:
+                path_prefix = self.cloud_storage.get_user_path_prefix(user_id)
+                documents_bucket = self.cloud_storage.get_bucket('documents')
+
+                if documents_bucket:
+                    prefix = f"{path_prefix}{collection}/"
+                    blobs = documents_bucket.list_blobs(prefix=prefix)
+
+                    for blob in blobs:
+                        if not blob.name.endswith('/'):  # Skip directories
+                            filename = blob.name.split('/')[-1]  # Get just the filename
+
+                            # Generate document ID to match
+                            file_doc_id = hashlib.sha256(
+                                f"{collection}:{filename}".encode()
+                            ).hexdigest()[:16]
+
+                            if file_doc_id == doc_id:
+                                filename_found = filename
+                                break
+            except Exception as e:
+                logger.error(f"Failed to find document in GCS: {e}")
+
+        # Also check local storage if it exists
+        if not filename_found:
+            collection_dir = self.settings.upload_dir / collection
+            if collection_dir.exists():
+                for file_path in collection_dir.iterdir():
+                    if file_path.is_file():
+                        # Generate document ID to match
+                        file_doc_id = hashlib.sha256(
+                            f"{collection}:{file_path.name}".encode()
+                        ).hexdigest()[:16]
+
+                        if file_doc_id == doc_id:
+                            filename_found = file_path.name
+                            break
+
+        # If no file was found anywhere, raise error
+        if not filename_found:
+            raise ValueError(f"Document {doc_id} not found in collection {collection}")
+
+        logger.info(f"Assigning document {filename_found} (ID: {doc_id}) to class: {class_id}")
+
+        # Reindex the collection to update metadata
+        await self.reindex_collection_with_class_assignment(collection, filename_found, class_id)
+
+    async def reindex_collection_with_class_assignment(
+        self,
+        collection: str,
+        target_filename: str,
+        new_class_id: str,
+    ) -> None:
+        """Reindex collection and assign a specific document to a class."""
+
+        collection_dir = self.settings.upload_dir / collection
+        all_documents = []
+
+        if collection_dir.exists():
+            for file_path in collection_dir.iterdir():
+                if file_path.is_file() and file_path.suffix.lower() in self.loader_map:
+                    try:
+                        # Load document
+                        loader_class = self.loader_map.get(file_path.suffix.lower())
+                        loader = loader_class(str(file_path))
+                        documents = loader.load()
+
+                        if documents:
+                            # Process document with class assignment
+                            for doc in documents:
+                                enhanced_metadata = doc.metadata.copy()
+
+                                # Assign class if this is the target document
+                                if file_path.name == target_filename:
+                                    enhanced_metadata["assigned_classes"] = [new_class_id]
+                                    logger.info(f"Assigning document {file_path.name} to class: {new_class_id}")
+                                else:
+                                    # Keep existing class assignments for other documents
+                                    enhanced_metadata["assigned_classes"] = enhanced_metadata.get("assigned_classes", [])
+
+                                processed = self.processor.process_document(
+                                    content=doc.page_content,
+                                    source=file_path.name,
+                                    metadata=enhanced_metadata,
+                                )
+                                all_documents.extend(processed.chunks)
+
+                    except Exception as e:
+                        logger.error(f"Failed to reindex {file_path}: {e}")
+
+        # Rebuild index from scratch with updated metadata
+        await self._rebuild_index(collection, all_documents)
+
     async def search(
         self,
         query: str,
-        collection: str = "default",
+        collection: str = "database",
         limit: int = 5,
     ) -> list[dict[str, Any]]:
         """Search documents in collection."""

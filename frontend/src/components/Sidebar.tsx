@@ -186,7 +186,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const loadSessions = async () => {
       if (user) {
         try {
-          const userSessions = await apiService.getSessions();
+          // Session management removed - no longer loading sessions from API
+          const userSessions: any[] = [];
           setSessions(userSessions);
         } catch (error) {
           console.error('Failed to load sessions:', error);
@@ -206,7 +207,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
     
     try {
-      await apiService.deleteSession(sessionId);
+      // Session management removed - using onDeleteSession prop only
+      if (onDeleteSession) {
+        onDeleteSession(sessionId);
+      }
       setSessions(prev => prev.filter(s => s.id !== sessionId));
     } catch (error) {
       console.error('Failed to delete session:', error);
@@ -218,7 +222,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       if (onRenameSession) {
         await onRenameSession(sessionId, newName);
       } else {
-        await apiService.updateSession(sessionId, newName);
+        // Session management removed - using onRenameSession prop only
+        console.log('Session rename not supported without onRenameSession prop');
         setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, name: newName } : s));
       }
     } catch (error) {
@@ -798,7 +803,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <div className={`text-xs mt-1 ${
                           theme === 'dark' ? 'text-white/50' : 'text-black/50'
                         }`}>
-                          {doc.chunks} chunks • {formatFileSize(doc.size)}
+                          {doc.chunks} chunks{doc.size ? ` • ${formatFileSize(doc.size)}` : ''}
                         </div>
                       </div>
                       <button

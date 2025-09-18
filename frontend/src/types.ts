@@ -30,6 +30,7 @@ export interface Document {
   upload_date?: string;
   file_type: string;
   assigned_classes: string[];
+  size?: number; // File size in bytes (optional for backward compatibility)
 }
 
 // User-created class/domain

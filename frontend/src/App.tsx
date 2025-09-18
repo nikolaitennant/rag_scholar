@@ -22,7 +22,7 @@ const DOMAIN_TYPE_INFO = {
 
 const AppContent: React.FC = () => {
   const { theme, themeMode, toggleTheme, getBackgroundClass } = useTheme();
-  const { user, login, signUp, refreshUser, isAuthenticated, loading } = useUser();
+  const { user, userProfile, login, signUp, refreshUserProfile, isAuthenticated, loading } = useUser();
   const [messages, setMessages] = useState<Message[]>([]);
   const [userDomains, setUserDomains] = useState<UserDomain[]>([]);
   const [activeDomain, setActiveDomain] = useState<UserDomain | null>(null);
@@ -326,10 +326,10 @@ const AppContent: React.FC = () => {
         selected_documents: selectedDocuments,
         active_class: activeDomain?.id || 'default',
         user_context: user ? {
-          name: user.name,
-          bio: user.profile?.bio || null,
-          research_interests: user.profile?.research_interests || [],
-          preferred_domains: user.profile?.preferred_domains || []
+          name: user.displayName || user.email || 'User',
+          bio: userProfile?.profile?.bio || null,
+          research_interests: userProfile?.profile?.research_interests || [],
+          preferred_domains: userProfile?.profile?.preferred_domains || []
         } : null,
       });
 
@@ -358,10 +358,7 @@ const AppContent: React.FC = () => {
         return newMessages;
       });
 
-      // Refresh user data to update achievements in real-time
-      if (user && refreshUser) {
-        refreshUser().catch(error => console.error('Failed to refresh user:', error));
-      }
+      // Firebase handles user state automatically
 
       // Refresh sessions list to show new/updated sessions with updated message counts
       await loadSessions().catch(error => console.error('Failed to refresh sessions:', error));
@@ -409,10 +406,7 @@ const AppContent: React.FC = () => {
       await loadDocuments();
       console.log('Documents reloaded after upload');
       
-      // Refresh user data to update achievements
-      if (user && refreshUser) {
-        refreshUser().catch(error => console.error('Failed to refresh user after upload:', error));
-      }
+      // Firebase handles user state automatically
       
       // Auto-assign the uploaded document to the current active domain
       if (activeDomain && uploadResponse?.id) {
@@ -978,7 +972,7 @@ const AppContent: React.FC = () => {
             isLoading={isChatLoading}
             currentDomain={activeDomain?.type || DomainType.GENERAL}
             activeCollection="default"
-            userName={user?.name || 'User'}
+            userName={user?.displayName || user?.email || 'User'}
             sidebarOpen={sidebarOpen}
           />
         );
@@ -1717,9 +1711,10 @@ const AppContent: React.FC = () => {
           return colorMap[type] || 'text-gray-400';
         };
 
-        const totalPoints = user?.stats?.total_points || 0;
-        const achievements = user?.achievements || [];
-        const userStats = user?.stats || {};
+        // TODO: Get from backend API when user profile is implemented
+        const totalPoints = 0;
+        const achievements: any[] = [];
+        const userStats = {};
 
         // Calculate achievement progress
         const getAchievementProgress = (achievement: any) => {
@@ -2165,7 +2160,7 @@ const AppContent: React.FC = () => {
               isLoading={isChatLoading}
               currentDomain={activeDomain?.type || DomainType.GENERAL}
               activeCollection="default"
-              userName={user?.name || 'User'}
+              userName={user?.displayName || user?.email || 'User'}
               sidebarOpen={sidebarOpen}
             />
           </div>

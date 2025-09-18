@@ -1,0 +1,1 @@
+export { auth, default as firebaseApp } from './firebase';

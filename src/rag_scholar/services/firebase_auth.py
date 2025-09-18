@@ -1,0 +1,44 @@
+"""Firebase Auth integration for RAG Scholar."""
+
+import firebase_admin
+from firebase_admin import auth, credentials
+import structlog
+from typing import Optional
+
+logger = structlog.get_logger()
+
+# Initialize Firebase Admin SDK
+if not firebase_admin._apps:
+    # Use default credentials (from environment)
+    cred = credentials.ApplicationDefault()
+    firebase_admin.initialize_app(cred, {
+        'projectId': 'ragscholarai'
+    })
+
+async def verify_firebase_token(id_token: str) -> Optional[dict]:
+    """Verify Firebase ID token and return user info."""
+    try:
+        decoded_token = auth.verify_id_token(id_token)
+        return {
+            "id": decoded_token.get("uid"),
+            "email": decoded_token.get("email"),
+            "name": decoded_token.get("name", decoded_token.get("email", "Unknown")),
+            "firebase_uid": decoded_token.get("uid")
+        }
+    except Exception as e:
+        logger.error("Failed to verify Firebase token", error=str(e))
+        return None
+
+async def get_firebase_user(uid: str) -> Optional[dict]:
+    """Get Firebase user by UID."""
+    try:
+        user = auth.get_user(uid)
+        return {
+            "id": user.uid,
+            "email": user.email,
+            "name": user.display_name or user.email or "Unknown",
+            "firebase_uid": user.uid
+        }
+    except Exception as e:
+        logger.error("Failed to get Firebase user", uid=uid, error=str(e))
+        return None

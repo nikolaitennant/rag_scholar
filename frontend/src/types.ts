@@ -68,3 +68,29 @@ export interface DomainConfig {
   icon: string;
   color: string;
 }
+
+// Extended user data from backend (additional to Firebase User)
+export interface UserProfile {
+  profile?: {
+    bio?: string;
+    research_interests?: string[];
+    preferred_domains?: string[];
+  };
+  stats?: {
+    total_points?: number;
+    sessions_count?: number;
+    documents_uploaded?: number;
+    messages_sent?: number;
+  };
+  achievements?: Array<{
+    id: string;
+    type: string;
+    name: string;
+    description: string;
+    unlocked_at: string | null;
+    progress?: number;
+    required?: number;
+    points?: number;
+    target?: number;
+  }>;
+}

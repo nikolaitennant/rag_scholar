@@ -31,11 +31,8 @@ async def lifespan(app: FastAPI):
         logger.info("Initializing application settings...")
         settings = get_settings()
 
-        # Initialize services that might be heavy
-        logger.info("Initializing application services...")
-        # Add other service initialization here as needed:
-        # services['openai'] = OpenAI(api_key=settings.openai_api_key)
-        # services['embeddings'] = load_embeddings()
+        # LangChain services are initialized per-request for optimal performance
+        logger.info("Application services ready (LangChain per-request initialization)")
 
         logger.info(
             "RAG Scholar API started successfully", version=settings.app_version
@@ -54,7 +51,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     """Create and configure FastAPI application."""
     # Import routes here to avoid heavy imports at module level
-    from rag_scholar.api.routes import auth, chat, documents, health, sessions
+    from rag_scholar.routes import auth, health, rag_chat, documents
 
     app = FastAPI(
         title="RAG Scholar",  # Use defaults, will be updated in lifespan
@@ -74,19 +71,14 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Include routers with default prefix
+    # Include essential routers
     app.include_router(
         health.router,
         prefix="/api/v1/health",
         tags=["health"],
     )
     app.include_router(
-        documents.router,
-        prefix="/api/v1/documents",
-        tags=["documents"],
-    )
-    app.include_router(
-        chat.router,
+        rag_chat.router,
         prefix="/api/v1/chat",
         tags=["chat"],
     )
@@ -96,9 +88,9 @@ def create_app() -> FastAPI:
         tags=["auth"],
     )
     app.include_router(
-        sessions.router,
-        prefix="/api/v1",
-        tags=["sessions"],
+        documents.router,
+        prefix="/api/v1/documents",
+        tags=["documents"],
     )
 
     # Exception handlers

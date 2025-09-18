@@ -106,7 +106,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [documentClassFilter, setDocumentClassFilter] = useState<string>('');
   const { theme } = useTheme();
-  const { user } = useUser();
   
   // Use prop sessions if available, fallback to local sessions
   const allSessions = propSessions.length > 0 ? propSessions : sessions;
@@ -131,8 +130,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   });
 
   // Get real user data
-  const totalPoints = user?.stats?.total_points || 0;
-  const achievements = user?.achievements || [];
+  const { user, userProfile } = useUser();
+  const totalPoints = userProfile?.stats?.total_points || 0;
+  const achievements = userProfile?.achievements || [];
 
   // Map achievement types to icons and colors
   const getAchievementIcon = (type: string) => {
@@ -1208,14 +1208,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           }`}>
                             <div 
                               className="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${(achievement.progress / achievement.target) * 100}%` }}
+                              style={{ width: `${((achievement.progress || 0) / (achievement.target || achievement.required || 1)) * 100}%` }}
                             />
                           </div>
                           <div className="flex justify-between items-center">
                             <span className={`text-xs ${
                               theme === 'dark' ? 'text-white/50' : 'text-black/50'
                             }`}>
-                              {achievement.progress}/{achievement.target}
+                              {achievement.progress || 0}/{achievement.target || achievement.required || 0}
                             </span>
                             <span className="text-xs text-purple-400">
                               +{achievement.points} pts

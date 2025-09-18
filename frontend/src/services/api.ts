@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { ChatResponse, Document } from '../types';
+import { auth } from '../config/firebase';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
 
@@ -8,11 +9,12 @@ const api = axios.create({
   timeout: 30000,
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add Firebase auth token
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('ragScholarToken');
-    if (token) {
+  async (config) => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      const token = await currentUser.getIdToken();
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -161,6 +163,12 @@ export const apiService = {
       class_id: classId,
       document_ids: documentIds
     });
+    return response.data;
+  },
+
+  // User Profile (includes stats, achievements, preferences)
+  getCurrentUser: async (): Promise<any> => {
+    const response = await api.get('/me');
     return response.data;
   },
 };

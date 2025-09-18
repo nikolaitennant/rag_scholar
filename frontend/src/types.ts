@@ -31,6 +31,7 @@ export interface Document {
   file_type: string;
   assigned_classes: string[];
   size?: number; // File size in bytes (optional for backward compatibility)
+  status?: string; // Processing status (optional for backward compatibility)
 }
 
 // User-created class/domain

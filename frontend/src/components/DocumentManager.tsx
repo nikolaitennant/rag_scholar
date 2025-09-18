@@ -68,7 +68,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
     }
   };
 
-  const totalSize = documents.reduce((sum, doc) => sum + doc.size, 0);
+  const totalSize = documents.reduce((sum, doc) => sum + (doc.size || 0), 0);
   const totalChunks = documents.reduce((sum, doc) => sum + doc.chunks, 0);
 
   return (
@@ -183,15 +183,19 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
                       </div>
                       <div className="text-xs text-white/60 mt-1 flex items-center space-x-2">
                         <span>{doc.chunks} chunks</span>
-                        <span>•</span>
-                        <span>{formatFileSize(doc.size)}</span>
+                        {doc.size && (
+                          <>
+                            <span>•</span>
+                            <span>{formatFileSize(doc.size)}</span>
+                          </>
+                        )}
                         <span>•</span>
                         <span className={`px-2 py-0.5 rounded-full text-xs ${
-                          doc.status === 'processed' 
-                            ? 'bg-green-500/20 text-green-300' 
+                          (doc.status || 'processed') === 'processed'
+                            ? 'bg-green-500/20 text-green-300'
                             : 'bg-yellow-500/20 text-yellow-300'
                         }`}>
-                          {doc.status}
+                          {doc.status || 'processed'}
                         </span>
                       </div>
                     </div>

@@ -80,46 +80,6 @@ export const apiService = {
     const response = await api.get('/me');
     return response.data;
   },
-
-  // Legacy methods that now return empty/default values for backward compatibility
-  // These can be gradually removed as frontend is updated
-  getSessions: async (): Promise<any[]> => {
-    return []; // No more sessions - return empty array
-  },
-
-  createSession: async (name?: string): Promise<any> => {
-    // Generate a simple local session ID for compatibility
-    return {
-      id: crypto.randomUUID(),
-      name: name || 'Chat Session',
-      created_at: new Date().toISOString(),
-    };
-  },
-
-  getSession: async (sessionId: string): Promise<any> => {
-    return {
-      id: sessionId,
-      name: 'Chat Session',
-      created_at: new Date().toISOString(),
-    };
-  },
-
-  updateSession: async (sessionId: string, name: string): Promise<any> => {
-    return { id: sessionId, name };
-  },
-
-  updateSessionName: async (sessionId: string, name: string): Promise<any> => {
-    return { id: sessionId, name };
-  },
-
-  deleteSession: async (sessionId: string): Promise<void> => {
-    // No-op for compatibility
-  },
-
-  // Removed methods that don't exist in new backend:
-  // - login, register, logout (handled by Firebase)
-  // - updateDocumentName, reindexCollection
-  // - deleteSessionsByClass, createClassWithDocuments, transferDocuments
 };
 
 // Error interceptor

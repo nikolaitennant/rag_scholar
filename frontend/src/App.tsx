@@ -28,12 +28,10 @@ const AppContent: React.FC = () => {
   const [activeDomain, setActiveDomain] = useState<UserDomain | null>(null);
   const [domainChatHistory, setDomainChatHistory] = useState<Record<string, Message[]>>({});
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [sessionId, setSessionId] = useState<string>(() => 
+  // Simple session ID for chat continuity
+  const [chatSessionId] = useState<string>(() =>
     Math.random().toString(36).substring(2) + Date.now().toString(36)
   );
-  const [currentBackendSessionId, setCurrentBackendSessionId] = useState<string | null>(() => {
-    return localStorage.getItem('currentBackendSessionId');
-  });
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isDocumentLoading, setIsDocumentLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -46,16 +44,8 @@ const AppContent: React.FC = () => {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [themeToggleVisible, setThemeToggleVisible] = useState(true);
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [previewSession, setPreviewSession] = useState<any>(null); // Temporary session preview
-  const [sessionMessageCache, setSessionMessageCache] = useState<Record<string, Message[]>>(() => {
-    const cached = localStorage.getItem('sessionMessageCache');
-    return cached ? JSON.parse(cached) : {};
-  }); // Cache messages for each session
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
   const [docEditName, setDocEditName] = useState('');
-  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-  const [sessionEditName, setSessionEditName] = useState('');
 
   // Load initial data
   const loadDocuments = useCallback(async () => {
@@ -81,18 +71,6 @@ const AppContent: React.FC = () => {
     }
   }, [activeDomain]);
 
-  const loadSessions = useCallback(async () => {
-    if (!isAuthenticated) return;
-
-    try {
-      const userSessions = await apiService.getSessions();
-      setSessions(userSessions || []);
-      console.log('Loaded sessions:', userSessions);
-    } catch (error) {
-      console.error('Failed to load sessions:', error);
-      setSessions([]);
-    }
-  }, [isAuthenticated]);
 
   const checkApiHealth = useCallback(async () => {
     try {
@@ -104,11 +82,16 @@ const AppContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    checkApiHealth();
-    loadDocuments();
-    loadUserDomains();
-    loadSessions();
-  }, [checkApiHealth, loadDocuments, loadUserDomains, loadSessions]);
+    checkApiHealth(); // Health check doesn't require auth
+    loadUserDomains(); // User domains are stored locally
+  }, [checkApiHealth, loadUserDomains]);
+
+  // Load documents only when user is authenticated
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      loadDocuments();
+    }
+  }, [isAuthenticated, loading, loadDocuments]);
 
   // Separate useEffect for restoring messages to avoid dependency loop
   useEffect(() => {
@@ -263,40 +246,6 @@ const AppContent: React.FC = () => {
       setBackgroundCommandCount(prev => prev + 1);
     }
 
-    // Auto-create a new backend session if this is the first message and we don't have an active session
-    let effectiveSessionId = sessionId;
-    if (!currentBackendSessionId && messages.length === 0) {
-      try {
-        const newSession = await apiService.createSession(
-          undefined,
-          activeDomain?.type || DomainType.GENERAL,
-          activeDomain?.id,
-          activeDomain?.name || 'General'
-        );
-        const newBackendSessionId = newSession.id;
-        setCurrentBackendSessionId(newBackendSessionId);
-        setSessionId(newBackendSessionId);
-        effectiveSessionId = newBackendSessionId;
-
-        // Update the preview session with the real session ID if it exists
-        if (previewSession && previewSession.id === sessionId) {
-          setPreviewSession({
-            ...previewSession,
-            id: newBackendSessionId,
-            isPreview: false // No longer a preview, it's a real session
-          });
-        }
-      } catch (error) {
-        console.error('Failed to create new session:', error);
-        // Continue with the current sessionId as fallback
-      }
-    } else {
-      // Clear preview session when user sends a message to an existing session
-      if (previewSession) {
-        setPreviewSession(null);
-      }
-    }
-
     const userMessage: Message = { role: 'user', content };
     setMessages(prev => {
       const newMessages = [...prev, userMessage];
@@ -307,21 +256,15 @@ const AppContent: React.FC = () => {
           [activeDomain.id]: newMessages
         }));
       }
-      // Update session message cache
-      if (effectiveSessionId) {
-        setSessionMessageCache(prevCache => ({
-          ...prevCache,
-          [effectiveSessionId]: newMessages
-        }));
-      }
       return newMessages;
     });
+
     setIsChatLoading(true);
 
     try {
       const response = await apiService.chat({
         query: content,
-        session_id: effectiveSessionId,
+        session_id: chatSessionId,
         class_id: activeDomain?.id,
         k: 5,
       });
@@ -346,30 +289,9 @@ const AppContent: React.FC = () => {
             [activeDomain.id]: newMessages
           }));
         }
-        // Update session message cache
-        if (effectiveSessionId) {
-          setSessionMessageCache(prevCache => ({
-            ...prevCache,
-            [effectiveSessionId]: newMessages
-          }));
-        }
         return newMessages;
       });
 
-      // Firebase handles user state automatically
-
-      // Refresh sessions list to show new/updated sessions with updated message counts
-      await loadSessions().catch(error => console.error('Failed to refresh sessions:', error));
-
-      // Update the preview session to show correct message count if it's now a real session
-      if (previewSession && previewSession.id === effectiveSessionId) {
-        setPreviewSession((prev: any) => prev ? {
-          ...prev,
-          message_count: messages.length + 2, // +1 for user message, +1 for assistant response
-          preview: userMessage.content,
-          isPreview: false
-        } : null);
-      }
     } catch (error) {
       const errorMessage: Message = {
         role: 'assistant',
@@ -388,6 +310,18 @@ const AppContent: React.FC = () => {
       });
     } finally {
       setIsChatLoading(false);
+    }
+  };
+
+  // Simple new chat function to replace complex session management
+  const handleNewChat = () => {
+    setMessages([]);
+    // Clear domain chat history for current domain only
+    if (activeDomain) {
+      setDomainChatHistory(prev => ({
+        ...prev,
+        [activeDomain.id]: []
+      }));
     }
   };
 

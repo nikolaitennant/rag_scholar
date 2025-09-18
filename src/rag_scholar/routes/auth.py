@@ -8,7 +8,7 @@ from ..services.user_profile import UserProfileService
 from ..config.settings import get_settings
 
 logger = structlog.get_logger()
-router = APIRouter(prefix="/auth", tags=["authentication"])
+router = APIRouter(tags=["authentication"])
 
 
 async def get_current_user(authorization: str | None = Header(None)) -> dict:

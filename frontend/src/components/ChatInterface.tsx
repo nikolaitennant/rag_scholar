@@ -12,6 +12,7 @@ interface ChatInterfaceProps {
   activeCollection: string;
   userName?: string;
   sidebarOpen?: boolean;
+  isNewChatSession?: boolean;
 }
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -97,7 +98,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
 
             {/* Large centered input */}
-            <form onSubmit={handleSubmit} className="w-full max-w-3xl mx-auto">
+            <form onSubmit={handleSubmit} className="w-full max-w-lg mx-auto">
               <div className="relative">
                 <input
                   type="text"
@@ -151,30 +152,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
                   } items-start space-x-3`}
                 >
-                  {/* Avatar */}
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    message.role === 'user' 
-                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 ml-3' 
-                      : 'bg-gradient-to-r from-purple-500 to-pink-600 mr-3'
-                  }`}>
-                    {message.role === 'user' ? (
-                      <User className="w-4 h-4 text-white" />
-                    ) : (
-                      <Bot className="w-4 h-4 text-white" />
-                    )}
-                  </div>
 
                   {/* Message Content */}
                   <div
-                    className={`px-6 py-4 rounded-2xl backdrop-blur-sm border transition-all duration-200 hover:shadow-lg ${
+                    className={`${
                       message.role === 'user'
-                        ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-blue-400/20 rounded-br-md shadow-lg'
-                        : theme === 'dark'
-                        ? 'bg-white/10 text-white border-white/20 rounded-bl-md shadow-md'
-                        : 'bg-black/10 text-black border-black/20 rounded-bl-md shadow-md'
+                        ? `px-4 py-2 rounded-2xl text-white ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-500'}`
+                        : `px-0 py-0 bg-transparent border-0 shadow-none ${theme === 'dark' ? 'text-white' : 'text-black'}`
                     }`}
                   >
-                    <div className={`prose max-w-none ${
+                    <div className={`prose prose-sm max-w-none text-sm ${
                       message.role === 'user' || theme === 'dark' ? 'prose-invert' : ''
                     }`}>
                       <ReactMarkdown

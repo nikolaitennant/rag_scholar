@@ -43,13 +43,44 @@ OpenAI API
 
 ### Firestore Document Structure
 
-RAG Scholar uses a user-scoped data architecture in Google Firestore:
+RAG Scholar uses an optimal user-scoped data architecture in Google Firestore where all user data is organized under a single user collection with organized subcollections:
 
 ```
 users/
-  {user_id}/
-    documents/
-      {document_id}
+  {user_id}/                           ← Main user container
+    profile/                           ← User profile subcollection
+      main                             ← Profile document
+        - name: string
+        - email: string
+        - preferences: object
+        - created_at: timestamp
+        - updated_at: timestamp
+
+    achievements/                      ← Achievements subcollection
+      first_chat                       ← Individual achievement document
+        - type: "first_chat"
+        - title: "First Conversation"
+        - description: string
+        - unlocked_at: timestamp | null
+        - condition: object
+      doc_upload                       ← Individual achievement document
+        - type: "doc_upload"
+        - title: "Document Uploader"
+        - description: string
+        - unlocked_at: timestamp | null
+        - condition: object
+      [... other achievements]
+
+    stats/                             ← User statistics subcollection
+      main                             ← Stats document
+        - total_chats: number
+        - total_docs: number
+        - total_classes: number
+        - last_active: timestamp
+        - updated_at: timestamp
+
+    documents/                         ← Document metadata subcollection
+      {document_id}                    ← Individual document metadata
         - filename: string
         - document_id: string
         - upload_date: timestamp
@@ -58,28 +89,37 @@ users/
         - assigned_classes: string[]
         - metadata: object
 
-    chunks/
-      {chunk_id}
+    chunks/                            ← Vector store chunks subcollection
+      {chunk_id}                       ← Individual vector chunk
         - content: string (document text chunk)
         - metadata: object
         - embedding: vector[1536] (OpenAI embedding)
         - document_id: string
+        - source: string (filename)
         - class_filter: string[]
 
-    classes/
-      {class_id}
+    classes/                           ← User-defined classes subcollection
+      {class_id}                       ← Individual class
         - name: string
         - type: DomainType
         - description: string
         - document_ids: string[]
         - created_at: timestamp
 
-    profile/
-      - stats: UserStats
-      - achievements: Achievement[]
-      - preferences: object
-      - created_at: timestamp
+    memory/                            ← User memory subcollection
+      permanent_facts/                 ← Permanent facts sub-subcollection
+        {fact_id}                      ← Individual fact
+          - fact: string
+          - timestamp: timestamp
+          - relevance_score: number
 ```
+
+**Benefits of This Structure:**
+- **Complete User Isolation**: All user data under `users/{user_id}/`
+- **Scalable Organization**: Each data type in its own subcollection
+- **Efficient Queries**: Can query individual collections without loading everything
+- **Future-Proof**: Easy to add new data types as subcollections
+- **Clean Separation**: Profile, achievements, stats, documents, and memory clearly separated
 
 ### Vector Storage
 

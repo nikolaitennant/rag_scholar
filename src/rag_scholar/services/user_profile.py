@@ -18,55 +18,101 @@ class UserProfileService:
         self.db = firestore.Client(project=settings.google_cloud_project)
 
     async def get_user_profile(self, user_id: str) -> Dict:
-        """Get user profile data from Firestore using users/{user_id} structure."""
+        """Get user profile with stats and achievements from optimal structure."""
         try:
-            doc_ref = self.db.collection("users").document(user_id)
-            doc = doc_ref.get()
+            # Get profile data
+            profile_ref = self.db.collection(f"users/{user_id}/profile").document("main")
+            profile_doc = profile_ref.get()
 
-            if doc.exists:
-                return doc.to_dict()
-            else:
-                # Create default profile for new user
+            # Get stats data
+            stats_ref = self.db.collection(f"users/{user_id}/stats").document("main")
+            stats_doc = stats_ref.get()
+
+            # Get achievements
+            achievements_ref = self.db.collection(f"users/{user_id}/achievements")
+            achievements_docs = achievements_ref.get()
+
+            if not profile_doc.exists:
+                # Create default profile if it doesn't exist
                 return await self._create_default_profile(user_id)
 
+            # Combine all data
+            profile_data = profile_doc.to_dict() or {}
+            stats_data = stats_doc.to_dict() or {}
+            achievements_data = [doc.to_dict() for doc in achievements_docs]
+
+            return {
+                "profile": profile_data,
+                "stats": stats_data,
+                "achievements": achievements_data,
+                "created_at": profile_data.get("created_at"),
+                "updated_at": profile_data.get("updated_at")
+            }
         except Exception as e:
             logger.error("Failed to get user profile", user_id=user_id, error=str(e))
             return {}
 
     async def _create_default_profile(self, user_id: str) -> Dict:
-        """Create default user profile with achievements in users/{user_id} structure."""
+        """Create default user profile using optimal subcollection structure."""
         try:
-            default_profile = {
-                "stats": UserStats().model_dump(),
-                "profile": UserProfile().model_dump(),
-                "achievements": [ach.model_dump() for ach in create_default_achievements()],
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
+            now = datetime.utcnow()
+
+            # Create profile data
+            profile_data = UserProfile().model_dump()
+            profile_data.update({
+                "created_at": now,
+                "updated_at": now
+            })
+
+            # Create stats data
+            stats_data = UserStats().model_dump()
+            stats_data.update({
+                "last_activity": now,
+                "updated_at": now
+            })
+
+            # Set profile document
+            profile_ref = self.db.collection(f"users/{user_id}/profile").document("main")
+            profile_ref.set(profile_data)
+
+            # Set stats document
+            stats_ref = self.db.collection(f"users/{user_id}/stats").document("main")
+            stats_ref.set(stats_data)
+
+            # Create individual achievement documents
+            achievements_ref = self.db.collection(f"users/{user_id}/achievements")
+            default_achievements = create_default_achievements()
+
+            for ach in default_achievements:
+                ach_data = ach.model_dump()
+                achievements_ref.document(ach.type.value).set(ach_data)
+
+            logger.info("Created default user profile with optimal structure", user_id=user_id)
+
+            return {
+                "profile": profile_data,
+                "stats": stats_data,
+                "achievements": [ach.model_dump() for ach in default_achievements],
+                "created_at": now,
+                "updated_at": now
             }
-
-            doc_ref = self.db.collection("users").document(user_id)
-            doc_ref.set(default_profile)
-
-            logger.info("Created default user profile", user_id=user_id)
-            return default_profile
 
         except Exception as e:
             logger.error("Failed to create default profile", user_id=user_id, error=str(e))
             return {}
 
     async def update_user_stats(self, user_id: str, stat_name: str, increment: int = 1) -> bool:
-        """Update user statistics and check for achievements."""
+        """Update user statistics and check for achievements using optimal structure."""
         try:
-            doc_ref = self.db.collection("users").document(user_id)
+            stats_ref = self.db.collection(f"users/{user_id}/stats").document("main")
 
-            # Get current profile
-            doc = doc_ref.get()
+            # Get current stats
+            doc = stats_ref.get()
             if not doc.exists:
                 await self._create_default_profile(user_id)
-                doc = doc_ref.get()
+                doc = stats_ref.get()
 
-            data = doc.to_dict()
-            stats = data.get("stats", {})
+            stats = doc.to_dict() or {}
 
             # Update the specific stat
             if stat_name in stats:
@@ -76,12 +122,10 @@ class UserProfileService:
 
             # Update last activity
             stats["last_activity"] = datetime.utcnow()
+            stats["updated_at"] = datetime.utcnow()
 
-            # Update document
-            doc_ref.update({
-                "stats": stats,
-                "updated_at": datetime.utcnow()
-            })
+            # Update stats document
+            stats_ref.set(stats)
 
             # Check for achievements
             await self._check_achievements(user_id, stats)
@@ -100,19 +144,18 @@ class UserProfileService:
             return False
 
     async def _check_achievements(self, user_id: str, stats: Dict) -> None:
-        """Check and unlock achievements based on stats."""
+        """Check and unlock achievements based on stats using optimal structure."""
         try:
-            doc_ref = self.db.collection("users").document(user_id)
-            doc = doc_ref.get()
+            achievements_ref = self.db.collection(f"users/{user_id}/achievements")
+            achievements_docs = achievements_ref.get()
 
-            if not doc.exists:
+            if not achievements_docs:
                 return
 
-            data = doc.to_dict()
-            achievements = data.get("achievements", [])
-            updated = False
+            updated_achievements = []
 
-            for ach in achievements:
+            for doc in achievements_docs:
+                ach = doc.to_dict()
                 if ach.get("unlocked_at"):
                     continue  # Already unlocked
 
@@ -120,17 +163,19 @@ class UserProfileService:
                 if await self._check_achievement_condition(ach, stats):
                     ach["unlocked_at"] = datetime.utcnow()
                     ach["progress"] = ach.get("target", 1)
-                    updated = True
+
+                    # Update individual achievement document
+                    doc.reference.set(ach)
+                    updated_achievements.append(ach.get("name"))
 
                     logger.info("Achievement unlocked!",
                                user_id=user_id,
                                achievement=ach.get("name"))
 
-            if updated:
-                doc_ref.update({
-                    "achievements": achievements,
-                    "updated_at": datetime.utcnow()
-                })
+            if updated_achievements:
+                logger.info("Achievements updated",
+                           user_id=user_id,
+                           unlocked=updated_achievements)
 
         except Exception as e:
             logger.error("Failed to check achievements", user_id=user_id, error=str(e))

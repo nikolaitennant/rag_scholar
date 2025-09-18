@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash, RefreshCw, ChevronRight, Upload, File, Trash2, RotateCcw, MessageSquare, X, Sun, Moon, Trophy, BookOpen, Sparkles, Heart, Star, Zap, Award, Settings, History, Edit2, MoreVertical, HelpCircle, Home, Book, Beaker, Briefcase, GraduationCap, Code, Edit3 } from 'lucide-react';
+import { Plus, Trash, RefreshCw, ChevronRight, Upload, File, Trash2, RotateCcw, MessageSquare, X, Sun, Moon, Trophy, BookOpen, Sparkles, Heart, Star, Zap, Award, Settings, History, Edit2, MoreVertical, HelpCircle, Home, Book, Beaker, Briefcase, GraduationCap, Code, Edit3, Menu } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
@@ -105,6 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [newClassType, setNewClassType] = useState<DomainType>(DomainType.GENERAL);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [documentClassFilter, setDocumentClassFilter] = useState<string>('');
+  const [classFilterOpen, setClassFilterOpen] = useState(false);
   const { theme } = useTheme();
   
   // Use prop sessions if available, fallback to local sessions
@@ -242,24 +243,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ? 'bg-white/10 border-white/20'
           : 'bg-black/10 border-black/20'
       }`}>
-        <div className="flex flex-col items-center space-y-4 mt-12">
-        <button 
+        {/* Expand button at top */}
+        <button
+          onClick={onOpenSidebar}
+          className={`p-2 rounded-lg transition-colors mb-2 ${
+            theme === 'dark'
+              ? 'text-white/60 hover:text-white hover:bg-white/10'
+              : 'text-black/60 hover:text-black hover:bg-black/10'
+          }`}
+          title="Expand Sidebar"
+        >
+          <Menu className="w-4 h-4" />
+        </button>
+
+        <div className="flex flex-col items-center space-y-2">
+        <button
           onClick={() => { setActiveTab('home'); onOpenSidebar?.(); }}
-          className={`p-2 rounded-lg transition-colors ${
-            activeTab === 'home' 
-              ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
-              : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
+          className={`p-2 rounded-lg transition-all ${
+            activeTab === 'home'
+              ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
+              : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
           }`}
           title="Home"
         >
           <Home className="w-4 h-4" />
         </button>
-        <button 
+        <button
           onClick={() => { setActiveTab('documents'); onOpenSidebar?.(); }}
-          className={`p-2 rounded-lg transition-colors ${
-            activeTab === 'documents' 
-              ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
-              : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
+          className={`p-2 rounded-lg transition-all ${
+            activeTab === 'documents'
+              ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
+              : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
           }`}
           title="Docs"
         >
@@ -267,10 +281,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
         <button
           onClick={() => { setActiveTab('achievements'); onOpenSidebar?.(); }}
-          className={`p-2 rounded-lg transition-colors ${
+          className={`p-2 rounded-lg transition-all ${
             activeTab === 'achievements'
-              ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
-              : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
+              ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
+              : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
           }`}
           title="Rewards"
         >
@@ -278,10 +292,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
         <button
           onClick={() => { setActiveTab('store'); onOpenSidebar?.(); }}
-          className={`p-2 rounded-lg transition-colors ${
+          className={`p-2 rounded-lg transition-all ${
             activeTab === 'store'
-              ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
-              : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
+              ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
+              : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
           }`}
           title="Store"
         >
@@ -289,15 +303,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
         <button
           onClick={() => { setActiveTab('help'); onOpenSidebar?.(); }}
-          className={`p-2 rounded-lg transition-colors ${
-            activeTab === 'help' 
-              ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
-              : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
+          className={`p-2 rounded-lg transition-all ${
+            activeTab === 'help'
+              ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
+              : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
           }`}
           title="Help"
         >
           <HelpCircle className="w-4 h-4" />
         </button>
+        </div>
+
+        {/* Settings button at bottom */}
+        <div className="mt-auto">
+          <button
+            onClick={onOpenSettings}
+            className={`p-2 rounded-lg transition-colors ${
+              theme === 'dark'
+                ? 'text-white/60 hover:text-white hover:bg-white/10'
+                : 'text-black/60 hover:text-black hover:bg-black/10'
+            }`}
+            title="Settings"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
       </div>
     );
@@ -728,28 +757,81 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             {/* Class Filter */}
-            <div className="mb-3">
+            <div className="mb-3 relative">
               <label className={`block text-xs font-medium mb-2 ${
                 theme === 'dark' ? 'text-white/80' : 'text-black/80'
               }`}>
                 Filter by Class
               </label>
-              <select
-                value={documentClassFilter}
-                onChange={(e) => setDocumentClassFilter(e.target.value)}
-                className={`w-full border rounded-lg px-3 py-2 text-sm ${
-                  theme === 'dark'
-                    ? 'bg-white/10 border-white/20 text-white'
-                    : 'bg-black/10 border-black/20 text-black'
-                }`}
-              >
-                <option value="">All Documents</option>
-                {domains.map(domain => (
-                  <option key={domain.id} value={domain.id}>
-                    {domain.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <button
+                  onClick={() => setClassFilterOpen(!classFilterOpen)}
+                  className={`w-full border rounded-lg px-3 py-2 text-sm cursor-pointer transition-all duration-200 focus:outline-none backdrop-blur-sm text-left flex items-center justify-between ${
+                    theme === 'dark'
+                      ? 'bg-white/10 border-white/20 text-white hover:bg-white/15'
+                      : 'bg-black/5 border-black/10 text-black hover:bg-black/10'
+                  }`}
+                >
+                  <span>{documentClassFilter ? domains.find(d => d.id === documentClassFilter)?.name : 'All Documents'}</span>
+                  <ChevronRight className={`w-3 h-3 transform transition-transform duration-200 ${classFilterOpen ? 'rotate-90' : 'rotate-0'} ${
+                    theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                  }`} />
+                </button>
+
+                {classFilterOpen && (
+                  <div className={`absolute top-full left-0 right-0 mt-2 border rounded-xl shadow-xl backdrop-blur-lg z-50 overflow-hidden ${
+                    theme === 'dark'
+                      ? 'bg-gray-900/95 border-white/10'
+                      : 'bg-white/95 border-gray-200/50'
+                  }`}>
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setDocumentClassFilter('');
+                          setClassFilterOpen(false);
+                        }}
+                        className={`w-full px-4 py-2.5 text-sm text-left transition-all duration-200 flex items-center space-x-3 ${
+                          !documentClassFilter
+                            ? theme === 'dark'
+                              ? 'bg-blue-600/80 text-white'
+                              : 'bg-blue-500/90 text-white'
+                            : theme === 'dark'
+                              ? 'text-white/90 hover:bg-white/10'
+                              : 'text-gray-700 hover:bg-gray-100/70'
+                        }`}
+                      >
+                        <div className={`w-2 h-2 rounded-full ${
+                          !documentClassFilter ? 'bg-white' : 'bg-transparent'
+                        }`} />
+                        <span className="font-medium">All Documents</span>
+                      </button>
+                      {domains.map((domain, index) => (
+                        <button
+                          key={domain.id}
+                          onClick={() => {
+                            setDocumentClassFilter(domain.id);
+                            setClassFilterOpen(false);
+                          }}
+                          className={`w-full px-4 py-2.5 text-sm text-left transition-all duration-200 flex items-center space-x-3 ${
+                            documentClassFilter === domain.id
+                              ? theme === 'dark'
+                                ? 'bg-blue-600/80 text-white'
+                                : 'bg-blue-500/90 text-white'
+                              : theme === 'dark'
+                                ? 'text-white/90 hover:bg-white/10'
+                                : 'text-gray-700 hover:bg-gray-100/70'
+                          }`}
+                        >
+                          <div className={`w-2 h-2 rounded-full ${
+                            documentClassFilter === domain.id ? 'bg-white' : 'bg-transparent'
+                          }`} />
+                          <span className="font-medium">{domain.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {documents.length === 0 ? (
@@ -1864,7 +1946,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className={`h-full w-full lg:w-[28rem] backdrop-blur-md border-r flex flex-col ${
+    <div className={`h-full w-full lg:w-96 backdrop-blur-md border-r flex flex-col ${
       theme === 'dark'
         ? 'bg-white/10 border-white/20'
         : 'bg-black/10 border-black/20'
@@ -1873,53 +1955,53 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className={`flex items-center justify-end p-1 lg:p-4 border-b ${
         theme === 'dark' ? 'border-white/10' : 'border-black/10'
       }`}>
-        <div className="flex items-center space-x-3 overflow-x-auto mr-8">
+        <div className="flex items-center gap-1 overflow-x-auto flex-1 mr-2">
           <button
             onClick={() => setActiveTab('home')}
-            className={`relative px-4 lg:px-5 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
               activeTab === 'home'
-                ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
-                : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
+                ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
+                : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
             }`}
           >
             Home
           </button>
           <button
             onClick={() => setActiveTab('documents')}
-            className={`relative px-4 lg:px-5 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
               activeTab === 'documents'
-                ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
-                : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
+                ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
+                : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
             }`}
           >
             Docs
           </button>
           <button
             onClick={() => setActiveTab('achievements')}
-            className={`relative px-4 lg:px-5 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
               activeTab === 'achievements'
-                ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
-                : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
+                ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
+                : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
             }`}
           >
             Rewards
           </button>
           <button
             onClick={() => setActiveTab('store')}
-            className={`relative px-4 lg:px-5 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
               activeTab === 'store'
-                ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
-                : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
+                ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
+                : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
             }`}
           >
             Store
           </button>
           <button
             onClick={() => setActiveTab('help')}
-            className={`relative px-4 lg:px-5 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
               activeTab === 'help'
-                ? (theme === 'dark' ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
-                : (theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10')
+                ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
+                : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
             }`}
           >
             Help

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AlertCircle, Menu, MessageSquare, Home, Upload, Settings, Trophy, Plus, Book, Edit, GraduationCap, Briefcase, Beaker, Heart, Code, MoreHorizontal, Trash2, Check, X } from 'lucide-react';
+import { AlertCircle, MessageSquare, Home, Upload, Settings, X, Book, Beaker, Heart, Briefcase, GraduationCap, Code, HelpCircle } from 'lucide-react';
 import { ChatInterface } from './components/ChatInterface';
 import { Sidebar } from './components/Sidebar';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -40,13 +40,14 @@ const AppContent: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [backgroundCommandCount, setBackgroundCommandCount] = useState(1);
-  const [mobilePage, setMobilePage] = useState<'chat' | 'home' | 'docs' | 'achievements' | 'settings'>('home');
+  const [mobilePage, setMobilePage] = useState<'chat' | 'home' | 'docs' | 'achievements' | 'settings' | 'help'>('home');
   const [showMobileClassForm, setShowMobileClassForm] = useState(false);
   const [editingMobileDomain, setEditingMobileDomain] = useState<UserDomain | null>(null);
   const [mobileClassFormData, setMobileClassFormData] = useState({ name: '', type: DomainType.GENERAL, description: '' });
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [themeToggleVisible, setThemeToggleVisible] = useState(true);
+  const [isNewChatSession, setIsNewChatSession] = useState(false);
 
   // Load documents when authenticated
   useEffect(() => {
@@ -94,23 +95,41 @@ const AppContent: React.FC = () => {
     loadUserDomains(); // User domains are stored locally
   }, [checkApiHealth, loadUserDomains]);
 
-  // Auto-hide theme toggle after 2 seconds
+  // Auto-hide theme toggle after 2 seconds only on initial load
   useEffect(() => {
     const timer = setTimeout(() => {
       setThemeToggleVisible(false);
     }, 2000);
     return () => clearTimeout(timer);
-  }, []);
+  }, []); // Only run once on mount
 
-  // Reset timer when toggle becomes visible again
-  useEffect(() => {
-    if (themeToggleVisible) {
-      const timer = setTimeout(() => {
-        setThemeToggleVisible(false);
-      }, 2000);
-      return () => clearTimeout(timer);
+  // Show theme toggle on hover and hide after 200ms of no interaction
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  const handleThemeToggleMouseEnter = () => {
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      setHoverTimeout(null);
     }
-  }, [themeToggleVisible]);
+    setThemeToggleVisible(true);
+  };
+
+  const handleThemeToggleMouseLeave = () => {
+    const timeout = setTimeout(() => {
+      setThemeToggleVisible(false);
+    }, 200);
+    setHoverTimeout(timeout);
+  };
+
+  const handleThemeToggleClick = () => {
+    toggleTheme();
+    // Keep visible after click, but don't set a timeout if hovering
+    setThemeToggleVisible(true);
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      setHoverTimeout(null);
+    }
+  };
 
   // Helper functions
   const getUserTimezone = () => {
@@ -132,6 +151,11 @@ const AppContent: React.FC = () => {
     // Check if it's a background command
     if (content.toLowerCase().startsWith('/background')) {
       setBackgroundCommandCount(prev => prev + 1);
+    }
+
+    // Clear new chat indicator when user sends first message
+    if (isNewChatSession) {
+      setIsNewChatSession(false);
     }
 
     const userMessage: Message = { role: 'user', content };
@@ -204,6 +228,7 @@ const AppContent: React.FC = () => {
   // Simple new chat function
   const handleNewChat = () => {
     setMessages([]);
+    setIsNewChatSession(true); // Mark as new chat session
     // Clear domain chat history for current domain only
     if (activeDomain) {
       setDomainChatHistory(prev => ({
@@ -410,11 +435,11 @@ const AppContent: React.FC = () => {
         );
       case 'home':
         return (
-          <div className="h-full overflow-y-auto p-4">
+          <div className="h-full overflow-y-auto p-4 pb-20">
             <div className="max-w-md mx-auto space-y-6">
               <div className="text-center">
                 <h1 className={`text-2xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                  🤠 YEEHAW! Welcome to RAG Scholar 🤠
+                  Welcome to RAG Scholar
                 </h1>
                 <p className={`text-sm ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
                   Your AI-powered research assistant
@@ -484,6 +509,183 @@ const AppContent: React.FC = () => {
             </div>
           </div>
         );
+      case 'docs':
+        return (
+          <div className="h-full overflow-y-auto p-4 pb-20">
+            <div className="max-w-md mx-auto space-y-6">
+              <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                Documents
+              </h2>
+
+              {/* Upload Section */}
+              <div className={`p-4 rounded-lg border-2 border-dashed text-center ${
+                theme === 'dark' ? 'border-gray-600 bg-gray-800' : 'border-gray-300 bg-gray-50'
+              }`}>
+                <Upload className={`w-8 h-8 mx-auto mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} />
+                <label className="cursor-pointer">
+                  <span className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    Upload Document
+                  </span>
+                  <input
+                    type="file"
+                    accept=".pdf,.txt,.md,.docx"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleUploadDocument(file);
+                        e.target.value = '';
+                      }
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* Documents List */}
+              {isDocumentLoading && (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
+                </div>
+              )}
+
+              {documents.length === 0 && !isDocumentLoading ? (
+                <p className={`text-center py-8 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  No documents uploaded yet
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {documents.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className={`p-3 rounded-lg border ${
+                        theme === 'dark'
+                          ? 'bg-gray-800 border-gray-700'
+                          : 'bg-white border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium truncate ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                            {doc.filename}
+                          </p>
+                          <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {doc.chunks} chunks • {doc.file_type}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteDocument(doc.id)}
+                          className="p-1 rounded text-red-500 hover:bg-red-500/20"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      case 'help':
+        return (
+          <div className="h-full overflow-y-auto p-4 pb-20">
+            <div className="max-w-md mx-auto space-y-6">
+              <h2 className={`text-xl font-black ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                Help & Support
+              </h2>
+
+              <div className="space-y-4">
+                <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
+                  <h3 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    Getting Started
+                  </h3>
+                  <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    1. Upload documents using the Documents tab<br/>
+                    2. Create classes to organize your content<br/>
+                    3. Start chatting with your documents<br/>
+                    4. Use citations to verify information
+                  </p>
+                </div>
+
+                <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
+                  <h3 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    Supported File Types
+                  </h3>
+                  <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    • PDF (.pdf)<br/>
+                    • Microsoft Word (.docx)<br/>
+                    • Plain Text (.txt)<br/>
+                    • Markdown (.md)
+                  </p>
+                </div>
+
+                <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
+                  <h3 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    Tips
+                  </h3>
+                  <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    • Use specific questions for better results<br/>
+                    • Organize documents into relevant classes<br/>
+                    • Check citations for source verification<br/>
+                    • Try the background mode with /background
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'settings':
+        return (
+          <div className="h-full overflow-y-auto p-4 pb-20">
+            <div className="max-w-md mx-auto space-y-6">
+              <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                Settings
+              </h2>
+
+              <div className="space-y-4">
+                <div className={`p-4 rounded-lg border ${
+                  theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        Theme
+                      </h3>
+                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={toggleTheme}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        theme === 'dark'
+                          ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                          : 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20'
+                      }`}
+                    >
+                      Toggle
+                    </button>
+                  </div>
+                </div>
+
+                <div className={`p-4 rounded-lg border ${
+                  theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        Account
+                      </h3>
+                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {user?.email}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       default:
         return null;
     }
@@ -514,15 +716,25 @@ const AppContent: React.FC = () => {
         </div>
       )}
 
-      {/* Theme Toggle */}
-      {themeToggleVisible && (
-        <div className="fixed top-4 right-4 z-40">
-          <ThemeToggle theme={theme} themeMode={themeMode} onToggle={toggleTheme} />
+      {/* Theme Toggle with hover area */}
+      <div
+        className="fixed top-0 right-0 w-20 h-20 z-40 flex items-start justify-end p-4"
+        onMouseEnter={handleThemeToggleMouseEnter}
+        onMouseLeave={handleThemeToggleMouseLeave}
+      >
+        <div className={`transition-all duration-300 ${
+          themeToggleVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+        }`}>
+          <ThemeToggle
+            theme={theme}
+            themeMode={themeMode}
+            onToggle={handleThemeToggleClick}
+          />
         </div>
-      )}
+      </div>
 
       {/* Desktop Layout */}
-      <div className="hidden lg:flex w-full">
+      <div className="hidden md:flex w-full">
         {/* Sidebar */}
         <Sidebar
           domains={userDomains}
@@ -549,9 +761,9 @@ const AppContent: React.FC = () => {
           onOpenSettings={() => setSettingsOpen(true)}
         />
 
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 flex flex-col">
           {/* Desktop: Always show chat interface */}
-          <div className="hidden lg:block h-full">
+          <div className="hidden md:block flex-1">
             <ChatInterface
               messages={messages}
               onSendMessage={handleSendMessage}
@@ -563,14 +775,14 @@ const AppContent: React.FC = () => {
             />
           </div>
           {/* Mobile: Show different pages based on active tab */}
-          <div className="lg:hidden h-full">
+          <div className="md:hidden flex-1">
             {renderMobilePage()}
           </div>
         </div>
       </div>
 
       {/* Mobile Layout */}
-      <div className="lg:hidden w-full">
+      <div className="md:hidden w-full">
         {renderMobilePage()}
 
         {/* Mobile Bottom Navigation */}
@@ -582,6 +794,7 @@ const AppContent: React.FC = () => {
               { page: 'home', icon: Home, label: 'Home' },
               { page: 'chat', icon: MessageSquare, label: 'Chat' },
               { page: 'docs', icon: Upload, label: 'Docs' },
+              { page: 'help', icon: HelpCircle, label: 'Help' },
               { page: 'settings', icon: Settings, label: 'Settings' },
             ].map(({ page, icon: Icon, label }) => (
               <button

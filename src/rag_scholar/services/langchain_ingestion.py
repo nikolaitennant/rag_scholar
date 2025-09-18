@@ -365,12 +365,45 @@ class LangChainIngestionPipeline:
             raise
 
     async def delete_document(self, user_id: str, document_ids: list[str]) -> bool:
-        """Delete documents from vector store using LangChain built-in delete."""
+        """Delete documents from both vector store and metadata collection."""
         try:
+            from google.cloud import firestore
+
+            # 1. Delete from vector store chunks
             vector_store = self._get_vector_store(user_id)
 
-            # Use LangChain's built-in delete method
-            vector_store.delete(document_ids)
+            # For each document, find and delete all its chunks
+            db = firestore.Client(project=self.settings.google_cloud_project)
+
+            for document_id in document_ids:
+                # Get the document metadata to find the filename
+                doc_ref = db.collection(f"users/{user_id}/documents").document(document_id)
+                doc_snapshot = doc_ref.get()
+
+                if doc_snapshot.exists:
+                    doc_data = doc_snapshot.to_dict()
+                    filename = doc_data.get("filename")
+
+                    if filename:
+                        # Delete all chunks for this document from vector store
+                        chunks_ref = db.collection(f"users/{user_id}/chunks")
+                        chunks_query = chunks_ref.where("metadata.source", "==", filename)
+                        chunks = chunks_query.get()
+
+                        # Delete each chunk
+                        for chunk in chunks:
+                            chunk.reference.delete()
+
+                        logger.info("Deleted chunks from vector store",
+                                   document_id=document_id,
+                                   chunks_deleted=len(chunks))
+
+                    # 2. Delete document metadata
+                    doc_ref.delete()
+
+                    logger.info("Deleted document metadata",
+                               document_id=document_id,
+                               filename=filename)
 
             logger.info("Documents deleted successfully",
                        user_id=user_id,

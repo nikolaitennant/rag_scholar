@@ -24,6 +24,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   const backgroundOptions = [
     { id: 'none', name: 'Default', color: 'from-blue-500 to-purple-600' },
+    { id: 'classic', name: 'Classic', color: 'from-gray-900 to-gray-100' },
     { id: 'mountain', name: 'Mountain', color: 'from-orange-500 to-amber-600' },
     { id: 'ocean', name: 'Ocean', color: 'from-blue-500 to-cyan-600' },
     { id: 'sunset', name: 'Sunset', color: 'from-orange-500 to-pink-600' },

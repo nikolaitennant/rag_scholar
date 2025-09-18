@@ -336,7 +336,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     switch (activeTab) {
       case 'domains':
         return (
-          <div className="p-2 lg:p-4 space-y-4">
+          <div className="p-3 space-y-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-white' : 'text-black'
@@ -725,7 +725,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       
       case 'documents':
         return (
-          <div className="p-2 lg:p-4 space-y-4">
+          <div className="p-3 space-y-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-white' : 'text-black'
@@ -923,7 +923,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       case 'help':
         return (
-          <div className="p-2 lg:p-4 space-y-4">
+          <div className="p-3 space-y-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-white' : 'text-black'
@@ -1028,7 +1028,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       case 'history':
         return (
-          <div className="p-2 lg:p-4 space-y-4">
+          <div className="p-3 space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-white' : 'text-black'
@@ -1197,7 +1197,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       case 'achievements':
         return (
-          <div className="p-2 lg:p-4 space-y-4">
+          <div className="p-3 space-y-4">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className={`text-sm font-semibold ${
@@ -1298,7 +1298,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       case 'store':
         return (
-          <div className="p-2 lg:p-4 space-y-4">
+          <div className="p-3 space-y-4">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className={`text-sm font-semibold ${
@@ -1332,7 +1332,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       case 'home':
         return (
-          <div className="p-2 lg:p-4 space-y-6">
+          <div className="p-3 space-y-6">
             {/* Show editing form if editing */}
             {editingDomain ? (
               <div className="space-y-4">
@@ -1946,19 +1946,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className={`h-full w-full lg:w-96 backdrop-blur-md border-r flex flex-col ${
+    <div className={`h-full w-80 backdrop-blur-md border-r flex flex-col ${
       theme === 'dark'
         ? 'bg-white/10 border-white/20'
         : 'bg-black/10 border-black/20'
     }`}>
       {/* Header with tabs */}
-      <div className={`flex items-center justify-end p-1 lg:p-4 border-b ${
+      <div className={`flex items-center justify-end p-2 border-b ${
         theme === 'dark' ? 'border-white/10' : 'border-black/10'
       }`}>
         <div className="flex items-center gap-1 overflow-x-auto flex-1 mr-2">
           <button
             onClick={() => setActiveTab('home')}
-            className={`relative px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
               activeTab === 'home'
                 ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
@@ -1968,7 +1968,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('documents')}
-            className={`relative px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
               activeTab === 'documents'
                 ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
@@ -1978,7 +1978,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('achievements')}
-            className={`relative px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
               activeTab === 'achievements'
                 ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
@@ -1988,7 +1988,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('store')}
-            className={`relative px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
               activeTab === 'store'
                 ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
@@ -1998,7 +1998,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('help')}
-            className={`relative px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
               activeTab === 'help'
                 ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')

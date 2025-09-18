@@ -50,10 +50,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const getResponsiveWidth = () => {
     if (sidebarOpen) {
       // Sidebar open: use full available width
-      return "w-full px-4 lg:px-8";
+      return "w-full px-6";
     } else {
       // Sidebar collapsed: use full available width
-      return "w-full px-8 lg:px-16";
+      return "w-full px-12";
     }
   };
 
@@ -157,7 +157,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   <div
                     className={`${
                       message.role === 'user'
-                        ? `px-4 py-2 rounded-2xl text-white ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-500'}`
+                        ? `px-4 py-2 rounded-2xl ${theme === 'dark' ? 'bg-gray-600 text-white' : 'bg-gray-200 text-black'}`
                         : `px-0 py-0 bg-transparent border-0 shadow-none ${theme === 'dark' ? 'text-white' : 'text-black'}`
                     }`}
                   >

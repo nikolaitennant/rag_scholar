@@ -17,18 +17,19 @@ export interface Citation {
 }
 
 export interface ChatResponse {
-  answer: string;
-  citations?: Citation[];
+  response: string;
+  session_id: string;
+  sources: string[];
 }
 
 export interface Document {
   id: string;
   filename: string;
+  collection: string;
   chunks: number;
-  size: number;
-  status: string;
-  uploaded_at?: string;
-  domains?: string[]; // Which domains this document belongs to
+  upload_date?: string;
+  file_type: string;
+  assigned_classes: string[];
 }
 
 // User-created class/domain

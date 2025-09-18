@@ -60,8 +60,8 @@ const AppContent: React.FC = () => {
   // Load initial data
   const loadDocuments = useCallback(async () => {
     try {
-      console.log('Loading documents from database collection...');
-      const docs = await apiService.getDocuments('database');
+      console.log('Loading documents...');
+      const docs = await apiService.getDocuments();
       console.log('Loaded documents:', docs);
       setDocuments(docs);
     } catch (error) {
@@ -321,22 +321,20 @@ const AppContent: React.FC = () => {
     try {
       const response = await apiService.chat({
         query: content,
-        domain: activeDomain?.type || DomainType.GENERAL,
         session_id: effectiveSessionId,
-        selected_documents: selectedDocuments,
-        active_class: activeDomain?.id || 'default',
-        user_context: user ? {
-          name: user.displayName || user.email || 'User',
-          bio: userProfile?.profile?.bio || null,
-          research_interests: userProfile?.profile?.research_interests || [],
-          preferred_domains: userProfile?.profile?.preferred_domains || []
-        } : null,
+        class_id: activeDomain?.id,
+        k: 5,
       });
 
       const assistantMessage: Message = {
         role: 'assistant',
-        content: response.answer,
-        citations: response.citations,
+        content: response.response,
+        citations: response.sources?.map(source => ({
+          id: crypto.randomUUID(),
+          source: source,
+          preview: source,
+          relevance_score: 1.0
+        })) || [],
       };
 
       setMessages(prev => {
@@ -431,7 +429,7 @@ const AppContent: React.FC = () => {
     
     try {
       console.log('Attempting to delete document:', documentId);
-      await apiService.deleteDocument('default', documentId);
+      await apiService.deleteDocument(documentId);
       console.log('Delete successful, refreshing documents...');
       await loadDocuments();
       console.log('Documents refreshed after delete');

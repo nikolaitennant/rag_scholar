@@ -257,21 +257,13 @@ const AppContent: React.FC = () => {
 
       // Auto-assign the uploaded document to the current active domain
       if (activeDomain && uploadResponse.id) {
-        const updatedDomains = userDomains.map(domain => {
-          if (domain.id === activeDomain.id) {
-            return {
-              ...domain,
-              documents: [...(domain.documents || []), uploadResponse.id]
-            };
-          }
-          return domain;
-        });
-        setUserDomains(updatedDomains);
-        localStorage.setItem('userDomains', JSON.stringify(updatedDomains));
-        setActiveDomain(prev => prev ? {
-          ...prev,
-          documents: [...(prev.documents || []), uploadResponse.id]
-        } : null);
+        console.log(`🔗 Auto-assigning uploaded document to active class: ${activeDomain.name}`);
+        try {
+          await handleAssignDocumentToClass(uploadResponse.id, uploadResponse.filename || file.name, activeDomain.id, 'add');
+          console.log('✅ Document auto-assigned to class successfully');
+        } catch (error) {
+          console.error('❌ Failed to auto-assign document to class:', error);
+        }
       }
     } catch (error) {
       console.error('Upload failed:', error);
@@ -484,7 +476,9 @@ const AppContent: React.FC = () => {
         prevDocs.map(doc => {
           if (doc.id === documentId) {
             const updatedClasses = operation === 'add'
-              ? [...doc.assigned_classes, classId]
+              ? doc.assigned_classes.includes(classId)
+                ? doc.assigned_classes // Already exists, don't add duplicate
+                : [...doc.assigned_classes, classId] // Add only if not exists
               : doc.assigned_classes.filter(id => id !== classId);
             return { ...doc, assigned_classes: updatedClasses };
           }

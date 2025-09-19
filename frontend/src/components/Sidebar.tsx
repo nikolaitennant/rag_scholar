@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash, RefreshCw, ChevronRight, Upload, File, Trash2, RotateCcw, MessageSquare, X, Sun, Moon, Trophy, BookOpen, Sparkles, Heart, Star, Zap, Award, Settings, History, Edit2, MoreVertical, HelpCircle, Home, Book, Beaker, Briefcase, GraduationCap, Code, Edit3, Menu } from 'lucide-react';
+import { Plus, Trash, RefreshCw, ChevronRight, Upload, File, Trash2, RotateCcw, MessageSquare, X, Sun, Moon, Trophy, BookOpen, Sparkles, Heart, Star, Zap, Award, Settings, History, Edit2, MoreVertical, HelpCircle, Home, Book, Beaker, Briefcase, GraduationCap, Code, Edit3, Menu, Gift } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
@@ -303,7 +303,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }`}
           title="Store"
         >
-          <Sparkles className="w-4 h-4" />
+          <Gift className="w-4 h-4" />
         </button>
         <button
           onClick={() => { setActiveTab('help'); onOpenSidebar?.(); }}
@@ -695,9 +695,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     try {
                                       // First update the domain details, then assign documents
                                       onEditDomain?.(editingDomain.id, editingDomainName, editingDomainType);
-                                      // Small delay to ensure domain update completes first
-                                      await new Promise(resolve => setTimeout(resolve, 50));
+                                      // Wait a bit longer to ensure React state updates complete
+                                      await new Promise(resolve => setTimeout(resolve, 100));
                                       await onAssignDocuments(editingDomain.id, editingDomainDocuments);
+                                      // Clear edit state after all operations complete
                                       setEditingDomain(null);
                                       setEditingDomainName('');
                                       setEditingDomainType(DomainType.GENERAL);
@@ -921,17 +922,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 }
                                 e.target.value = ''; // Reset dropdown
                               }}
-                              className={`text-xs border rounded px-1 py-0.5 ${
+                              className={`text-xs border rounded-lg px-2 py-1 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 ${
                                 theme === 'dark'
-                                  ? 'bg-white/10 border-white/20 text-white'
-                                  : 'bg-black/5 border-black/10 text-black'
+                                  ? 'bg-white/10 hover:bg-white/20 border-white/20 hover:border-white/40 text-white focus:ring-blue-500/50 focus:border-blue-500/50'
+                                  : 'bg-black/5 hover:bg-black/10 border-black/10 hover:border-black/20 text-black focus:ring-blue-500/50 focus:border-blue-500/50'
                               }`}
                               disabled={isLoading}
                             >
-                              <option value="">{isLoading ? '🔄 Adding...' : '+ Add'}</option>
+                              <option value="">{isLoading ? 'Adding...' : '+ Add to class'}</option>
                               {domains.map(domain => (
                                 <option key={domain.id} value={domain.id} className={
-                                  theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+                                  theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-black'
                                 }>
                                   {domain.name}
                                 </option>
@@ -1400,16 +1401,172 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
 
-            <div className="text-center py-8">
-              <Trophy className={`w-12 h-12 mx-auto mb-3 ${
-                theme === 'dark' ? 'text-white/30' : 'text-black/30'
-              }`} />
-              <p className={`text-sm mb-3 ${
-                theme === 'dark' ? 'text-white/60' : 'text-black/60'
-              }`}>Store coming soon!</p>
-              <p className={`text-xs ${
-                theme === 'dark' ? 'text-white/40' : 'text-black/40'
-              }`}>Redeem points for premium features and rewards</p>
+            <div className="space-y-3">
+              {/* Store Items - Mix of Themes & Cosmetics */}
+              <div className={`border rounded-lg p-3 ${
+                theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Zap className={`w-4 h-4 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-600'}`} />
+                    <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                      Rounded Chat Input
+                    </span>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    theme === 'dark' ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-500/20 text-blue-600'
+                  }`}>
+                    150 pts
+                  </span>
+                </div>
+                <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                  Pill-shaped chat input with smooth corners
+                </p>
+                <button
+                  disabled={totalPoints < 150}
+                  className={`w-full py-2 px-3 rounded text-xs font-medium transition-colors ${
+                    totalPoints >= 150
+                      ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                      : theme === 'dark'
+                        ? 'bg-white/10 text-white/40 cursor-not-allowed'
+                        : 'bg-black/10 text-black/40 cursor-not-allowed'
+                  }`}
+                >
+                  {totalPoints >= 150 ? 'Redeem' : 'Insufficient Points'}
+                </button>
+              </div>
+
+              <div className={`border rounded-lg p-3 ${
+                theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Star className={`w-4 h-4 ${theme === 'dark' ? 'text-purple-400' : 'text-purple-600'}`} />
+                    <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                      Space Theme
+                    </span>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    theme === 'dark' ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-500/20 text-blue-600'
+                  }`}>
+                    250 pts
+                  </span>
+                </div>
+                <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                  Deep space colors with starry gradients
+                </p>
+                <button
+                  disabled={totalPoints < 250}
+                  className={`w-full py-2 px-3 rounded text-xs font-medium transition-colors ${
+                    totalPoints >= 250
+                      ? 'bg-purple-500 hover:bg-purple-600 text-white'
+                      : theme === 'dark'
+                        ? 'bg-white/10 text-white/40 cursor-not-allowed'
+                        : 'bg-black/10 text-black/40 cursor-not-allowed'
+                  }`}
+                >
+                  {totalPoints >= 250 ? 'Redeem' : 'Insufficient Points'}
+                </button>
+              </div>
+
+              <div className={`border rounded-lg p-3 ${
+                theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Heart className={`w-4 h-4 ${theme === 'dark' ? 'text-pink-400' : 'text-pink-600'}`} />
+                    <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                      Cherry Blossom Theme
+                    </span>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    theme === 'dark' ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-500/20 text-blue-600'
+                  }`}>
+                    300 pts
+                  </span>
+                </div>
+                <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                  Soft pink and white spring vibes
+                </p>
+                <button
+                  disabled={totalPoints < 300}
+                  className={`w-full py-2 px-3 rounded text-xs font-medium transition-colors ${
+                    totalPoints >= 300
+                      ? 'bg-pink-500 hover:bg-pink-600 text-white'
+                      : theme === 'dark'
+                        ? 'bg-white/10 text-white/40 cursor-not-allowed'
+                        : 'bg-black/10 text-black/40 cursor-not-allowed'
+                  }`}
+                >
+                  {totalPoints >= 300 ? 'Redeem' : 'Insufficient Points'}
+                </button>
+              </div>
+
+              <div className={`border rounded-lg p-3 ${
+                theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Award className={`w-4 h-4 ${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'}`} />
+                    <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                      Cyberpunk Theme
+                    </span>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    theme === 'dark' ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-500/20 text-blue-600'
+                  }`}>
+                    400 pts
+                  </span>
+                </div>
+                <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                  Neon cyber colors with electric vibes
+                </p>
+                <button
+                  disabled={totalPoints < 400}
+                  className={`w-full py-2 px-3 rounded text-xs font-medium transition-colors ${
+                    totalPoints >= 400
+                      ? 'bg-cyan-500 hover:bg-cyan-600 text-white'
+                      : theme === 'dark'
+                        ? 'bg-white/10 text-white/40 cursor-not-allowed'
+                        : 'bg-black/10 text-black/40 cursor-not-allowed'
+                  }`}
+                >
+                  {totalPoints >= 400 ? 'Redeem' : 'Insufficient Points'}
+                </button>
+              </div>
+
+              <div className={`border rounded-lg p-3 ${
+                theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className={`w-4 h-4 ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`} />
+                    <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                      Particle Effects
+                    </span>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    theme === 'dark' ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-500/20 text-blue-600'
+                  }`}>
+                    500 pts
+                  </span>
+                </div>
+                <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                  Floating sparkles and particle animations
+                </p>
+                <button
+                  disabled={totalPoints < 500}
+                  className={`w-full py-2 px-3 rounded text-xs font-medium transition-colors ${
+                    totalPoints >= 500
+                      ? 'bg-green-500 hover:bg-green-600 text-white'
+                      : theme === 'dark'
+                        ? 'bg-white/10 text-white/40 cursor-not-allowed'
+                        : 'bg-black/10 text-black/40 cursor-not-allowed'
+                  }`}
+                >
+                  {totalPoints >= 500 ? 'Redeem' : 'Insufficient Points'}
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -1548,9 +1705,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         try {
                           // First update the domain details, then assign documents
                           onEditDomain?.(editingDomain.id, editingDomainName, editingDomainType);
-                          // Small delay to ensure domain update completes first
-                          await new Promise(resolve => setTimeout(resolve, 50));
+                          // Wait a bit longer to ensure React state updates complete
+                          await new Promise(resolve => setTimeout(resolve, 100));
                           await onAssignDocuments(editingDomain.id, editingDomainDocuments);
+                          // Clear edit state after all operations complete
                           setEditingDomain(null);
                           setEditingDomainName('');
                           setEditingDomainType(DomainType.GENERAL);
@@ -2096,7 +2254,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
             }`}
           >
-            <Sparkles className="w-4 h-4" />
+            <Gift className="w-4 h-4" />
           </button>
           <button
             onClick={() => setActiveTab('help')}

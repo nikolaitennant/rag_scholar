@@ -172,29 +172,24 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
             <p className="text-sm opacity-75">Upload files to get started</p>
           </div>
         ) : (
-          <div className="p-4 space-y-3">
+          <div className="p-3 space-y-2">
             {documents.map((doc) => (
               <div
                 key={doc.id}
-                className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/15 transition-all duration-200 border border-white/10 group"
+                className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/15 transition-all duration-200 border border-white/10 group"
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3 flex-1 min-w-0">
+                  <div className="flex items-start space-x-2 flex-1 min-w-0">
                     {getFileIcon(doc.filename)}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm text-white truncate">
                         {doc.filename}
                       </div>
-                      <div className="text-xs text-white/60 mt-1 flex items-center space-x-2">
-                        <span>{doc.chunks} chunks</span>
+                      <div className="text-xs text-white/60 mt-0.5 flex items-center space-x-2">
                         {doc.size && (
-                          <>
-                            <span>•</span>
-                            <span>{formatFileSize(doc.size)}</span>
-                          </>
+                          <span>{formatFileSize(doc.size)}</span>
                         )}
-                        <span>•</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${
+                        <span className={`px-1.5 py-0.5 rounded text-xs ${
                           (doc.status || 'processed') === 'processed'
                             ? 'bg-green-500/20 text-green-300'
                             : 'bg-yellow-500/20 text-yellow-300'
@@ -204,8 +199,8 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
                       </div>
 
                       {/* Class Assignment Section */}
-                      <div className="mt-3">
-                        <div className="flex items-center gap-2 mb-2">
+                      <div className="mt-2">
+                        <div className="flex items-center gap-2 mb-1">
                           <span className="text-xs text-white/60">Classes:</span>
                           <select
                             onChange={async (e) => {
@@ -215,12 +210,12 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
                               }
                               e.target.value = ''; // Reset dropdown
                             }}
-                            className="text-xs bg-white/10 border border-white/20 rounded px-2 py-1 text-white"
+                            className="text-xs bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 rounded-lg px-3 py-2 text-white transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                             disabled={isLoading}
                           >
-                            <option value="">{isLoading ? '🔄 Adding...' : '+ Add to class'}</option>
+                            <option value="">{isLoading ? 'Adding...' : '+ Add to class'}</option>
                             {userDomains.map(domain => (
-                              <option key={domain.id} value={domain.id} className="bg-gray-800">
+                              <option key={domain.id} value={domain.id} className="bg-gray-800 text-white">
                                 {domain.name}
                               </option>
                             ))}

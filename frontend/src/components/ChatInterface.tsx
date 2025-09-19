@@ -79,16 +79,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <div className={`text-center mb-12 ${
               theme === 'dark' ? 'text-white/70' : 'text-black/70'
             }`}>
-              <div className={`text-xl font-semibold flex items-center justify-center gap-2 mb-4 ${
-                theme === 'dark' ? 'text-white' : 'text-black'
-              }`}>
-                {(() => {
-                  const hour = new Date().getHours();
-                  if (hour < 12) return `Good morning, ${userName}!`;
-                  if (hour < 17) return `Good afternoon, ${userName}!`;
-                  return `Good evening, ${userName}!`;
-                })()}
-                <Heart className="w-5 h-5 text-pink-400 animate-pulse" />
+              <div className="mb-4">
+                <div className={`text-xl font-semibold text-center ${
+                  theme === 'dark' ? 'text-white' : 'text-black'
+                }`}>
+                  {(() => {
+                    const hour = new Date().getHours();
+                    if (hour < 12) return `Good morning, ${userName}!`;
+                    if (hour < 17) return `Good afternoon, ${userName}!`;
+                    return `Good evening, ${userName}!`;
+                  })()}
+                </div>
+                <div className="text-center">
+                  <Heart className="w-5 h-5 text-pink-400 animate-pulse inline-block mt-1" />
+                </div>
               </div>
               <p className={`text-sm mb-6 ${
                 theme === 'dark' ? 'text-white/60' : 'text-black/60'

@@ -1,64 +1,104 @@
-"""Complete LangChain Runnable pipeline for RAG Scholar."""
+"""LangChain built-in retrieval pipeline for RAG Scholar."""
 
 import structlog
 from typing import Dict, Any, List
 
-from langchain_core.runnables import RunnablePassthrough, RunnableSequence
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains.retrieval import create_retrieval_chain
+from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_google_firestore import FirestoreChatMessageHistory
 from langchain_openai import ChatOpenAI
 
 from .langchain_tools import LANGCHAIN_TOOLS
 from .langchain_prompts import get_domain_prompt_template, DomainType
-from .langchain_citations import CitationParser, format_citation_response
 
 logger = structlog.get_logger()
 
 
 class LangChainRAGPipeline:
-    """Production LangChain pipeline with proper Runnables."""
+    """Production LangChain pipeline using only built-in components."""
 
     def __init__(self, settings):
         self.settings = settings
 
-        # Initialize LLM with tools
+        # Initialize LLM
         self.llm = ChatOpenAI(
             api_key=settings.openai_api_key,
             model=settings.chat_model,
             temperature=settings.chat_temperature,
-        ).bind_tools(LANGCHAIN_TOOLS)
-
-        # Domain-specific prompts (will be selected dynamically)
-        self.domain_prompts = {
-            domain: get_domain_prompt_template(domain)
-            for domain in DomainType
-        }
-
-    def _format_context(self, docs: List[Dict[str, Any]]) -> str:
-        """Format retrieved documents into context string."""
-        if not docs:
-            return "No relevant documents found."
-
-        formatted = []
-        for i, doc in enumerate(docs, 1):
-            source = doc.get('source', 'Unknown')
-            content = doc.get('content', '')
-            formatted.append(f"[{i}] Source: {source}\\n{content}")
-
-        return "\\n\\n".join(formatted)
-
-    def _build_rag_chain(self, domain: DomainType = DomainType.GENERAL):
-        """Build domain-specific RAG chain."""
-
-        prompt_template = self.domain_prompts[domain]
-
-        # Create the pipeline: context formatting → prompt → LLM
-        return RunnableSequence(
-            RunnablePassthrough.assign(
-                context=lambda x: self._format_context(x.get("context_docs", []))
-            ),
-            prompt_template,
-            self.llm,
         )
+
+        # Create agent with tools (standard LangChain approach)
+        self.agent_executor = self._create_agent()
+
+    def _create_agent(self):
+        """Create tool-calling agent with built-in chains."""
+
+        # Create a strict document-only prompt for the agent
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are a strict document-based research assistant. You MUST follow these rules:
+
+STRICT DOCUMENT-ONLY POLICY:
+- NEVER answer questions without provided documents
+- NEVER use general knowledge or background information
+- ONLY respond based on the uploaded documents in the context
+
+TOOL USAGE (RESTRICTED):
+- If user's question starts with "/background", use the background_knowledge tool
+- If user asks to remember something permanently, use the remember_fact tool
+- If user asks to memo something for this session, use the memo_for_session tool
+- If user asks to adopt a role/persona, use the set_persona tool
+- DO NOT use background_knowledge tool unless user explicitly requests it with "/background"
+
+DOCUMENT ANALYSIS (REQUIRED):
+- Base ALL responses STRICTLY on provided documents only
+- Always cite sources using [#n] format for EVERY claim
+- If no documents provided, say "No relevant documents found. Please upload documents first or use '/background [your question]' for general knowledge."
+- If documents don't contain information about the topic, say "The uploaded documents do not contain information about [topic]. Please upload relevant documents or use '/background [your question]'."
+"""),
+            MessagesPlaceholder("chat_history"),
+            ("human", "{input}"),
+            MessagesPlaceholder("agent_scratchpad"),
+        ])
+
+        # Create agent with tools
+        agent = create_tool_calling_agent(self.llm, LANGCHAIN_TOOLS, prompt)
+
+        return AgentExecutor(
+            agent=agent,
+            tools=LANGCHAIN_TOOLS,
+            verbose=True,
+            handle_parsing_errors=True,
+        )
+
+    def _build_rag_chain(self, user_id: str = None, class_id: str = None):
+        """Build proper retrieval chain using LangChain's create_retrieval_chain."""
+
+        from .langchain_ingestion import LangChainIngestionPipeline
+
+        # Create document chain for processing retrieved docs
+        system_prompt = """Use the following context to answer the question. Always cite sources using [#n] format.
+
+Context: {context}"""
+
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", system_prompt),
+            ("human", "{input}")  # LangChain retrieval chains expect "input" not "question"
+        ])
+
+        question_answer_chain = create_stuff_documents_chain(self.llm, prompt)
+
+        # Get proper retriever if user_id provided
+        if user_id:
+            ingestion_pipeline = LangChainIngestionPipeline(self.settings)
+            retriever = ingestion_pipeline.get_retriever(user_id, class_id)
+
+            # Create full retrieval chain
+            return create_retrieval_chain(retriever, question_answer_chain)
+        else:
+            # For cases where we pass documents directly, use the document chain
+            return question_answer_chain
 
     async def chat_with_history(
         self,
@@ -67,30 +107,53 @@ class LangChainRAGPipeline:
         session_id: str,
         user_id: str,
     ) -> dict:
-        """Chat with conversation history and RAG context."""
+        """Chat using built-in LangChain agent with tools."""
 
         try:
-            # Get chat history
+            # Get chat history using user-scoped collection
             history = FirestoreChatMessageHistory(
                 session_id=session_id,
-                user_id=user_id,
-                collection_name="chat_sessions"
+                collection=f"users/{user_id}/chat_sessions"
             )
 
-            # Prepare input for the chain
-            chain_input = {
-                "question": question,
-                "context_docs": context_docs,
+            # Check if we have any documents - if not, return strict message
+            if not context_docs:
+                no_docs_message = "No relevant documents found. Please upload documents first or use '/background [your question]' for general knowledge."
+
+                # Add to history
+                history.add_user_message(question)
+                history.add_ai_message(no_docs_message)
+
+                return {
+                    "response": no_docs_message,
+                    "session_id": session_id,
+                    "sources": [],
+                    "context_count": 0
+                }
+
+            # Format context documents for the agent
+            formatted_docs = []
+            for i, doc in enumerate(context_docs, 1):
+                source = doc.get('source', 'Unknown')
+                content = doc.get('content', '')
+                formatted_docs.append(f"[{i}] Source: {source}\n{content}")
+            context_text = f"\n\nRelevant documents:\n{chr(10).join(formatted_docs)}"
+
+            # Prepare input for the agent
+            agent_input = {
+                "input": f"{question}{context_text}",
                 "chat_history": history.messages,
             }
 
-            # Build and run the chain
-            rag_chain = self._build_rag_chain()
-            response = await rag_chain.ainvoke(chain_input)
+            # Run the agent
+            response = await self.agent_executor.ainvoke(agent_input)
+
+            # Extract response content
+            response_content = response.get("output", "")
 
             # Add to history
             history.add_user_message(question)
-            history.add_ai_message(response)
+            history.add_ai_message(response_content)
 
             # Extract sources
             sources = [doc.get("source", "Unknown") for doc in context_docs]
@@ -101,7 +164,7 @@ class LangChainRAGPipeline:
                        context_count=len(context_docs))
 
             return {
-                "response": response,
+                "response": response_content,
                 "session_id": session_id,
                 "sources": sources,
                 "context_count": len(context_docs)
@@ -120,19 +183,27 @@ class LangChainRAGPipeline:
                 "context_count": 0
             }
 
-    async def simple_chat(self, question: str, context_docs: list[dict] = None) -> str:
-        """Simple chat without history for one-off questions."""
+    async def simple_chat(self, question: str, user_id: str = None, class_id: str = None, context_docs: list[dict] = None) -> str:
+        """Simple chat using proper LangChain retrieval chain."""
 
         try:
-            chain_input = {
-                "question": question,
-                "context_docs": context_docs or [],
-                "chat_history": [],
-            }
+            if user_id:
+                # Use retrieval chain that automatically searches documents
+                rag_chain = self._build_rag_chain(user_id, class_id)
+                response = await rag_chain.ainvoke({"input": question})
+                return response.get("answer", "")
+            else:
+                # Use document chain with provided context
+                from langchain_core.documents import Document
+                docs = [Document(page_content=doc["content"], metadata=doc.get("metadata", {}))
+                       for doc in (context_docs or [])]
 
-            rag_chain = self._build_rag_chain()
-            response = await rag_chain.ainvoke(chain_input)
-            return response
+                document_chain = self._build_rag_chain()
+                response = await document_chain.ainvoke({
+                    "context": docs,
+                    "input": question
+                })
+                return response
 
         except Exception as e:
             logger.error("Simple chat failed", error=str(e))

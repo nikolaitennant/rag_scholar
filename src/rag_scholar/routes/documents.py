@@ -1,5 +1,6 @@
 """Document management endpoints using LangChain."""
 
+import structlog
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
 from pydantic import BaseModel
 
@@ -7,6 +8,8 @@ from rag_scholar.services.langchain_ingestion import LangChainIngestionPipeline
 from rag_scholar.config.settings import get_settings
 
 from .auth import get_current_user
+
+logger = structlog.get_logger()
 
 router = APIRouter()
 
@@ -105,6 +108,47 @@ async def get_collections(
     return []
 
 
+class DocumentClassAssignmentRequest(BaseModel):
+    """Request to assign/unassign document to/from class."""
+    document_source: str
+    class_id: str
+    operation: str = "add"  # "add" or "remove"
+
+
+@router.post("/{document_id}/assign-class")
+async def assign_document_to_class(
+    document_id: str,
+    request: DocumentClassAssignmentRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Assign or remove document from a class."""
+    try:
+        # Initialize ingestion pipeline
+        settings = get_settings()
+        ingestion_pipeline = LangChainIngestionPipeline(settings)
+
+        # Use the existing update_document_class method
+        success = await ingestion_pipeline.update_document_class(
+            document_source=request.document_source,
+            user_id=current_user["id"],
+            class_id=request.class_id,
+            operation=request.operation
+        )
+
+        if success:
+            return {
+                "message": f"Document {'assigned to' if request.operation == 'add' else 'removed from'} class successfully",
+                "document_source": request.document_source,
+                "class_id": request.class_id,
+                "operation": request.operation
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update document class assignment")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Class assignment failed: {str(e)}")
+
+
 @router.get("/")
 async def get_documents(
     collection: str = "database",
@@ -129,14 +173,26 @@ async def get_documents(
             documents = []
             for doc in docs:
                 data = doc.to_dict()
+                filename = data.get("filename", "unknown")
+
+                # Get actual assigned_classes from vector store chunks
+                chunks_ref = db.collection(f"users/{user_id}/chunks")
+                chunks_query = chunks_ref.where("metadata.source", "==", filename).limit(1)
+                chunks = chunks_query.get()
+
+                assigned_classes = []
+                if chunks:
+                    chunk_data = chunks[0].to_dict()
+                    assigned_classes = chunk_data.get("metadata", {}).get("assigned_classes", [])
+
                 documents.append({
                     "id": data.get("document_id", doc.id),
-                    "filename": data.get("filename", "unknown"),
+                    "filename": filename,
                     "collection": collection,
                     "chunks": data.get("chunks_count", 0),
                     "upload_date": data.get("upload_date"),
                     "file_type": data.get("file_type", ""),
-                    "assigned_classes": data.get("assigned_classes", [])
+                    "assigned_classes": assigned_classes
                 })
 
             return documents

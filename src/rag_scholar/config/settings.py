@@ -101,4 +101,4 @@ class Settings(BaseSettings):
 
 def get_settings() -> Settings:
     """Get cached settings instance."""
-    return Settings(openai_api_key=os.getenv("OPENAI_API_KEY", ""))
+    return Settings()

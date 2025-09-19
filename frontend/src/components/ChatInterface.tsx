@@ -133,7 +133,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         /* Regular chat layout with messages */
         <>
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 min-h-0 scrollbar-none">
+          <div className="flex-1 overflow-y-auto p-4 min-h-0">
             <div className={`mx-auto space-y-6 ${getResponsiveWidth()}`}>
             {messages.map((message, index) => (
               <div
@@ -157,7 +157,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   <div
                     className={`${
                       message.role === 'user'
-                        ? `px-4 py-2 rounded-2xl ${theme === 'dark' ? 'bg-gray-600 text-white' : 'bg-gray-200 text-black'}`
+                        ? `px-4 py-2 rounded-2xl ${theme === 'dark' ? 'bg-white/10 text-white' : 'bg-gray-200 text-black'}`
                         : `px-0 py-0 bg-transparent border-0 shadow-none ${theme === 'dark' ? 'text-white' : 'text-black'}`
                     }`}
                   >
@@ -333,32 +333,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
           {isLoading && (
             <div className="flex justify-start animate-in slide-in-from-bottom-5">
-              <div className="max-w-none w-full flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-white" />
-                </div>
-                <div className={`backdrop-blur-sm border rounded-2xl rounded-bl-md px-6 py-4 ${
-                  theme === 'dark'
-                    ? 'bg-white/10 border-white/20'
-                    : 'bg-black/10 border-black/20'
-                }`}>
-                  <div className="flex items-center space-x-3">
-                    <div className="flex space-x-1">
-                      <div className={`w-2 h-2 rounded-full animate-bounce ${
-                        theme === 'dark' ? 'bg-white/60' : 'bg-black/60'
-                      }`}></div>
-                      <div className={`w-2 h-2 rounded-full animate-bounce delay-75 ${
-                        theme === 'dark' ? 'bg-white/60' : 'bg-black/60'
-                      }`}></div>
-                      <div className={`w-2 h-2 rounded-full animate-bounce delay-150 ${
-                        theme === 'dark' ? 'bg-white/60' : 'bg-black/60'
-                      }`}></div>
-                    </div>
-                    <span className={`text-sm ${
-                      theme === 'dark' ? 'text-white/70' : 'text-black/70'
-                    }`}>Researching your question...</span>
-                  </div>
-                </div>
+              <div className="flex space-x-1">
+                <div className={`w-2 h-2 rounded-full animate-bounce ${
+                  theme === 'dark' ? 'bg-white/60' : 'bg-black/60'
+                }`}></div>
+                <div className={`w-2 h-2 rounded-full animate-bounce delay-75 ${
+                  theme === 'dark' ? 'bg-white/60' : 'bg-black/60'
+                }`}></div>
+                <div className={`w-2 h-2 rounded-full animate-bounce delay-150 ${
+                  theme === 'dark' ? 'bg-white/60' : 'bg-black/60'
+                }`}></div>
               </div>
             </div>
           )}

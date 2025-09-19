@@ -37,6 +37,7 @@ const AppContent: React.FC = () => {
   // UI state
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isDocumentLoading, setIsDocumentLoading] = useState(false);
+  const [loadingDocuments, setLoadingDocuments] = useState<Set<string>>(new Set());
   const [apiError, setApiError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [backgroundCommandCount, setBackgroundCommandCount] = useState(1);
@@ -326,7 +327,7 @@ const AppContent: React.FC = () => {
   };
 
   // Domain management
-  const handleCreateDomain = (name: string, type: DomainType, description?: string, selectedDocuments?: string[]) => {
+  const handleCreateDomain = async (name: string, type: DomainType, description?: string, selectedDocuments?: string[]) => {
     const newDomain: UserDomain = {
       id: Math.random().toString(36).substring(2) + Date.now().toString(36),
       name,
@@ -339,6 +340,21 @@ const AppContent: React.FC = () => {
     const updatedDomains = [...userDomains, newDomain];
     setUserDomains(updatedDomains);
     localStorage.setItem('userDomains', JSON.stringify(updatedDomains));
+
+    // If documents were selected, assign them to the class in the backend
+    if (selectedDocuments && selectedDocuments.length > 0) {
+      try {
+        for (const documentId of selectedDocuments) {
+          const document = documents.find(doc => doc.id === documentId);
+          if (document) {
+            await handleAssignDocumentToClass(documentId, document.filename, newDomain.id, 'add');
+          }
+        }
+        console.log(`Successfully assigned ${selectedDocuments.length} documents to class "${name}"`);
+      } catch (error) {
+        console.error('Failed to assign documents to class:', error);
+      }
+    }
 
     // Auto-select the newly created domain
     handleSelectDomain(newDomain);
@@ -400,7 +416,7 @@ const AppContent: React.FC = () => {
     });
   };
 
-  const handleAssignDocuments = (domainId: string, documentIds: string[]) => {
+  const handleAssignDocuments = async (domainId: string, documentIds: string[]) => {
     const updatedDomains = userDomains.map(domain =>
       domain.id === domainId
         ? { ...domain, documents: documentIds }
@@ -411,6 +427,126 @@ const AppContent: React.FC = () => {
 
     if (activeDomain?.id === domainId) {
       setActiveDomain(prev => prev ? { ...prev, documents: documentIds } : null);
+    }
+
+    // Sync document assignments with backend
+    try {
+      const domain = userDomains.find(d => d.id === domainId);
+      const oldDocumentIds = domain?.documents || [];
+
+      // Find documents to add (in new list but not in old list)
+      const documentsToAdd = documentIds.filter(id => !oldDocumentIds.includes(id));
+
+      // Find documents to remove (in old list but not in new list)
+      const documentsToRemove = oldDocumentIds.filter(id => !documentIds.includes(id));
+
+      // Add new documents to class
+      for (const documentId of documentsToAdd) {
+        const document = documents.find(doc => doc.id === documentId);
+        if (document) {
+          await handleAssignDocumentToClass(documentId, document.filename, domainId, 'add');
+        }
+      }
+
+      // Remove documents from class
+      console.log(`Removing ${documentsToRemove.length} documents from class:`, documentsToRemove);
+      for (const documentId of documentsToRemove) {
+        const document = documents.find(doc => doc.id === documentId);
+        if (document) {
+          console.log(`Removing document: ${document.filename} (${documentId})`);
+          try {
+            await handleAssignDocumentToClass(documentId, document.filename, domainId, 'remove');
+            console.log(`Successfully removed: ${document.filename}`);
+          } catch (error) {
+            console.error(`Failed to remove document ${document.filename}:`, error);
+          }
+        }
+      }
+
+      console.log(`Successfully updated document assignments for class "${domain?.name}"`);
+    } catch (error) {
+      console.error('Failed to sync document assignments with backend:', error);
+    }
+  };
+
+  const handleAssignDocumentToClass = async (documentId: string, documentSource: string, classId: string, operation: 'add' | 'remove') => {
+    console.log(`Class assignment loading started: ${operation} ${documentSource} to ${classId}`);
+    setLoadingDocuments(prev => {
+      const newSet = new Set(prev);
+      newSet.add(documentId);
+      return newSet;
+    });
+    try {
+      await apiService.assignDocumentToClass(documentId, documentSource, classId, operation);
+
+      // Update local documents state (for assigned_classes)
+      setDocuments(prevDocs =>
+        prevDocs.map(doc => {
+          if (doc.id === documentId) {
+            const updatedClasses = operation === 'add'
+              ? [...doc.assigned_classes, classId]
+              : doc.assigned_classes.filter(id => id !== classId);
+            return { ...doc, assigned_classes: updatedClasses };
+          }
+          return doc;
+        })
+      );
+
+      // Update userDomains state (for document counts and edit form highlighting)
+      setUserDomains(prevDomains =>
+        prevDomains.map(domain => {
+          if (domain.id === classId) {
+            const currentDocuments = domain.documents || [];
+            const updatedDocuments = operation === 'add'
+              ? currentDocuments.includes(documentId)
+                ? currentDocuments // Already included
+                : [...currentDocuments, documentId]
+              : currentDocuments.filter(id => id !== documentId);
+            return { ...domain, documents: updatedDocuments };
+          }
+          return domain;
+        })
+      );
+
+      // Update localStorage
+      const updatedDomains = userDomains.map(domain => {
+        if (domain.id === classId) {
+          const currentDocuments = domain.documents || [];
+          const updatedDocuments = operation === 'add'
+            ? currentDocuments.includes(documentId)
+              ? currentDocuments
+              : [...currentDocuments, documentId]
+            : currentDocuments.filter(id => id !== documentId);
+          return { ...domain, documents: updatedDocuments };
+        }
+        return domain;
+      });
+      localStorage.setItem('userDomains', JSON.stringify(updatedDomains));
+
+      // Update active domain if it's the one being modified
+      if (activeDomain?.id === classId) {
+        setActiveDomain(prev => {
+          if (!prev) return null;
+          const currentDocuments = prev.documents || [];
+          const updatedDocuments = operation === 'add'
+            ? currentDocuments.includes(documentId)
+              ? currentDocuments
+              : [...currentDocuments, documentId]
+            : currentDocuments.filter(id => id !== documentId);
+          return { ...prev, documents: updatedDocuments };
+        });
+      }
+
+      console.log(`Document ${operation === 'add' ? 'assigned to' : 'removed from'} class successfully`);
+    } catch (error) {
+      console.error('Class assignment failed:', error);
+    } finally {
+      console.log('Class assignment loading finished');
+      setLoadingDocuments(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(documentId);
+        return newSet;
+      });
     }
   };
 
@@ -754,7 +890,9 @@ const AppContent: React.FC = () => {
           onUpload={handleUploadDocument}
           onDeleteDocument={handleDeleteDocument}
           onReindex={handleReindexCollection}
+          onAssignToClass={handleAssignDocumentToClass}
           isLoading={isDocumentLoading}
+          loadingDocuments={loadingDocuments}
           onOpenSidebar={() => setSidebarOpen(true)}
           onCloseSidebar={() => setSidebarOpen(false)}
           backgroundCommandCount={backgroundCommandCount}
@@ -763,7 +901,7 @@ const AppContent: React.FC = () => {
 
         <div className="flex-1 min-h-0 flex flex-col">
           {/* Desktop: Always show chat interface */}
-          <div className="hidden md:block flex-1">
+          <div className="hidden md:block flex-1 min-h-0">
             <ChatInterface
               messages={messages}
               onSendMessage={handleSendMessage}

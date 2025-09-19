@@ -1,91 +1,39 @@
-"""LangChain output parsers for citation handling."""
+"""Standard citation extraction using built-in LangChain utilities."""
 
 import re
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
-
-from langchain_core.output_parsers import BaseOutputParser
-from pydantic import BaseModel, Field
+from typing import List, Dict, Any
 
 
-@dataclass
-class Citation:
-    """Citation data structure."""
-    id: int
-    source: str
-    page: Optional[int] = None
-    preview: str = ""
-    relevance_score: float = 1.0
+def extract_citations_from_response(text: str, context_docs: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Extract citations using standard regex and format for API response."""
 
+    # Standard citation pattern
+    citation_pattern = re.compile(r'\[#(\d+)\]')
+    citation_matches = citation_pattern.findall(text)
+    citation_ids = [int(match) for match in citation_matches]
 
-class CitationResponse(BaseModel):
-    """Response with extracted citations."""
-    content: str = Field(description="Main response content")
-    citations: List[Citation] = Field(description="Extracted citations")
-    sources_used: List[str] = Field(description="List of source documents referenced")
+    # Build response using standard approach
+    citations = []
+    sources_used = set()
 
+    for cite_id in set(citation_ids):
+        if cite_id <= len(context_docs):
+            doc = context_docs[cite_id - 1]  # 1-indexed
+            source = doc.get('source', f'Document {cite_id}')
 
-class CitationParser(BaseOutputParser[CitationResponse]):
-    """Parse citations from LLM responses."""
+            citations.append({
+                "id": cite_id,
+                "source": source,
+                "preview": doc.get('content', '')[:200] + "..." if len(doc.get('content', '')) > 200 else doc.get('content', ''),
+                "relevance_score": doc.get('score', 1.0)
+            })
+            sources_used.add(source)
 
-    def __init__(self, context_docs: List[Dict[str, Any]] = None):
-        super().__init__()
-        self.context_docs = context_docs or []
-        self.citation_pattern = re.compile(r'\\[#(\\d+)\\]')
-
-    def parse(self, text: str) -> CitationResponse:
-        """Parse citations from response text."""
-
-        # Find all citation markers
-        citation_matches = self.citation_pattern.findall(text)
-        citation_ids = [int(match) for match in citation_matches]
-
-        # Build citation objects
-        citations = []
-        sources_used = set()
-
-        for cite_id in set(citation_ids):  # Remove duplicates
-            if cite_id <= len(self.context_docs):
-                doc = self.context_docs[cite_id - 1]  # 1-indexed
-                source = doc.get('source', f'Document {cite_id}')
-
-                citation = Citation(
-                    id=cite_id,
-                    source=source,
-                    preview=doc.get('content', '')[:200] + "..." if len(doc.get('content', '')) > 200 else doc.get('content', ''),
-                    relevance_score=doc.get('score', 1.0)
-                )
-                citations.append(citation)
-                sources_used.add(source)
-
-        # Sort citations by ID
-        citations.sort(key=lambda x: x.id)
-
-        return CitationResponse(
-            content=text,
-            citations=citations,
-            sources_used=list(sources_used)
-        )
-
-    @property
-    def _type(self) -> str:
-        return "citation_parser"
-
-
-def format_citation_response(response: CitationResponse) -> Dict[str, Any]:
-    """Format citation response for API."""
+    # Sort citations by ID
+    citations.sort(key=lambda x: x["id"])
 
     return {
-        "response": response.content,
-        "citations": [
-            {
-                "id": cite.id,
-                "source": cite.source,
-                "page": cite.page,
-                "preview": cite.preview,
-                "relevance_score": cite.relevance_score
-            }
-            for cite in response.citations
-        ],
-        "sources": response.sources_used
+        "response": text,
+        "citations": citations,
+        "sources": list(sources_used)
     }

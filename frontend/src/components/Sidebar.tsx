@@ -26,7 +26,9 @@ interface SidebarProps {
   onUpload: (file: File) => Promise<void>;
   onDeleteDocument: (documentId: string) => Promise<void>;
   onReindex: () => Promise<void>;
+  onAssignToClass: (documentId: string, documentSource: string, classId: string, operation: 'add' | 'remove') => Promise<void>;
   isLoading: boolean;
+  loadingDocuments?: Set<string>;
   onOpenSidebar?: () => void;
   onCloseSidebar?: () => void;
   backgroundCommandCount?: number;
@@ -69,7 +71,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onUpload,
   onDeleteDocument,
   onReindex,
+  onAssignToClass,
   isLoading,
+  loadingDocuments = new Set(),
   onOpenSidebar,
   onCloseSidebar,
   backgroundCommandCount = 1,
@@ -88,6 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [editingDomainName, setEditingDomainName] = useState<string>('');
   const [editingDomainType, setEditingDomainType] = useState<DomainType>(DomainType.GENERAL);
   const [editingDomainDocuments, setEditingDomainDocuments] = useState<string[]>([]);
+  const [isEditingDomain, setIsEditingDomain] = useState(false);
   const [showCreateClassForm, setShowCreateClassForm] = useState(false);
   const [newClassName, setNewClassName] = useState('');
 
@@ -106,7 +111,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [documentClassFilter, setDocumentClassFilter] = useState<string>('');
   const [classFilterOpen, setClassFilterOpen] = useState(false);
-  const { theme } = useTheme();
+  const { theme, background } = useTheme();
   
   // Use prop sessions if available, fallback to local sessions
   const allSessions = propSessions.length > 0 ? propSessions : sessions;
@@ -255,8 +260,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <Menu className="w-4 h-4" />
         </button>
-
-        <div className="flex flex-col items-center space-y-2">
+        <div className="flex flex-col items-center space-y-2 -mt-2">
         <button
           onClick={() => { setActiveTab('home'); onOpenSidebar?.(); }}
           className={`p-2 rounded-lg transition-all ${
@@ -541,7 +545,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 {domain.name}
                               </h3>
                               <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                                {domain.type} • {domain.documents?.length || 0} docs
+                                {domain.type} • {documents.filter(doc => doc.assigned_classes?.includes(domain.id)).length} docs
                               </p>
                             </div>
                           </button>
@@ -552,7 +556,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 setEditingDomain(domain);
                                 setEditingDomainName(domain.name);
                                 setEditingDomainType(domain.type);
-                                setEditingDomainDocuments(domain.documents || []);
+                                // Initialize with documents that are actually assigned to this class
+                                const actuallyAssignedDocs = documents
+                                  .filter(doc => doc.assigned_classes?.includes(domain.id))
+                                  .map(doc => doc.id);
+                                setEditingDomainDocuments(actuallyAssignedDocs);
                               }}
                               className={`p-1 rounded transition-colors ${
                                 theme === 'dark'
@@ -681,20 +689,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                             <div className="flex space-x-2">
                               <button
-                                onClick={() => {
-                                  if (editingDomainName.trim()) {
-                                    onEditDomain?.(editingDomain.id, editingDomainName, editingDomainType);
-                                    onAssignDocuments(editingDomain.id, editingDomainDocuments);
-                                    setEditingDomain(null);
-                                    setEditingDomainName('');
-                                    setEditingDomainType(DomainType.GENERAL);
-                                    setEditingDomainDocuments([]);
+                                onClick={async () => {
+                                  if (editingDomainName.trim() && !isEditingDomain) {
+                                    setIsEditingDomain(true);
+                                    try {
+                                      // First update the domain details, then assign documents
+                                      onEditDomain?.(editingDomain.id, editingDomainName, editingDomainType);
+                                      // Small delay to ensure domain update completes first
+                                      await new Promise(resolve => setTimeout(resolve, 50));
+                                      await onAssignDocuments(editingDomain.id, editingDomainDocuments);
+                                      setEditingDomain(null);
+                                      setEditingDomainName('');
+                                      setEditingDomainType(DomainType.GENERAL);
+                                      setEditingDomainDocuments([]);
+                                    } finally {
+                                      setIsEditingDomain(false);
+                                    }
                                   }
                                 }}
-                                disabled={!editingDomainName.trim()}
-                                className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 rounded-lg transition-all duration-200 disabled:opacity-50 text-sm"
+                                disabled={!editingDomainName.trim() || isEditingDomain}
+                                className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 rounded-lg transition-all duration-200 disabled:opacity-50 text-sm flex items-center justify-center gap-2"
                               >
-                                Update Class
+                                {isEditingDomain && (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                )}
+                                {isEditingDomain ? 'Updating...' : 'Update Class'}
                               </button>
                               <button
                                 onClick={() => {
@@ -886,6 +905,71 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           theme === 'dark' ? 'text-white/50' : 'text-black/50'
                         }`}>
                           {doc.chunks} chunks{doc.size ? ` • ${formatFileSize(doc.size)}` : ''}
+                        </div>
+
+                        {/* Class Assignment Section */}
+                        <div className="mt-2">
+                          <div className="flex items-center gap-1 mb-1">
+                            <span className={`text-xs ${
+                              theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                            }`}>Classes:</span>
+                            <select
+                              onChange={async (e) => {
+                                const classId = e.target.value;
+                                if (classId && !doc.assigned_classes?.includes(classId)) {
+                                  await onAssignToClass(doc.id, doc.filename, classId, 'add');
+                                }
+                                e.target.value = ''; // Reset dropdown
+                              }}
+                              className={`text-xs border rounded px-1 py-0.5 ${
+                                theme === 'dark'
+                                  ? 'bg-white/10 border-white/20 text-white'
+                                  : 'bg-black/5 border-black/10 text-black'
+                              }`}
+                              disabled={isLoading}
+                            >
+                              <option value="">{isLoading ? '🔄 Adding...' : '+ Add'}</option>
+                              {domains.map(domain => (
+                                <option key={domain.id} value={domain.id} className={
+                                  theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+                                }>
+                                  {domain.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Show assigned classes */}
+                          {doc.assigned_classes && doc.assigned_classes.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {doc.assigned_classes.map(classId => {
+                                const domain = domains.find(d => d.id === classId);
+                                return (
+                                  <span
+                                    key={classId}
+                                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${
+                                      theme === 'dark'
+                                        ? 'bg-blue-500/20 text-blue-300'
+                                        : 'bg-blue-500/20 text-blue-700'
+                                    }`}
+                                  >
+                                    {domain?.name || classId}
+                                    <button
+                                      onClick={async () => {
+                                        await onAssignToClass(doc.id, doc.filename, classId, 'remove');
+                                      }}
+                                      className={`hover:text-red-300 transition-colors ${
+                                        theme === 'dark' ? 'text-blue-200' : 'text-blue-600'
+                                      }`}
+                                      disabled={isLoading}
+                                    >
+                                      <X className="w-2 h-2" />
+                                    </button>
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <button
@@ -1458,20 +1542,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 <div className="flex space-x-2">
                   <button
-                    onClick={() => {
-                      if (editingDomainName.trim()) {
-                        onEditDomain?.(editingDomain.id, editingDomainName, editingDomainType);
-                        onAssignDocuments(editingDomain.id, editingDomainDocuments);
-                        setEditingDomain(null);
-                        setEditingDomainName('');
-                        setEditingDomainType(DomainType.GENERAL);
+                    onClick={async () => {
+                      if (editingDomainName.trim() && !isEditingDomain) {
+                        setIsEditingDomain(true);
+                        try {
+                          // First update the domain details, then assign documents
+                          onEditDomain?.(editingDomain.id, editingDomainName, editingDomainType);
+                          // Small delay to ensure domain update completes first
+                          await new Promise(resolve => setTimeout(resolve, 50));
+                          await onAssignDocuments(editingDomain.id, editingDomainDocuments);
+                          setEditingDomain(null);
+                          setEditingDomainName('');
+                          setEditingDomainType(DomainType.GENERAL);
                           setEditingDomainDocuments([]);
+                        } finally {
+                          setIsEditingDomain(false);
+                        }
                       }
                     }}
-                    disabled={!editingDomainName.trim()}
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 rounded-lg transition-all duration-200 disabled:opacity-50 text-sm"
+                    disabled={!editingDomainName.trim() || isEditingDomain}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 rounded-lg transition-all duration-200 disabled:opacity-50 text-sm flex items-center justify-center gap-2"
                   >
-                    Update Class
+                    {isEditingDomain && (
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    )}
+                    {isEditingDomain ? 'Updating...' : 'Update Class'}
                   </button>
                   <button
                     onClick={() => {
@@ -1714,7 +1809,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 <span className={`text-xs px-1.5 py-0.5 rounded-full ml-2 ${
                                   theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
                                 }`}>
-                                  {(domain.documents || []).length} doc{(domain.documents || []).length !== 1 ? 's' : ''}
+                                  {(() => {
+                                    const docCount = documents.filter(doc => doc.assigned_classes?.includes(domain.id)).length;
+                                    return `${docCount} doc${docCount !== 1 ? 's' : ''}`;
+                                  })()}
                                 </span>
                               </div>
                             </div>
@@ -1726,7 +1824,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 setEditingDomain(domain);
                                 setEditingDomainName(domain.name);
                                 setEditingDomainType(domain.type);
-                                setEditingDomainDocuments(domain.documents || []);
+                                // Initialize with documents that are actually assigned to this class
+                                const actuallyAssignedDocs = documents
+                                  .filter(doc => doc.assigned_classes?.includes(domain.id))
+                                  .map(doc => doc.id);
+                                setEditingDomainDocuments(actuallyAssignedDocs);
                               }}
                               className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${
                                 theme === 'dark' 
@@ -1946,75 +2048,75 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className={`h-full w-80 backdrop-blur-md border-r flex flex-col ${
+    <div className={`h-full w-72 backdrop-blur-md border-r flex flex-col ${
       theme === 'dark'
-        ? 'bg-white/10 border-white/20'
+        ? background === 'classic' ? 'bg-neutral-900 border-neutral-700' : 'bg-white/10 border-white/20'
         : 'bg-black/10 border-black/20'
     }`}>
       {/* Header with tabs */}
       <div className={`flex items-center justify-end p-2 border-b ${
         theme === 'dark' ? 'border-white/10' : 'border-black/10'
       }`}>
-        <div className="flex items-center gap-1 overflow-x-auto flex-1 mr-2">
+        <div className="flex items-center justify-start gap-4 flex-1 ml-2">
           <button
             onClick={() => setActiveTab('home')}
-            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none flex items-center gap-1 ${
               activeTab === 'home'
                 ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
             }`}
           >
-            Home
+            <Home className="w-4 h-4" />
           </button>
           <button
             onClick={() => setActiveTab('documents')}
-            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none flex items-center gap-1 ${
               activeTab === 'documents'
                 ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
             }`}
           >
-            Docs
+            <File className="w-4 h-4" />
           </button>
           <button
             onClick={() => setActiveTab('achievements')}
-            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none flex items-center gap-1 ${
               activeTab === 'achievements'
                 ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
             }`}
           >
-            Rewards
+            <Trophy className="w-4 h-4" />
           </button>
           <button
             onClick={() => setActiveTab('store')}
-            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none flex items-center gap-1 ${
               activeTab === 'store'
                 ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
             }`}
           >
-            Store
+            <Sparkles className="w-4 h-4" />
           </button>
           <button
             onClick={() => setActiveTab('help')}
-            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none ${
+            className={`relative px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap outline-none focus:outline-none flex items-center gap-1 ${
               activeTab === 'help'
                 ? (theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold')
                 : (theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold')
             }`}
           >
-            Help
+            <HelpCircle className="w-4 h-4" />
           </button>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-4">
           <button
             onClick={onCloseSidebar}
             className={`p-1 rounded-lg transition-colors ${
               theme === 'dark' ? 'text-white/60 hover:text-white hover:bg-white/10' : 'text-black/60 hover:text-black hover:bg-black/10'
             }`}
           >
-            <X className="w-3 h-3" />
+            <Menu className="w-4 h-4" />
           </button>
         </div>
       </div>

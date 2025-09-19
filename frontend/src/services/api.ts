@@ -69,6 +69,20 @@ export const apiService = {
     return response.data;
   },
 
+  assignDocumentToClass: async (
+    documentId: string,
+    documentSource: string,
+    classId: string,
+    operation: 'add' | 'remove' = 'add'
+  ): Promise<any> => {
+    const response = await api.post(`/documents/${documentId}/assign-class`, {
+      document_source: documentSource,
+      class_id: classId,
+      operation
+    });
+    return response.data;
+  },
+
   // Collections - Returns empty array per backend
   getCollections: async (): Promise<string[]> => {
     const response = await api.get('/documents/collections');

@@ -32,6 +32,10 @@ class LangChainIngestionPipeline:
             model=settings.embedding_model,
         )
 
+        # Initialize Firestore client for persistence
+        from google.cloud import firestore
+        self.firestore_client = firestore.AsyncClient(project=settings.google_cloud_project)
+
         # Initialize text splitter
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=settings.chunk_size,
@@ -178,26 +182,49 @@ class LangChainIngestionPipeline:
 
             # Direct Firestore metadata update
             db = firestore.Client(project=self.settings.google_cloud_project)
-            collection_name = f"users/{user_id}/chunks"
 
-            # Query documents by source
-            docs_ref = db.collection(collection_name).where("metadata.source", "==", document_source)
+            # Query documents by source using proper subcollection structure
+            docs_ref = db.collection("users").document(user_id).collection("chunks").where("metadata.source", "==", document_source)
             docs = docs_ref.get()
+
+            logger.info("Debug: update_document_class",
+                       document_source=document_source,
+                       user_id=user_id,
+                       class_id=class_id,
+                       operation=operation,
+                       docs_found=len(docs))
 
             for doc in docs:
                 data = doc.to_dict()
                 metadata = data.get("metadata", {})
                 assigned_classes = metadata.get("assigned_classes", [])
 
-                if operation == "add" and class_id not in assigned_classes:
-                    assigned_classes.append(class_id)
-                elif operation == "remove" and class_id in assigned_classes:
-                    assigned_classes.remove(class_id)
+                logger.info("Debug: Before update",
+                           doc_id=doc.id,
+                           current_assigned_classes=assigned_classes,
+                           metadata_keys=list(metadata.keys()) if metadata else [])
+
+                # For ADD: add to all chunks regardless of current state (ensures consistency)
+                # For REMOVE: remove from all chunks that have it (ensures consistency)
+                if operation == "add":
+                    if class_id not in assigned_classes:
+                        assigned_classes.append(class_id)
+                elif operation == "remove":
+                    # Remove ALL instances of the class_id (in case of duplicates)
+                    assigned_classes = [cls for cls in assigned_classes if cls != class_id]
+
+                logger.info("Debug: After update logic",
+                           doc_id=doc.id,
+                           new_assigned_classes=assigned_classes)
 
                 # Update the document
                 doc.reference.update({
                     "metadata.assigned_classes": assigned_classes
                 })
+
+                logger.info("Debug: Updated document",
+                           doc_id=doc.id,
+                           final_assigned_classes=assigned_classes)
 
             logger.info("Document class updated successfully",
                        document=document_source,
@@ -222,37 +249,170 @@ class LangChainIngestionPipeline:
         class_id: str | None = None,
         k: int = 5
     ) -> list[dict]:
-        """Search documents with optional class filtering."""
+        """Search documents using FirestoreVectorStore similarity_search."""
 
         try:
-            vector_store = self._get_vector_store(user_id)
-
+            # FirestoreVectorStore filter doesn't work properly, so we implement manual filtering
             if class_id:
-                # Filter by class in metadata
-                results = await vector_store.asimilarity_search_with_score(
-                    query,
-                    k=k,
-                    filter={"metadata.assigned_classes": {"array_contains": class_id}}
-                )
-            else:
-                results = await vector_store.asimilarity_search_with_score(query, k=k)
+                logger.info("Applying manual class filtering (FirestoreVectorStore filter broken)",
+                           class_id=class_id,
+                           user_id=user_id)
 
-            return [
-                {
+                # Get embeddings for the query
+                query_embedding = self.embeddings.embed_query(query)
+
+                # Direct Firestore query with proper filtering
+                from google.cloud import firestore
+                import numpy as np
+
+                db = firestore.Client(project=self.settings.google_cloud_project)
+
+
+                # First check what class IDs actually exist in documents
+                all_docs_sample = db.collection("users").document(user_id).collection("chunks").limit(3).get()
+                existing_classes = set()
+                for doc in all_docs_sample:
+                    doc_data = doc.to_dict()
+                    classes = doc_data.get('metadata', {}).get('assigned_classes', [])
+                    existing_classes.update(classes)
+
+                logger.info("Debug: Existing class IDs in documents",
+                           looking_for=class_id,
+                           existing_classes=list(existing_classes),
+                           user_id=user_id)
+
+                # Query documents that contain the class using proper subcollection structure
+                docs_ref = db.collection("users").document(user_id).collection("chunks").where(
+                    "metadata.assigned_classes", "array_contains", class_id
+                )
+
+                # Limit to reasonable number for similarity calculation
+                docs = docs_ref.limit(100).get()
+
+                logger.info("Manual filter results",
+                           class_id=class_id,
+                           docs_found=len(docs),
+                           user_id=user_id)
+
+                if not docs:
+                    logger.info("No documents found in specified class",
+                               query=query[:50],
+                               user_id=user_id,
+                               class_id=class_id)
+                    return []
+
+                # Calculate similarities manually
+                scored_results = []
+                docs_with_embeddings = 0
+                docs_without_embeddings = 0
+                for i, doc in enumerate(docs):
+                    data = doc.to_dict()
+
+                    # Try multiple locations for embeddings
+                    doc_embedding = (
+                        data.get("embedding") or  # Direct embedding field (Firestore)
+                        data.get("metadata", {}).get("embedding")  # Nested in metadata
+                    )
+
+                    # Debug first few documents
+                    if i < 3:
+                        embedding_length = None
+                        if doc_embedding:
+                            try:
+                                embedding_length = len(doc_embedding)
+                            except:
+                                try:
+                                    embedding_array = np.array(doc_embedding)
+                                    embedding_length = embedding_array.shape[0] if embedding_array.ndim > 0 else None
+                                except:
+                                    embedding_length = "unknown"
+
+                        logger.info("Debug document structure",
+                                   doc_index=i,
+                                   has_embedding=bool(doc_embedding),
+                                   embedding_type=type(doc_embedding).__name__ if doc_embedding else None,
+                                   embedding_length=embedding_length,
+                                   all_keys=list(data.keys()),
+                                   metadata_keys=list(data.get("metadata", {}).keys()),
+                                   content_preview=data.get("content", data.get("page_content", ""))[:100])
+
+                    # Handle both list embeddings and Firestore Vector type
+                    if doc_embedding:
+                        try:
+                            # Try to convert to numpy array - this handles both lists and Firestore Vectors
+                            doc_emb_array = np.array(doc_embedding)
+                            if doc_emb_array.ndim > 0 and doc_emb_array.shape[0] > 0:
+                                docs_with_embeddings += 1
+                                # Calculate cosine similarity
+                                query_emb_array = np.array(query_embedding)
+
+                                # Cosine similarity
+                                dot_product = np.dot(query_emb_array, doc_emb_array)
+                                norm_query = np.linalg.norm(query_emb_array)
+                                norm_doc = np.linalg.norm(doc_emb_array)
+
+                                if norm_query > 0 and norm_doc > 0:
+                                    similarity = dot_product / (norm_query * norm_doc)
+
+                                    scored_results.append({
+                                        "content": data.get("content", data.get("page_content", "")),
+                                        "source": data.get("metadata", {}).get("source", "Unknown"),
+                                        "score": float(similarity),
+                                        "metadata": data.get("metadata", {})
+                                    })
+                        except Exception as e:
+                            logger.warning("Failed to process embedding",
+                                         doc_index=i,
+                                         error=str(e),
+                                         embedding_type=type(doc_embedding).__name__)
+                    else:
+                        docs_without_embeddings += 1
+
+                # Sort by similarity score and take top k
+                scored_results.sort(key=lambda x: x["score"], reverse=True)
+                scored_results = scored_results[:k]
+
+                logger.info("Manual similarity calculation completed",
+                           query=query[:50],
+                           user_id=user_id,
+                           class_id=class_id,
+                           total_docs=len(docs),
+                           docs_with_embeddings=docs_with_embeddings,
+                           docs_without_embeddings=docs_without_embeddings,
+                           results_count=len(scored_results))
+
+                return scored_results
+
+            else:
+                # Only search all documents if no class is specified
+                vector_store = self._get_vector_store(user_id)
+                results = vector_store.similarity_search(query, k=k)
+
+            # Convert LangChain results to standard format for non-class searches
+            scored_results = []
+            for i, doc in enumerate(results):
+                scored_results.append({
                     "content": doc.page_content,
                     "source": doc.metadata.get("source", "Unknown"),
-                    "score": score,
+                    "score": 1.0 - (i * 0.1),  # Simple relevance approximation
                     "metadata": doc.metadata
-                }
-                for doc, score in results
-            ]
+                })
+
+            logger.info("Document search completed",
+                       query=query[:50],
+                       user_id=user_id,
+                       class_id=class_id,
+                       results_count=len(scored_results))
+
+            return scored_results
 
         except Exception as e:
             logger.error("Document search failed",
                         query=query,
                         user_id=user_id,
                         class_id=class_id,
-                        error=str(e))
+                        error=str(e),
+                        error_type=type(e).__name__)
             return []
 
     async def ingest_document(
@@ -426,3 +586,19 @@ class LangChainIngestionPipeline:
             collection=collection_name,
             embedding_service=self.embeddings,
         )
+
+    def get_retriever(self, user_id: str, class_id: str | None = None, k: int = 5):
+        """Get LangChain retriever for document search."""
+
+        vector_store = self._get_vector_store(user_id)
+
+        if class_id:
+            # Create filtered retriever
+            search_kwargs = {
+                "k": k,
+                "filter": {"metadata.assigned_classes": {"array_contains": class_id}}
+            }
+        else:
+            search_kwargs = {"k": k}
+
+        return vector_store.as_retriever(search_kwargs=search_kwargs)

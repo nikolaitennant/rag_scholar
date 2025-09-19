@@ -55,7 +55,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900'
       : 'bg-gradient-to-br from-blue-200 via-indigo-100 to-purple-200',
     classic: theme === 'dark'
-      ? 'bg-black'
+      ? 'bg-neutral-800'
       : 'bg-white',
     mountain: theme === 'dark'
       ? 'bg-gradient-to-br from-slate-800 via-stone-900 to-amber-900'

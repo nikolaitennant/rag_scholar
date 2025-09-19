@@ -1,22 +1,26 @@
 import React, { useState } from 'react';
-import { Upload, File, Trash2, Info, RotateCcw, BarChart3, FileText, Archive } from 'lucide-react';
-import { Document } from '../types';
+import { Upload, File, Trash2, Info, RotateCcw, BarChart3, FileText, Archive, Plus, X } from 'lucide-react';
+import { Document, UserDomain } from '../types';
 
 interface DocumentManagerProps {
   documents: Document[];
   activeCollection: string;
+  userDomains: UserDomain[];
   onUpload: (file: File) => Promise<void>;
   onDelete: (documentId: string) => Promise<void>;
   onReindex: () => Promise<void>;
+  onAssignToClass: (documentId: string, documentSource: string, classId: string, operation: 'add' | 'remove') => Promise<void>;
   isLoading: boolean;
 }
 
 export const DocumentManager: React.FC<DocumentManagerProps> = ({
   documents,
   activeCollection,
+  userDomains,
   onUpload,
   onDelete,
   onReindex,
+  onAssignToClass,
   isLoading,
 }) => {
   const [dragActive, setDragActive] = useState(false);
@@ -197,6 +201,57 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
                         }`}>
                           {doc.status || 'processed'}
                         </span>
+                      </div>
+
+                      {/* Class Assignment Section */}
+                      <div className="mt-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs text-white/60">Classes:</span>
+                          <select
+                            onChange={async (e) => {
+                              const classId = e.target.value;
+                              if (classId && !doc.assigned_classes.includes(classId)) {
+                                await onAssignToClass(doc.id, doc.filename, classId, 'add');
+                              }
+                              e.target.value = ''; // Reset dropdown
+                            }}
+                            className="text-xs bg-white/10 border border-white/20 rounded px-2 py-1 text-white"
+                            disabled={isLoading}
+                          >
+                            <option value="">{isLoading ? '🔄 Adding...' : '+ Add to class'}</option>
+                            {userDomains.map(domain => (
+                              <option key={domain.id} value={domain.id} className="bg-gray-800">
+                                {domain.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Show assigned classes */}
+                        {doc.assigned_classes.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {doc.assigned_classes.map(classId => {
+                              const domain = userDomains.find(d => d.id === classId);
+                              return (
+                                <span
+                                  key={classId}
+                                  className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs"
+                                >
+                                  {domain?.name || classId}
+                                  <button
+                                    onClick={async () => {
+                                      await onAssignToClass(doc.id, doc.filename, classId, 'remove');
+                                    }}
+                                    className="hover:text-red-300 transition-colors"
+                                    disabled={isLoading}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

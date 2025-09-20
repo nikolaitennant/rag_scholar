@@ -45,9 +45,17 @@ steps:
       - '${_SERVICE_NAME}'
       - '--platform=managed'
       - '--image=${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}'
-      - '--memory=1Gi'
+      - '--memory=16Gi'
+      - '--cpu=8'
       - '--timeout=600'
-      - '--set-env-vars=USE_CLOUD_STORAGE=true,GCS_BUCKET_NAME=ragscholarai-indexes'
+      - '--max-instances=3'
+      - '--concurrency=80'
+      - '--add-gpu-type=nvidia-l4'
+      - '--add-gpu-count=1'
+      - '--no-cpu-throttling'
+      - '--set-secrets=OPENAI_API_KEY=OPENAI_API_KEY:latest,JWT_SECRET_KEY=JWT_SECRET_KEY:latest'
+      - '--set-env-vars=ENVIRONMENT=production,DEBUG=false'
+      - '--allow-unauthenticated'
       - '--labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=${COMMIT_SHA},gcb-build-id=${BUILD_ID}'
       - '--region=${_DEPLOY_REGION}'
       - '--quiet'
@@ -64,7 +72,7 @@ steps:
         npm install -g firebase-tools
         echo "$$FIREBASE_SERVICE_ACCOUNT" > /tmp/service-account.json
         export GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json
-        firebase deploy --only hosting --project ${_FIREBASE_PROJECT_ID}
+        firebase deploy --only hosting --project ${_FIREBASE_PROJECT_ID} --non-interactive --force
     secretEnv: ['FIREBASE_SERVICE_ACCOUNT']
     waitFor: ['Build-Frontend']
 

@@ -68,6 +68,7 @@ async def chat(
         context_docs=context_docs,
         session_id=session_id,
         user_id=current_user["id"],
+        class_id=request.class_id,
     )
 
     return ChatResponse(**result)

@@ -124,13 +124,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Use prop sessions if available, fallback to local sessions
   const allSessions = propSessions.length > 0 ? propSessions : sessions;
 
+  // Debug session data
+  console.log('🔍 SIDEBAR: Received propSessions:', propSessions.length, propSessions);
+  console.log('🔍 SIDEBAR: Local sessions:', sessions.length, sessions);
+  console.log('🔍 SIDEBAR: Using allSessions:', allSessions.length, allSessions);
+  console.log('🔍 SIDEBAR: activeDomain:', activeDomain);
+
   // Filter sessions by active domain if one is selected
   const currentSessions = activeDomain
-    ? allSessions.filter(session =>
-        session.class_name === activeDomain.name ||
-        session.class_id === activeDomain.id ||
-        session.domain === activeDomain.type
-      )
+    ? allSessions.filter(session => {
+        console.log('🔍 FILTER: Checking session:', session.id, 'class_id:', session.class_id, 'vs activeDomain.id:', activeDomain.id);
+        // Match sessions that have the same class_id, or sessions without class_id (legacy sessions)
+        return session.class_id === activeDomain.id || (!session.class_id && !activeDomain);
+      })
     : allSessions;
 
   // Console debugging for session data
@@ -429,8 +435,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       }`}>
                         Assign Documents (Optional)
                       </label>
-                      <div className={`max-h-32 overflow-y-auto space-y-1 rounded-lg p-2 border ${
-                        theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'
+                      <div className={`max-h-32 overflow-y-auto space-y-1 rounded-lg p-2 ${
+                        theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white/30'
                       }`}>
                         {availableDocuments.map(doc => (
                           <button
@@ -537,10 +543,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           isActive
                             ? theme === 'dark'
                               ? 'bg-white/15 border border-white/20'
-                              : 'bg-black/15 border border-black/20'
+                              : 'bg-white/40 border border-gray-200/50'
                             : theme === 'dark'
                               ? 'bg-white/5 hover:bg-white/10 border border-transparent'
-                              : 'bg-black/5 hover:bg-black/10 border border-transparent'
+                              : 'bg-white/20 hover:bg-white/30 border border-transparent'
                         }`}
                       >
                         <div className="flex items-center justify-between">
@@ -654,8 +660,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 }`}>
                                   Assign Documents (Optional)
                                 </label>
-                                <div className={`max-h-32 overflow-y-auto space-y-1 rounded-lg p-2 border ${
-                                  theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'
+                                <div className={`max-h-32 overflow-y-auto space-y-1 rounded-lg p-2 ${
+                                  theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white/30'
                                 }`}>
                                   {availableDocuments.map(doc => (
                                     <button
@@ -805,12 +811,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     }
                     setClassFilterOpen(!classFilterOpen);
                   }}
-                  className={`w-full px-3 py-1.5 text-sm text-left flex items-center justify-between transition-all ${
+                  className={`w-full px-3 py-1.5 text-sm text-left flex items-center justify-between transition-all rounded-full ${
                     theme === 'dark'
-                      ? 'text-white/90 hover:bg-white/5'
-                      : 'text-gray-800 hover:bg-gray-50'
-                  } border rounded-lg ${
-                    theme === 'dark' ? 'border-white/10' : 'border-gray-200'
+                      ? 'bg-white/10 text-white/90 hover:bg-white/15'
+                      : 'bg-black/10 text-gray-900 hover:bg-white/25 border border-gray-300/50'
                   }`}
                 >
                   <span className="truncate">{documentClassFilter ? domains.find(d => d.id === documentClassFilter)?.name : 'All Documents'}</span>
@@ -822,9 +826,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
 
                 {classFilterOpen && dropdownPosition && createPortal(
-                  <div className={`dropdown-container fixed rounded-xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl ${
+                  <>
+                    <div
+                      className="fixed inset-0 z-[9998]"
+                      onClick={() => setClassFilterOpen(false)}
+                    />
+                    <div className={`dropdown-container fixed rounded-2xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl ${
                     theme === 'dark'
-                      ? 'bg-black/10 border-white/20'
+                      ? 'bg-black/30 border-white/20'
                       : 'bg-white/10 border-black/20'
                   }`} style={{
                     top: dropdownPosition.top + 2,
@@ -834,20 +843,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
                     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
                   }}>
-                    <div className="py-0.5 relative z-10">
+                    <div className="relative z-10">
                       <button
                         onClick={() => {
                           setDocumentClassFilter('');
                           setClassFilterOpen(false);
                         }}
                         className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
-                          !documentClassFilter
-                            ? theme === 'dark'
-                              ? 'bg-blue-500/30 text-blue-300 font-medium'
-                              : 'bg-blue-500/20 text-blue-700 font-medium'
-                            : theme === 'dark'
-                              ? 'text-white/90 hover:bg-white/10'
-                              : 'text-gray-700 hover:bg-black/5'
+                          theme === 'dark'
+                            ? 'text-white/90 hover:bg-black/20'
+                            : 'text-gray-900/90 hover:bg-white/20'
                         }`}
                       >
                         All Documents
@@ -860,20 +865,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             setClassFilterOpen(false);
                           }}
                           className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
-                            documentClassFilter === domain.id
-                              ? theme === 'dark'
-                                ? 'bg-blue-500/30 text-blue-300 font-medium'
-                                : 'bg-blue-500/20 text-blue-700 font-medium'
-                              : theme === 'dark'
-                                ? 'text-white/90 hover:bg-white/10'
-                                : 'text-gray-700 hover:bg-black/5'
+                            theme === 'dark'
+                              ? 'text-white/90 hover:bg-black/20'
+                              : 'text-gray-900/90 hover:bg-white/20'
                           }`}
                         >
                           {domain.name}
                         </button>
                       ))}
                     </div>
-                  </div>,
+                  </div>
+                  </>,
                   document.body
                 )}
               </div>
@@ -946,15 +948,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                   setAddToClassPosition({
                                     top: rect.bottom + window.scrollY,
                                     left: rect.left + window.scrollX,
-                                    width: 200
+                                    width: Math.max(rect.width, 120)
                                   });
                                 }
                                 setAddToClassOpen(addToClassOpen === doc.id ? null : doc.id);
                               }}
-                              className={`text-xs px-2 py-1 rounded transition-colors ${
+                              className={`text-xs px-2 py-1 rounded-full transition-colors ${
                                 theme === 'dark'
-                                  ? 'text-white/70 hover:text-white hover:bg-white/5'
-                                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                                  ? 'text-white/70 hover:text-white hover:bg-white/10'
+                                  : 'text-gray-600 hover:text-gray-800 hover:bg-white/20'
                               }`}
                               disabled={isLoading}
                             >
@@ -962,19 +964,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             </button>
 
                             {addToClassOpen === doc.id && addToClassPosition && createPortal(
-                              <div className={`dropdown-container fixed rounded-xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl ${
+                              <>
+                                <div
+                                  className="fixed inset-0 z-[9998]"
+                                  onClick={() => setAddToClassOpen(null)}
+                                />
+                                <div className={`dropdown-container fixed rounded-2xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl ${
                                 theme === 'dark'
                                   ? 'bg-black/10 border-white/20'
                                   : 'bg-white/10 border-black/20'
                               }`} style={{
                                 top: addToClassPosition.top + 2,
                                 left: addToClassPosition.left,
-                                width: addToClassPosition.width,
+                                minWidth: addToClassPosition.width,
                                 backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
                                 WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
                                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
                               }}>
-                                <div className="py-0.5">
+                                <div className="">
                                   {domains.map(domain => (
                                     <button
                                       key={domain.id}
@@ -984,10 +991,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                         }
                                         setAddToClassOpen(null);
                                       }}
-                                      className={`px-2.5 py-1 text-xs text-left transition-colors whitespace-nowrap block ${
+                                      className={`w-full px-2.5 py-1 text-xs text-left transition-colors whitespace-nowrap block ${
                                         doc.assigned_classes?.includes(domain.id)
-                                          ? 'text-white/30 cursor-not-allowed bg-black/20'
-                                          : 'text-white/90 hover:bg-black/20'
+                                          ? theme === 'dark'
+                                            ? 'text-white/40 cursor-not-allowed'
+                                            : 'text-gray-500 cursor-not-allowed'
+                                          : theme === 'dark'
+                                            ? 'text-white/90 hover:bg-black/20'
+                                            : 'text-gray-900/90 hover:bg-white/20'
                                       }`}
                                       disabled={doc.assigned_classes?.includes(domain.id)}
                                     >
@@ -995,7 +1006,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     </button>
                                   ))}
                                 </div>
-                              </div>,
+                              </div>
+                              </>,
                               document.body
                             )}
                           </div>
@@ -1008,7 +1020,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 return (
                                   <span
                                     key={classId}
-                                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${
+                                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs ${
                                       theme === 'dark'
                                         ? 'bg-blue-500/20 text-blue-300'
                                         : 'bg-blue-500/20 text-blue-700'
@@ -1226,7 +1238,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     className={`group rounded-lg p-3 transition-all duration-200 cursor-pointer ${
                       sessionId === session.id
                         ? (theme === 'dark' ? 'bg-blue-500/20 border border-blue-400/40 shadow-lg' : 'bg-blue-500/20 border border-blue-500/40 shadow-lg')
-                        : (theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-black/5 hover:bg-black/10')
+                        : session.isNew
+                          ? (theme === 'dark' ? 'bg-green-500/20 hover:bg-green-500/30 border border-green-400/40' : 'bg-green-500/20 hover:bg-green-500/30 border border-green-500/40')
+                          : (theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-black/5 hover:bg-black/10')
                     }`}
                       onClick={() => onSelectSession?.(session.id)}
                   >
@@ -1723,8 +1737,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     }`}>
                       Assign Documents
                     </label>
-                    <div className={`max-h-32 overflow-y-auto space-y-1 rounded-lg p-2 border ${
-                      theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'
+                    <div className={`max-h-32 overflow-y-auto space-y-1 rounded-lg p-2 ${
+                      theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white/30'
                     }`}>
                       {availableDocuments.map(doc => (
                         <button
@@ -1767,7 +1781,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           onEditDomain?.(editingDomain.id, editingDomainName, editingDomainType);
                           // Wait a bit longer to ensure React state updates complete
                           await new Promise(resolve => setTimeout(resolve, 100));
-                          await onAssignDocuments(editingDomain.id, editingDomainDocuments);
+                          onAssignDocuments(editingDomain.id, editingDomainDocuments);
                           // Clear edit state after all operations complete
                           setEditingDomain(null);
                           setEditingDomainName('');
@@ -1887,8 +1901,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         }`}>
                           Assign Documents (Optional)
                         </label>
-                        <div className={`max-h-32 overflow-y-auto space-y-1 rounded-lg p-2 border ${
-                          theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'
+                        <div className={`max-h-32 overflow-y-auto space-y-1 rounded-lg p-2 ${
+                          theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white/30'
                         }`}>
                           {availableDocuments.map(doc => (
                             <button
@@ -2002,11 +2016,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group cursor-pointer ${
                           isActive
                             ? theme === 'dark'
-                              ? 'bg-white/15 border border-white/20'
-                              : 'bg-black/15 border border-black/20'
+                              ? 'bg-white/10'
+                              : 'bg-black/10'
                             : theme === 'dark'
-                              ? 'bg-white/5 hover:bg-white/10 border border-transparent'
-                              : 'bg-black/5 hover:bg-black/10 border border-transparent'
+                              ? 'bg-white/5 hover:bg-white/10'
+                              : 'bg-black/5 hover:bg-black/10'
                         }`}
                       >
                         <div className="flex items-center justify-between">
@@ -2146,7 +2160,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <button
                           onClick={() => onSelectSession?.(session.id)}
                           className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group ${
-                            isPreview
+                            isPreview || session.isNew
                               ? theme === 'dark'
                                 ? 'bg-green-500/20 hover:bg-green-500/30 border border-green-500/40'
                                 : 'bg-green-500/20 hover:bg-green-500/30 border border-green-500/40'

@@ -49,11 +49,17 @@ const AppContent: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [themeToggleVisible, setThemeToggleVisible] = useState(true);
   const [isNewChatSession, setIsNewChatSession] = useState(false);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [loadingSessions, setLoadingSessions] = useState(false);
 
-  // Load documents when authenticated
+  // Load documents and sessions when authenticated
   useEffect(() => {
+    console.log('🔍 AUTH: isAuthenticated:', isAuthenticated, 'loading:', loading);
     if (isAuthenticated && !loading) {
+      console.log('🔍 AUTH: Loading data...');
       loadDocuments();
+      loadSessions();
     }
   }, [isAuthenticated, loading]);
 
@@ -69,6 +75,32 @@ const AppContent: React.FC = () => {
       setDocuments([]);
     }
   }, []);
+
+  const loadSessions = useCallback(async () => {
+    try {
+      setLoadingSessions(true);
+      console.log('Loading sessions...');
+
+      // Debug Firestore structure first
+      try {
+        const debugData = await apiService.debugFirestore();
+        console.log('DEBUG: Firestore structure:', debugData);
+      } catch (debugError: any) {
+        console.log('DEBUG: Failed to debug Firestore:', debugError);
+      }
+
+      const sessionsData = await apiService.getSessions();
+      console.log('Loaded sessions:', sessionsData);
+      console.log('Number of sessions loaded:', sessionsData.length);
+      setSessions(sessionsData);
+    } catch (error: any) {
+      console.error('Failed to load sessions:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      setSessions([]);
+    } finally {
+      setLoadingSessions(false);
+    }
+  }, [isAuthenticated, user]);
 
   const loadUserDomains = useCallback(async () => {
     // Load domains from localStorage or start with empty array
@@ -177,10 +209,15 @@ const AppContent: React.FC = () => {
     try {
       const response = await apiService.chat({
         query: content,
-        session_id: chatSessionId,
+        session_id: currentSessionId || chatSessionId,
         class_id: activeDomain?.id,
         k: 5,
       });
+
+      // Update current session ID if this was a new session
+      if (response.session_id && response.session_id !== currentSessionId) {
+        setCurrentSessionId(response.session_id);
+      }
 
       const assistantMessage: Message = {
         role: 'assistant',
@@ -205,6 +242,11 @@ const AppContent: React.FC = () => {
         return newMessages;
       });
 
+      // Refresh sessions to get updated session data (with small delay to ensure backend update completes)
+      setTimeout(() => {
+        loadSessions();
+      }, 1000);
+
     } catch (error) {
       const errorMessage: Message = {
         role: 'assistant',
@@ -226,10 +268,17 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // Simple new chat function
+  // Create new chat session (simple approach - let LangChain handle the storage)
   const handleNewChat = () => {
+    console.log('Creating new chat session...');
+    // Generate new session ID (LangChain will create the session when first message is sent)
+    const newSessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    console.log('New session ID:', newSessionId);
+
+    setCurrentSessionId(newSessionId);
     setMessages([]);
-    setIsNewChatSession(true); // Mark as new chat session
+    setIsNewChatSession(true);
+
     // Clear domain chat history for current domain only
     if (activeDomain) {
       setDomainChatHistory(prev => ({
@@ -241,6 +290,65 @@ const AppContent: React.FC = () => {
 
   const handleClearChat = () => {
     handleNewChat();
+  };
+
+  const handleSelectSession = async (sessionId: string) => {
+    try {
+      console.log('Selecting session:', sessionId);
+      setCurrentSessionId(sessionId);
+
+      // Mark session as no longer new when selected
+      setSessions(prev => prev.map(session =>
+        session.id === sessionId
+          ? { ...session, isNew: false }
+          : session
+      ));
+
+      // Load messages for this session from Firestore
+      setIsChatLoading(true);
+      const sessionData = await apiService.getSessionMessages(sessionId);
+      console.log('Loaded session messages:', sessionData);
+      setMessages(sessionData.messages || []);
+
+      // Update domain chat history
+      if (activeDomain) {
+        setDomainChatHistory(prev => ({
+          ...prev,
+          [activeDomain.id]: sessionData.messages || []
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load session messages:', error);
+      setMessages([]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const handleRenameSession = async (sessionId: string, newName: string) => {
+    try {
+      await apiService.updateSession(sessionId, { name: newName });
+      setSessions(prev => prev.map(session =>
+        session.id === sessionId
+          ? { ...session, name: newName }
+          : session
+      ));
+    } catch (error) {
+      console.error('Failed to rename session:', error);
+    }
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    try {
+      await apiService.deleteSession(sessionId);
+      setSessions(prev => prev.filter(session => session.id !== sessionId));
+      if (currentSessionId === sessionId) {
+        setCurrentSessionId(null);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+    }
   };
 
   const handleUploadDocument = async (file: File) => {
@@ -875,10 +983,18 @@ const AppContent: React.FC = () => {
           onDeleteDomain={handleDeleteDomain}
           availableDocuments={documents.map(doc => ({ id: doc.id, filename: doc.filename }))}
           onAssignDocuments={handleAssignDocuments}
-          sessionId={chatSessionId}
+          sessionId={currentSessionId || chatSessionId}
           messageCount={getUserMessageCount()}
           onClearChat={handleClearChat}
           onNewSession={handleNewChat}
+          onSelectSession={handleSelectSession}
+          onRenameSession={handleRenameSession}
+          onDeleteSession={handleDeleteSession}
+          sessions={(() => {
+            console.log('🔍 APP: Passing sessions to Sidebar:', sessions.length, sessions);
+            return sessions;
+          })()}
+          currentBackendSessionId={currentSessionId}
           isCollapsed={!sidebarOpen}
           documents={documents}
           onUpload={handleUploadDocument}

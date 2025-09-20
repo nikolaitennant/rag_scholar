@@ -159,9 +159,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   <div
                     className={`${
                       message.role === 'user'
-                        ? `px-4 py-2 rounded-2xl ${theme === 'dark' ? 'bg-white/10 text-white' : 'bg-gray-200 text-black'}`
+                        ? `px-4 py-2 rounded-2xl overflow-hidden backdrop-blur-2xl ${theme === 'dark' ? 'bg-black/10 text-white' : 'bg-white/10 text-black'}`
                         : `px-0 py-0 bg-transparent border-0 shadow-none ${theme === 'dark' ? 'text-white' : 'text-black'}`
                     }`}
+                    style={message.role === 'user' ? {
+                      backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
+                      WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)'
+                    } : {}}
                   >
                     <div className={`prose prose-sm max-w-none text-sm ${
                       message.role === 'user' || theme === 'dark' ? 'prose-invert' : ''

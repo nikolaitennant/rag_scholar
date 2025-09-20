@@ -13,9 +13,13 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     const currentUser = auth.currentUser;
+    console.log('🔍 API: currentUser:', currentUser ? 'exists' : 'null');
     if (currentUser) {
       const token = await currentUser.getIdToken();
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('🔍 API: Added auth token');
+    } else {
+      console.log('🔍 API: No currentUser - skipping auth token');
     }
     return config;
   },
@@ -93,6 +97,33 @@ export const apiService = {
   getCurrentUser: async (): Promise<any> => {
     const response = await api.get('/me');
     return response.data;
+  },
+
+  // Sessions
+  getSessions: async (): Promise<any[]> => {
+    const response = await api.get('/sessions');
+    return response.data;
+  },
+
+  updateSession: async (sessionId: string, data: { name?: string }): Promise<any> => {
+    const response = await api.put(`/sessions/${sessionId}`, data);
+    return response.data;
+  },
+
+  deleteSession: async (sessionId: string): Promise<void> => {
+    const response = await api.delete(`/sessions/${sessionId}`);
+    return response.data;
+  },
+
+  getSessionMessages: async (sessionId: string): Promise<any> => {
+    const response = await api.get(`/sessions/${sessionId}/messages`);
+    return response.data;
+  },
+
+  // Debug
+  debugFirestore: async (): Promise<any> => {
+    // Mock debug response since we removed the debug endpoint
+    return { debug: 'Sessions handled by LangChain' };
   },
 };
 

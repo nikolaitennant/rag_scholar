@@ -106,6 +106,7 @@ Context: {context}"""
         context_docs: list[dict],
         session_id: str,
         user_id: str,
+        class_id: str = None,
     ) -> dict:
         """Chat using built-in LangChain agent with tools."""
 
@@ -123,6 +124,9 @@ Context: {context}"""
                 # Add to history
                 history.add_user_message(question)
                 history.add_ai_message(no_docs_message)
+
+                # Store session metadata even when no docs found
+                await self._store_session_metadata(user_id, session_id, class_id, question)
 
                 return {
                     "response": no_docs_message,
@@ -154,6 +158,9 @@ Context: {context}"""
             # Add to history
             history.add_user_message(question)
             history.add_ai_message(response_content)
+
+            # Store session metadata with class_id for filtering
+            await self._store_session_metadata(user_id, session_id, class_id, question)
 
             # Extract sources
             sources = [doc.get("source", "Unknown") for doc in context_docs]
@@ -208,3 +215,33 @@ Context: {context}"""
         except Exception as e:
             logger.error("Simple chat failed", error=str(e))
             return "I'm sorry, I encountered an error processing your message."
+
+    async def _store_session_metadata(self, user_id: str, session_id: str, class_id: str, question: str):
+        """Store session metadata for filtering and organization."""
+        try:
+            from google.cloud import firestore
+            from datetime import datetime, timezone
+
+            db = firestore.Client(project=self.settings.google_cloud_project)
+            session_ref = db.collection(f"users/{user_id}/chat_sessions").document(session_id)
+
+            # Check if session document exists, if not create it
+            session_doc = session_ref.get()
+            if not session_doc.exists:
+                # Create new session with metadata
+                session_data = {
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "class_id": class_id,
+                    "name": question[:50] + "..." if len(question) > 50 else question,  # Use first question as name
+                }
+                session_ref.set(session_data)
+            else:
+                # Update existing session - always update timestamp when new message added
+                session_ref.update({
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "class_id": class_id,  # Update class_id in case it changed
+                })
+
+        except Exception as e:
+            logger.error("Failed to store session metadata", error=str(e), session_id=session_id)

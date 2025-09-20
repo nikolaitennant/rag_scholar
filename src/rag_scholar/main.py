@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     """Create and configure FastAPI application."""
     # Import routes here to avoid heavy imports at module level
-    from rag_scholar.routes import auth, health, rag_chat, documents
+    from rag_scholar.routes import auth, health, rag_chat, documents, sessions
 
     app = FastAPI(
         title="RAG Scholar",  # Use defaults, will be updated in lifespan
@@ -91,6 +91,11 @@ def create_app() -> FastAPI:
         documents.router,
         prefix="/api/v1/documents",
         tags=["documents"],
+    )
+    app.include_router(
+        sessions.router,
+        prefix="/api/v1",
+        tags=["sessions"],
     )
 
     # Exception handlers

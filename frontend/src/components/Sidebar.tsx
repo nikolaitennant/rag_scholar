@@ -894,7 +894,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     ? 'bg-white/10 hover:bg-white/20 text-white'
                     : 'bg-black/10 hover:bg-black/20 text-black'
                 }`}>
-                  Upload Your First Document
+                  Upload Your First Document.
                   <input
                     id="file-upload-empty"
                     type="file"

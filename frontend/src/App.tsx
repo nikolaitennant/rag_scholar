@@ -699,7 +699,7 @@ const AppContent: React.FC = () => {
                             {doc.filename}
                           </p>
                           <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            {doc.chunks} chunks • {doc.file_type}
+                            {doc.file_type}
                           </p>
                         </div>
                         <button

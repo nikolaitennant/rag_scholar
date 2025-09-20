@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, Trash, RefreshCw, ChevronRight, Upload, File, Trash2, RotateCcw, MessageSquare, X, Sun, Moon, Trophy, BookOpen, Sparkles, Heart, Star, Zap, Award, Settings, History, Edit2, MoreVertical, HelpCircle, Home, Book, Beaker, Briefcase, GraduationCap, Code, Edit3, Menu, Gift } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from '../contexts/ThemeContext';
@@ -111,6 +112,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [documentClassFilter, setDocumentClassFilter] = useState<string>('');
   const [classFilterOpen, setClassFilterOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState<{top: number, left: number, width: number} | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+
+  const [addToClassOpen, setAddToClassOpen] = useState<string | null>(null);
+  const [addToClassPosition, setAddToClassPosition] = useState<{top: number, left: number, width: number} | null>(null);
+  const addToClassRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const { theme, background } = useTheme();
   
   // Use prop sessions if available, fallback to local sessions
@@ -778,78 +786,95 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Class Filter */}
             <div className="mb-3 relative">
-              <label className={`block text-xs font-medium mb-2 ${
+              <label className={`block text-sm font-medium mb-2 ${
                 theme === 'dark' ? 'text-white/80' : 'text-black/80'
               }`}>
                 Filter by Class
               </label>
               <div className="relative">
                 <button
-                  onClick={() => setClassFilterOpen(!classFilterOpen)}
-                  className={`w-full border rounded-lg px-3 py-2 text-sm cursor-pointer transition-all duration-200 focus:outline-none backdrop-blur-sm text-left flex items-center justify-between ${
+                  ref={buttonRef}
+                  onClick={() => {
+                    if (!classFilterOpen && buttonRef.current) {
+                      const rect = buttonRef.current.getBoundingClientRect();
+                      setDropdownPosition({
+                        top: rect.bottom + window.scrollY,
+                        left: rect.left + window.scrollX,
+                        width: rect.width
+                      });
+                    }
+                    setClassFilterOpen(!classFilterOpen);
+                  }}
+                  className={`w-full px-3 py-1.5 text-sm text-left flex items-center justify-between transition-all ${
                     theme === 'dark'
-                      ? 'bg-white/10 border-white/20 text-white hover:bg-white/15'
-                      : 'bg-black/5 border-black/10 text-black hover:bg-black/10'
+                      ? 'text-white/90 hover:bg-white/5'
+                      : 'text-gray-800 hover:bg-gray-50'
+                  } border rounded-lg ${
+                    theme === 'dark' ? 'border-white/10' : 'border-gray-200'
                   }`}
                 >
-                  <span>{documentClassFilter ? domains.find(d => d.id === documentClassFilter)?.name : 'All Documents'}</span>
-                  <ChevronRight className={`w-3 h-3 transform transition-transform duration-200 ${classFilterOpen ? 'rotate-90' : 'rotate-0'} ${
-                    theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                  <span className="truncate">{documentClassFilter ? domains.find(d => d.id === documentClassFilter)?.name : 'All Documents'}</span>
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${
+                    classFilterOpen ? 'rotate-90' : 'rotate-0'
+                  } ${
+                    theme === 'dark' ? 'text-white/50' : 'text-gray-400'
                   }`} />
                 </button>
 
-                {classFilterOpen && (
-                  <div className={`absolute top-full left-0 right-0 mt-2 border rounded-xl shadow-xl backdrop-blur-lg z-50 overflow-hidden ${
+                {classFilterOpen && dropdownPosition && createPortal(
+                  <div className={`dropdown-container fixed rounded-xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl ${
                     theme === 'dark'
-                      ? 'bg-gray-900/95 border-white/10'
-                      : 'bg-white/95 border-gray-200/50'
-                  }`}>
-                    <div className="py-1">
+                      ? 'bg-black/10 border-white/20'
+                      : 'bg-white/10 border-black/20'
+                  }`} style={{
+                    top: dropdownPosition.top + 2,
+                    left: dropdownPosition.left,
+                    width: dropdownPosition.width,
+                    backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
+                    WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                  }}>
+                    <div className="py-0.5 relative z-10">
                       <button
                         onClick={() => {
                           setDocumentClassFilter('');
                           setClassFilterOpen(false);
                         }}
-                        className={`w-full px-4 py-2.5 text-sm text-left transition-all duration-200 flex items-center space-x-3 ${
+                        className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
                           !documentClassFilter
                             ? theme === 'dark'
-                              ? 'bg-blue-600/80 text-white'
-                              : 'bg-blue-500/90 text-white'
+                              ? 'bg-blue-500/30 text-blue-300 font-medium'
+                              : 'bg-blue-500/20 text-blue-700 font-medium'
                             : theme === 'dark'
                               ? 'text-white/90 hover:bg-white/10'
-                              : 'text-gray-700 hover:bg-gray-100/70'
+                              : 'text-gray-700 hover:bg-black/5'
                         }`}
                       >
-                        <div className={`w-2 h-2 rounded-full ${
-                          !documentClassFilter ? 'bg-white' : 'bg-transparent'
-                        }`} />
-                        <span className="font-medium">All Documents</span>
+                        All Documents
                       </button>
-                      {domains.map((domain, index) => (
+                      {domains.map((domain) => (
                         <button
                           key={domain.id}
                           onClick={() => {
                             setDocumentClassFilter(domain.id);
                             setClassFilterOpen(false);
                           }}
-                          className={`w-full px-4 py-2.5 text-sm text-left transition-all duration-200 flex items-center space-x-3 ${
+                          className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
                             documentClassFilter === domain.id
                               ? theme === 'dark'
-                                ? 'bg-blue-600/80 text-white'
-                                : 'bg-blue-500/90 text-white'
+                                ? 'bg-blue-500/30 text-blue-300 font-medium'
+                                : 'bg-blue-500/20 text-blue-700 font-medium'
                               : theme === 'dark'
                                 ? 'text-white/90 hover:bg-white/10'
-                                : 'text-gray-700 hover:bg-gray-100/70'
+                                : 'text-gray-700 hover:bg-black/5'
                           }`}
                         >
-                          <div className={`w-2 h-2 rounded-full ${
-                            documentClassFilter === domain.id ? 'bg-white' : 'bg-transparent'
-                          }`} />
-                          <span className="font-medium">{domain.name}</span>
+                          {domain.name}
                         </button>
                       ))}
                     </div>
-                  </div>
+                  </div>,
+                  document.body
                 )}
               </div>
             </div>
@@ -878,7 +903,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </label>
               </div>
             ) : (
-              <div className="space-y-2 max-h-[70vh] overflow-y-auto scrollbar-none">
+              <div className="space-y-2 max-h-[70vh] overflow-y-auto scrollbar-none pb-20">
                 {documents
                   .filter(doc => {
                     if (!documentClassFilter) return true; // Show all if no filter
@@ -905,39 +930,74 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <div className={`text-xs mt-1 ${
                           theme === 'dark' ? 'text-white/50' : 'text-black/50'
                         }`}>
-                          {doc.chunks} chunks{doc.size ? ` • ${formatFileSize(doc.size)}` : ''}
+                          {doc.size ? formatFileSize(doc.size) : ''}
                         </div>
 
                         {/* Class Assignment Section */}
                         <div className="mt-2">
-                          <div className="flex items-center gap-1 mb-1">
-                            <span className={`text-xs ${
-                              theme === 'dark' ? 'text-white/60' : 'text-black/60'
-                            }`}>Classes:</span>
-                            <select
-                              onChange={async (e) => {
-                                const classId = e.target.value;
-                                if (classId && !doc.assigned_classes?.includes(classId)) {
-                                  await onAssignToClass(doc.id, doc.filename, classId, 'add');
-                                }
-                                e.target.value = ''; // Reset dropdown
+                          <div className="mb-1 relative">
+                            <button
+                              ref={(el) => {
+                                addToClassRefs.current[doc.id] = el;
                               }}
-                              className={`text-xs border rounded-lg px-2 py-1 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 ${
+                              onClick={() => {
+                                if (addToClassOpen !== doc.id && addToClassRefs.current[doc.id]) {
+                                  const rect = addToClassRefs.current[doc.id]!.getBoundingClientRect();
+                                  setAddToClassPosition({
+                                    top: rect.bottom + window.scrollY,
+                                    left: rect.left + window.scrollX,
+                                    width: 200
+                                  });
+                                }
+                                setAddToClassOpen(addToClassOpen === doc.id ? null : doc.id);
+                              }}
+                              className={`text-xs px-2 py-1 rounded transition-colors ${
                                 theme === 'dark'
-                                  ? 'bg-white/10 hover:bg-white/20 border-white/20 hover:border-white/40 text-white focus:ring-blue-500/50 focus:border-blue-500/50'
-                                  : 'bg-black/5 hover:bg-black/10 border-black/10 hover:border-black/20 text-black focus:ring-blue-500/50 focus:border-blue-500/50'
+                                  ? 'text-white/70 hover:text-white hover:bg-white/5'
+                                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
                               }`}
                               disabled={isLoading}
                             >
-                              <option value="">{isLoading ? 'Adding...' : '+ Add to class'}</option>
-                              {domains.map(domain => (
-                                <option key={domain.id} value={domain.id} className={
-                                  theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-black'
-                                }>
-                                  {domain.name}
-                                </option>
-                              ))}
-                            </select>
+                              {isLoading ? 'Adding...' : '+ Add to class'}
+                            </button>
+
+                            {addToClassOpen === doc.id && addToClassPosition && createPortal(
+                              <div className={`dropdown-container fixed rounded-xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl ${
+                                theme === 'dark'
+                                  ? 'bg-black/10 border-white/20'
+                                  : 'bg-white/10 border-black/20'
+                              }`} style={{
+                                top: addToClassPosition.top + 2,
+                                left: addToClassPosition.left,
+                                width: addToClassPosition.width,
+                                backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
+                                WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
+                                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                              }}>
+                                <div className="py-0.5">
+                                  {domains.map(domain => (
+                                    <button
+                                      key={domain.id}
+                                      onClick={async () => {
+                                        if (!doc.assigned_classes?.includes(domain.id)) {
+                                          await onAssignToClass(doc.id, doc.filename, domain.id, 'add');
+                                        }
+                                        setAddToClassOpen(null);
+                                      }}
+                                      className={`px-2.5 py-1 text-xs text-left transition-colors whitespace-nowrap block ${
+                                        doc.assigned_classes?.includes(domain.id)
+                                          ? 'text-white/30 cursor-not-allowed bg-black/20'
+                                          : 'text-white/90 hover:bg-black/20'
+                                      }`}
+                                      disabled={doc.assigned_classes?.includes(domain.id)}
+                                    >
+                                      {domain.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>,
+                              document.body
+                            )}
                           </div>
 
                           {/* Show assigned classes */}

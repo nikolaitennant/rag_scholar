@@ -97,17 +97,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [showCreateClassForm, setShowCreateClassForm] = useState(false);
   const [newClassName, setNewClassName] = useState('');
 
-  const getSessionMessageCount = (session: any) => {
-    // For the currently active session, use the live messageCount prop
-    if (session.id === sessionId) {
-      console.log(`📊 Active session ${session.id} message count: ${messageCount} (live)`);
-      return messageCount;
-    }
-    // For other sessions, use the backend message count
-    const count = session.message_count || 0;
-    console.log(`📊 Session ${session.id} message count: ${count} (backend)`);
-    return count;
-  };
   const [newClassType, setNewClassType] = useState<DomainType>(DomainType.GENERAL);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [documentClassFilter, setDocumentClassFilter] = useState<string>('');
@@ -1267,11 +1256,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 setEditingSessionName('');
                               }
                             }}
-                            className={`w-full text-sm font-medium bg-transparent border rounded px-2 py-1 ${
+                            className={`w-full text-sm font-medium rounded-full px-2 py-1 outline-none focus:outline-none focus:ring-0 focus:ring-offset-0 focus:shadow-none transition-all duration-300 backdrop-blur-xl border-0 ${
                               theme === 'dark'
-                                ? 'text-white border-white/30 focus:border-white/50'
-                                : 'text-black border-black/30 focus:border-black/50'
-                            }`}
+                                ? 'text-white bg-white/5 focus:bg-white/8'
+                                : 'text-black bg-black/3 focus:bg-black/5'
+                            } hover:scale-[1.02] focus:scale-[1.02]`}
+                            style={{
+                              boxShadow: 'none',
+                              outline: 'none',
+                              border: 'none',
+                              WebkitAppearance: 'none',
+                              MozAppearance: 'none'
+                            }}
                             autoFocus
                             onClick={(e) => e.stopPropagation()}
                           />
@@ -1292,7 +1288,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <div className={`text-xs mt-2 ${
                               theme === 'dark' ? 'text-white/50' : 'text-black/50'
                             }`}>
-                              {getSessionMessageCount(session)} messages • {formatLocalDate(session.updated_at)}
+                              {formatLocalDate(session.updated_at)}
                             </div>
                             {/* Show class name like desktop mode */}
                             {(() => {
@@ -1308,7 +1304,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           </>
                         )}
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className={`flex items-center gap-1 transition-all duration-200 ${
+                        editingSessionId === session.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1322,24 +1320,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               setEditingSessionName(session.name);
                             }
                           }}
-                          className={`p-1 rounded transition-colors ${
-                            theme === 'dark'
-                              ? 'text-white/40 hover:text-white hover:bg-white/10'
-                              : 'text-black/40 hover:text-black hover:bg-black/10'
+                          className={`p-1.5 rounded-full transition-all duration-200 backdrop-blur-sm ${
+                            editingSessionId === session.id
+                              ? theme === 'dark'
+                                ? 'text-blue-400 bg-blue-400/20 shadow-lg'
+                                : 'text-blue-600 bg-blue-500/20 shadow-lg'
+                              : theme === 'dark'
+                              ? 'text-white/50 hover:text-white hover:bg-white/10'
+                              : 'text-black/50 hover:text-black hover:bg-black/10'
                           }`}
-                          title="Rename"
+                          title={editingSessionId === session.id ? "Cancel" : "Rename"}
                         >
-                          <Edit2 className="w-3 h-3" />
+                          {editingSessionId === session.id ? (
+                            <X className="w-3 h-3" />
+                          ) : (
+                            <Edit2 className="w-3 h-3" />
+                          )}
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteSession(session.id);
                           }}
-                          className={`p-1 rounded transition-colors ${
+                          className={`p-1.5 rounded-full transition-all duration-200 backdrop-blur-sm ${
                             theme === 'dark'
-                              ? 'text-white/40 hover:text-red-400 hover:bg-red-400/10'
-                              : 'text-black/40 hover:text-red-400 hover:bg-red-400/10'
+                              ? 'text-white/50 hover:text-red-400 hover:bg-red-400/20 hover:shadow-lg'
+                              : 'text-black/50 hover:text-red-500 hover:bg-red-500/20 hover:shadow-lg'
                           }`}
                           title="Delete"
                         >
@@ -2135,11 +2141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="space-y-2 max-h-[70vh] overflow-y-auto scrollbar-none">
                   {currentSessions.map((session, index) => {
                     const isActive = sessionId === session.id;
-                    // For the active session, use real-time messageCount prop, for others use session.message_count
-                    const currentMessageCount = isActive ? messageCount : session.message_count;
-                    const isPreview = session.isPreview || (index === 0 && currentMessageCount === 0);
-                    // Find which domain this session belongs to
-                    const sessionDomain = domains.find(d => d.id === session.domain);
+                    const isPreview = session.isPreview || (index === 0 && (session.message_count || 0) === 0);
 
                     // Debug logging for each session
                     console.log(`DEBUG DESKTOP Session ${session.id}:`, {
@@ -2147,7 +2149,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       isActive,
                       isPreview,
                       session_message_count: session.message_count,
-                      current_message_count: currentMessageCount,
                       real_time_messageCount: messageCount,
                       class_name: session.class_name,
                       domain: session.domain,
@@ -2200,9 +2201,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                           setEditingSessionName('');
                                         }
                                       }}
-                                      className={`w-full bg-transparent border-none outline-none ${
-                                        theme === 'dark' ? 'text-white' : 'text-black'
-                                      }`}
+                                      className={`w-full text-sm font-medium rounded-full px-1.5 py-0.5 outline-none transition-all duration-300 backdrop-blur-xl border-0 ${
+                                        theme === 'dark'
+                                          ? 'text-white bg-white/5 focus:bg-white/8 shadow-lg'
+                                          : 'text-black bg-black/3 focus:bg-black/5 shadow-lg'
+                                      } hover:scale-[1.02] focus:scale-[1.02]`}
                                       autoFocus
                                       onClick={(e) => e.stopPropagation()}
                                     />
@@ -2220,10 +2223,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 <div className={`text-xs flex items-center gap-2 ${
                                   theme === 'dark' ? 'text-white/60' : 'text-black/60'
                                 }`}>
-                                  <span>{session.class_name || (sessionDomain ? sessionDomain.name : 'General')}</span>
-                                  <span>•</span>
-                                  <span>{currentMessageCount || 0} messages</span>
-                                  <span>•</span>
                                   <span>{formatLocalDate(session.updated_at)}</span>
                                 </div>
                               </div>

@@ -216,6 +216,48 @@ Context: {context}"""
             logger.error("Simple chat failed", error=str(e))
             return "I'm sorry, I encountered an error processing your message."
 
+    async def _generate_chat_name(self, question: str) -> str:
+        """Generate a concise, descriptive name for the chat based on the user's question."""
+        try:
+            from langchain_openai import ChatOpenAI
+            from langchain.schema import HumanMessage, SystemMessage
+
+            # Use a fast, cheap model for naming
+            llm = ChatOpenAI(
+                model="gpt-3.5-turbo",
+                temperature=0.3,
+                max_tokens=20,
+                openai_api_key=self.settings.openai_api_key
+            )
+
+            system_prompt = """Create a concise, descriptive title (3-6 words) for a chat session based on the user's first message.
+The title should capture the main topic or question. Do not use quotation marks.
+
+Examples:
+"What is photosynthesis?" → "Photosynthesis Basics"
+"How do I calculate derivatives in calculus?" → "Calculus Derivatives Help"
+"Explain the causes of World War I" → "World War I Causes"
+"What are the symptoms of depression?" → "Depression Symptoms Guide"""
+
+            messages = [
+                SystemMessage(content=system_prompt),
+                HumanMessage(content=f"User's message: {question}")
+            ]
+
+            response = await llm.ainvoke(messages)
+            generated_name = response.content.strip()
+
+            # Fallback if generation fails or is too long
+            if not generated_name or len(generated_name) > 50:
+                return question[:40] + "..." if len(question) > 40 else question
+
+            return generated_name
+
+        except Exception as e:
+            logger.warning("Failed to generate chat name with LLM", error=str(e))
+            # Fallback to simple truncation
+            return question[:40] + "..." if len(question) > 40 else question
+
     async def _store_session_metadata(self, user_id: str, session_id: str, class_id: str, question: str):
         """Store session metadata for filtering and organization."""
         try:
@@ -228,12 +270,15 @@ Context: {context}"""
             # Check if session document exists, if not create it
             session_doc = session_ref.get()
             if not session_doc.exists:
+                # Generate a better name using LLM
+                chat_name = await self._generate_chat_name(question)
+
                 # Create new session with metadata
                 session_data = {
                     "created_at": datetime.now(timezone.utc).isoformat(),
                     "updated_at": datetime.now(timezone.utc).isoformat(),
                     "class_id": class_id,
-                    "name": question[:50] + "..." if len(question) > 50 else question,  # Use first question as name
+                    "name": chat_name,
                 }
                 session_ref.set(session_data)
             else:

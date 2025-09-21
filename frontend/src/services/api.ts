@@ -40,6 +40,7 @@ export const apiService = {
     query: string;
     session_id?: string;
     class_id?: string;
+    domain_type?: string;
     k?: number;
   }): Promise<ChatResponse> => {
     const response = await api.post('/chat/chat', payload);
@@ -106,6 +107,12 @@ export const apiService = {
 
   grantEarlyAdopter: async (): Promise<any> => {
     const response = await api.post('/grant-early-adopter');
+    return response.data;
+  },
+
+  refreshAchievements: async (): Promise<any> => {
+    // Just get user profile to trigger achievement recalculation
+    const response = await api.get('/me');
     return response.data;
   },
 

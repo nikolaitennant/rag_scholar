@@ -214,6 +214,7 @@ const AppContent: React.FC = () => {
         query: content,
         session_id: currentSessionId || chatSessionId,
         class_id: activeDomain?.id,
+        domain_type: activeDomain?.type, // Send the actual domain type (law, science, etc.)
         k: 5,
       });
 
@@ -245,8 +246,11 @@ const AppContent: React.FC = () => {
         return newMessages;
       });
 
-      // Check for new achievements after chat
-      checkForNewAchievements();
+      // Check for new achievements and refresh user profile after chat (with small delay)
+      setTimeout(async () => {
+        await checkForNewAchievements();
+        await refreshUserProfile();
+      }, 1000);
 
       // Refresh sessions to get updated session data (with small delay to ensure backend update completes)
       setTimeout(() => {
@@ -369,8 +373,11 @@ const AppContent: React.FC = () => {
       await loadDocuments();
       console.log('Documents reloaded after upload');
 
-      // Check for new achievements after document upload
-      checkForNewAchievements();
+      // Check for new achievements and refresh user profile after document upload (with small delay)
+      setTimeout(async () => {
+        await checkForNewAchievements();
+        await refreshUserProfile();
+      }, 1000);
 
       // Auto-assign the uploaded document to the current active domain
       if (activeDomain && uploadResponse.id) {

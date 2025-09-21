@@ -19,6 +19,7 @@ class ChatRequest(BaseModel):
     query: str
     session_id: str | None = None
     class_id: str | None = None
+    domain_type: str | None = None  # The actual domain type (law, science, etc.)
     k: int = 5
 
 
@@ -72,14 +73,24 @@ async def chat(
         class_id=request.class_id,
     )
 
+    # Track citations if sources were returned
+    sources_count = len(result.get("sources", []))
+
     # Update user achievements for chat
     try:
         user_service = UserProfileService(settings)
         await user_service.update_user_stats(current_user["id"], "total_chats", 1)
 
-        # Track domain exploration if class_id is provided
-        if request.class_id:
-            await user_service.track_domain_exploration(current_user["id"], request.class_id)
+        # Track daily activity for streak
+        await user_service.track_daily_activity(current_user["id"])
+
+        # Track domain exploration if domain_type is provided
+        if request.domain_type:
+            await user_service.track_domain_exploration(current_user["id"], request.domain_type)
+
+        # Track citations if sources were returned
+        if sources_count > 0:
+            await user_service.update_user_stats(current_user["id"], "citations_received", sources_count)
     except Exception as e:
         # Don't fail the chat if achievement tracking fails
         pass

@@ -42,7 +42,22 @@ class UserProfileService:
             achievements_data = [doc.to_dict() for doc in achievements_docs]
 
             # Calculate total points from unlocked achievements
-            total_points = stats_data.get("total_points", 0)
+            stored_points = stats_data.get("total_points", 0)
+
+            # Also calculate from achievements to ensure accuracy
+            calculated_points = sum(
+                ach.get("points", 0) for ach in achievements_data
+                if ach.get("unlocked_at") is not None
+            )
+
+            # Use the higher value (in case of sync issues)
+            total_points = max(stored_points, calculated_points)
+
+            # Update stored points if calculated is higher
+            if calculated_points > stored_points:
+                stats_data["total_points"] = calculated_points
+                stats_ref = self.db.collection(f"users/{user_id}/stats").document("main")
+                stats_ref.set(stats_data)
 
             return {
                 "profile": profile_data,
@@ -309,6 +324,57 @@ class UserProfileService:
             return False
         except Exception as e:
             logger.error("Failed to track domain exploration", user_id=user_id, error=str(e))
+            return False
+
+    async def track_daily_activity(self, user_id: str) -> bool:
+        """Track daily activity for streak calculations."""
+        try:
+            stats_ref = self.db.collection(f"users/{user_id}/stats").document("main")
+            doc = stats_ref.get()
+
+            if doc.exists:
+                stats = doc.to_dict() or {}
+                from datetime import datetime, date
+
+                today = date.today()
+                last_activity_date = None
+
+                # Get last activity date
+                if stats.get("last_activity_date"):
+                    if isinstance(stats["last_activity_date"], str):
+                        last_activity_date = datetime.fromisoformat(stats["last_activity_date"]).date()
+                    else:
+                        last_activity_date = stats["last_activity_date"]
+
+                # Check if this is a new day of activity
+                if last_activity_date != today:
+                    # Update research_days count
+                    research_days = stats.get("research_days", 0) + 1
+                    stats["research_days"] = research_days
+
+                    # Calculate streak
+                    if last_activity_date and (today - last_activity_date).days == 1:
+                        # Consecutive day - increment streak
+                        stats["streak_days"] = stats.get("streak_days", 0) + 1
+                    else:
+                        # First day or gap - reset streak to 1
+                        stats["streak_days"] = 1
+
+                    stats["last_activity_date"] = today.isoformat()
+                    stats["updated_at"] = datetime.utcnow()
+                    stats_ref.set(stats)
+
+                    # Check for streak achievements
+                    await self._check_achievements(user_id, stats)
+
+                    logger.info("Tracked daily activity",
+                               user_id=user_id,
+                               research_days=research_days,
+                               streak_days=stats["streak_days"])
+                return True
+            return False
+        except Exception as e:
+            logger.error("Failed to track daily activity", user_id=user_id, error=str(e))
             return False
 
     async def add_points(self, user_id: str, points: int) -> bool:

@@ -29,17 +29,27 @@ export const useAchievements = () => {
   const [newlyUnlocked, setNewlyUnlocked] = useState<Achievement[]>([]);
   const [lastChecked, setLastChecked] = useState<string | null>(null);
 
-  const fetchAchievements = useCallback(async () => {
+  const fetchAchievements = useCallback(async (forceRefresh = false) => {
     try {
+      console.log('🔄 Fetching achievements...', { forceRefresh });
       const profile: UserProfile = await apiService.getUserProfile();
       const currentAchievements = profile.achievements || [];
 
-      // Check for newly unlocked achievements
-      if (lastChecked && achievements.length > 0) {
+      // Check for newly unlocked achievements (only if we have previous state)
+      if (!forceRefresh && lastChecked && achievements.length > 0) {
+        console.log('🔍 Checking for newly unlocked achievements...');
         const newUnlocked = currentAchievements.filter(achievement => {
           const oldAchievement = achievements.find(a => a.id === achievement.id || a.type === achievement.type);
           // Achievement is newly unlocked if it wasn't unlocked before but is now
-          return oldAchievement && !oldAchievement.unlocked_at && achievement.unlocked_at;
+          const wasUnlocked = oldAchievement?.unlocked_at;
+          const isNowUnlocked = achievement.unlocked_at;
+          const isNew = oldAchievement && !wasUnlocked && isNowUnlocked;
+
+          if (isNew) {
+            console.log(`🎉 Achievement "${achievement.name}" just unlocked!`);
+          }
+
+          return isNew;
         });
 
         if (newUnlocked.length > 0) {
@@ -48,19 +58,21 @@ export const useAchievements = () => {
         }
       }
 
+      console.log('📊 Updated achievements:', currentAchievements.length);
       setAchievements(currentAchievements);
       setLastChecked(new Date().toISOString());
     } catch (error) {
       console.error('Failed to fetch achievements:', error);
     }
-  }, [achievements, lastChecked]);
+  }, []);
 
   const dismissNotification = useCallback((achievementId: string) => {
     setNewlyUnlocked(prev => prev.filter(a => a.id !== achievementId));
   }, []);
 
-  const checkForNewAchievements = useCallback(() => {
-    fetchAchievements();
+  const checkForNewAchievements = useCallback(async () => {
+    console.log('🔍 Checking for new achievements...');
+    await fetchAchievements(false);
   }, [fetchAchievements]);
 
   useEffect(() => {

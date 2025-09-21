@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
 from pydantic import BaseModel
 
 from rag_scholar.services.langchain_ingestion import LangChainIngestionPipeline
+from rag_scholar.services.user_profile import UserProfileService
 from rag_scholar.config.settings import get_settings
 
 from .auth import get_current_user
@@ -59,6 +60,14 @@ async def upload_document(
                 "user_email": current_user.get("email", ""),
             }
         )
+
+        # Update user achievements for document upload
+        try:
+            user_service = UserProfileService(settings)
+            await user_service.update_user_stats(current_user["id"], "documents_uploaded", 1)
+            logger.info("Updated document upload achievement", user_id=current_user["id"])
+        except Exception as e:
+            logger.warning("Failed to update achievement", user_id=current_user["id"], error=str(e))
 
         return UploadResponse(
             id=result.get("document_id", ""),

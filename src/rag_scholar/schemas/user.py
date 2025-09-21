@@ -41,6 +41,7 @@ class UserStats(BaseModel):
     domains_explored: list[str] = []
     citations_received: int = 0
     streak_days: int = 0
+    is_early_adopter: int = 0
     last_activity: datetime | None = None
     joined_date: datetime = Field(default_factory=datetime.utcnow)
 

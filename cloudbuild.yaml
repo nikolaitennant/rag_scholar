@@ -55,7 +55,6 @@ steps:
       - '--no-cpu-throttling'
       - '--set-secrets=OPENAI_API_KEY=OPENAI_API_KEY:latest,JWT_SECRET_KEY=JWT_SECRET_KEY:latest'
       - '--set-env-vars=ENVIRONMENT=production,DEBUG=false'
-      - '--allow-unauthenticated'
       - '--labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=${COMMIT_SHA},gcb-build-id=${BUILD_ID}'
       - '--region=${_DEPLOY_REGION}'
       - '--quiet'

@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from rag_scholar.services.langchain_pipeline import LangChainRAGPipeline
 from rag_scholar.services.langchain_ingestion import LangChainIngestionPipeline
+from rag_scholar.services.user_profile import UserProfileService
 from rag_scholar.config.settings import get_settings
 
 from .auth import get_current_user
@@ -70,6 +71,18 @@ async def chat(
         user_id=current_user["id"],
         class_id=request.class_id,
     )
+
+    # Update user achievements for chat
+    try:
+        user_service = UserProfileService(settings)
+        await user_service.update_user_stats(current_user["id"], "total_chats", 1)
+
+        # Track domain exploration if class_id is provided
+        if request.class_id:
+            await user_service.track_domain_exploration(current_user["id"], request.class_id)
+    except Exception as e:
+        # Don't fail the chat if achievement tracking fails
+        pass
 
     return ChatResponse(**result)
 

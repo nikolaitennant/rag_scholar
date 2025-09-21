@@ -7,6 +7,8 @@ import { UserProvider, useUser } from './contexts/UserContext';
 import { LoginPage } from './components/LoginPage';
 import { ThemeToggle } from './components/ThemeToggle';
 import { SettingsModal } from './components/SettingsModal';
+import { AchievementNotification } from './components/AchievementNotification';
+import { useAchievements } from './hooks/useAchievements';
 import { apiService } from './services/api';
 import { Message, DomainType, Document, UserDomain } from './types';
 
@@ -23,6 +25,7 @@ const DOMAIN_TYPE_INFO = {
 const AppContent: React.FC = () => {
   const { theme, themeMode, toggleTheme, getBackgroundClass } = useTheme();
   const { user, userProfile, login, signUp, refreshUserProfile, isAuthenticated, loading } = useUser();
+  const { newlyUnlocked, dismissNotification, checkForNewAchievements } = useAchievements();
 
   // Core state
   const [messages, setMessages] = useState<Message[]>([]);
@@ -242,6 +245,9 @@ const AppContent: React.FC = () => {
         return newMessages;
       });
 
+      // Check for new achievements after chat
+      checkForNewAchievements();
+
       // Refresh sessions to get updated session data (with small delay to ensure backend update completes)
       setTimeout(() => {
         loadSessions();
@@ -362,6 +368,9 @@ const AppContent: React.FC = () => {
       // Refresh document list
       await loadDocuments();
       console.log('Documents reloaded after upload');
+
+      // Check for new achievements after document upload
+      checkForNewAchievements();
 
       // Auto-assign the uploaded document to the current active domain
       if (activeDomain && uploadResponse.id) {
@@ -953,6 +962,21 @@ const AppContent: React.FC = () => {
           {apiError}
         </div>
       )}
+
+      {/* Achievement Notifications */}
+      {newlyUnlocked.map((achievement, index) => (
+        <AchievementNotification
+          key={`${achievement.id}-${achievement.unlocked_at}`}
+          achievement={{
+            id: achievement.id,
+            name: achievement.name,
+            description: achievement.description,
+            points: achievement.points,
+            icon: achievement.icon
+          }}
+          onClose={() => dismissNotification(achievement.id)}
+        />
+      ))}
 
       {/* Theme Toggle with hover area */}
       <div

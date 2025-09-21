@@ -51,9 +51,24 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
         "is_active": True,
         "stats": profile_data.get("stats", {}),
         "profile": profile_data.get("profile", {}),
-        "achievements": profile_data.get("achievements", [])
+        "achievements": profile_data.get("achievements", []),
+        "total_points": profile_data.get("total_points", 0)
     }
 
     return full_user
+
+
+@router.post("/grant-early-adopter")
+async def grant_early_adopter(current_user: dict = Depends(get_current_user)):
+    """Grant early adopter status to current user (temporary endpoint)."""
+    settings = get_settings()
+    user_service = UserProfileService(settings)
+
+    success = await user_service.update_user_stats(current_user["id"], "is_early_adopter", 1)
+
+    if success:
+        return {"message": "Early adopter status granted!", "user_id": current_user["id"]}
+    else:
+        return {"error": "Failed to grant early adopter status"}
 
 

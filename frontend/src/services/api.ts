@@ -99,6 +99,16 @@ export const apiService = {
     return response.data;
   },
 
+  getUserProfile: async (): Promise<any> => {
+    const response = await api.get('/me');
+    return response.data;
+  },
+
+  grantEarlyAdopter: async (): Promise<any> => {
+    const response = await api.post('/grant-early-adopter');
+    return response.data;
+  },
+
   // Sessions
   getSessions: async (): Promise<any[]> => {
     const response = await api.get('/sessions');

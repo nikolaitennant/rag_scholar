@@ -1411,7 +1411,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       </div>
                       
                       <h4 className={`text-sm font-medium mb-1 ${
-                        isUnlocked 
+                        isUnlocked
                           ? (theme === 'dark' ? 'text-white' : 'text-black')
                           : (theme === 'dark' ? 'text-white/60' : 'text-black/60')
                       }`}>

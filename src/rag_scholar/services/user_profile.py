@@ -41,10 +41,14 @@ class UserProfileService:
             stats_data = stats_doc.to_dict() or {}
             achievements_data = [doc.to_dict() for doc in achievements_docs]
 
+            # Calculate total points from unlocked achievements
+            total_points = stats_data.get("total_points", 0)
+
             return {
                 "profile": profile_data,
-                "stats": stats_data,
+                "stats": {**stats_data, "total_points": total_points},
                 "achievements": achievements_data,
+                "total_points": total_points,
                 "created_at": profile_data.get("created_at"),
                 "updated_at": profile_data.get("updated_at")
             }
@@ -64,9 +68,22 @@ class UserProfileService:
                 "updated_at": now
             })
 
+            # Check if user is early adopter (first 100 users)
+            users_count_ref = self.db.collection("global_stats").document("user_count")
+            users_count_doc = users_count_ref.get()
+
+            if users_count_doc.exists:
+                current_count = users_count_doc.to_dict().get("count", 0)
+                is_early_adopter = 1 if current_count < 100 else 0
+                users_count_ref.set({"count": current_count + 1})
+            else:
+                is_early_adopter = 1  # First user is definitely early adopter
+                users_count_ref.set({"count": 1})
+
             # Create stats data
             stats_data = UserStats().model_dump()
             stats_data.update({
+                "is_early_adopter": is_early_adopter,
                 "last_activity": now,
                 "updated_at": now
             })
@@ -114,11 +131,16 @@ class UserProfileService:
 
             stats = doc.to_dict() or {}
 
-            # Update the specific stat
-            if stat_name in stats:
-                stats[stat_name] += increment
+            # Special handling for early adopter status
+            if stat_name == "is_early_adopter":
+                # Set directly, don't increment
+                stats["is_early_adopter"] = increment
             else:
-                stats[stat_name] = increment
+                # Update the specific stat normally
+                if stat_name in stats:
+                    stats[stat_name] += increment
+                else:
+                    stats[stat_name] = increment
 
             # Update last activity
             stats["last_activity"] = datetime.utcnow()
@@ -153,29 +175,53 @@ class UserProfileService:
                 return
 
             updated_achievements = []
+            total_points_earned = 0
 
             for doc in achievements_docs:
                 ach = doc.to_dict()
-                if ach.get("unlocked_at"):
-                    continue  # Already unlocked
+                if not ach:
+                    continue
 
-                # Check achievement conditions
-                if await self._check_achievement_condition(ach, stats):
+                ach_type = ach.get("type")
+                if not ach_type:
+                    continue
+
+                target = ach.get("target", 1)
+
+                # Always update progress based on current stats
+                current_progress = self._calculate_progress(ach_type, stats)
+                ach["progress"] = min(current_progress, target)
+
+                # Check if achievement should be unlocked
+                was_unlocked = bool(ach.get("unlocked_at"))
+                should_unlock = current_progress >= target
+
+                if not was_unlocked and should_unlock:
                     ach["unlocked_at"] = datetime.utcnow()
-                    ach["progress"] = ach.get("target", 1)
-
-                    # Update individual achievement document
-                    doc.reference.set(ach)
-                    updated_achievements.append(ach.get("name"))
+                    points = ach.get("points", 0)
+                    total_points_earned += points
+                    updated_achievements.append(ach.get("name", "Unknown Achievement"))
 
                     logger.info("Achievement unlocked!",
                                user_id=user_id,
-                               achievement=ach.get("name"))
+                               achievement=ach.get("name"),
+                               points=points,
+                               progress=f"{current_progress}/{target}")
 
-            if updated_achievements:
-                logger.info("Achievements updated",
-                           user_id=user_id,
-                           unlocked=updated_achievements)
+                # Always update the achievement document with current progress
+                doc.reference.set(ach)
+
+            # Update total points if achievements were unlocked
+            if total_points_earned > 0:
+                await self._add_points_to_stats(user_id, total_points_earned)
+
+            # Always log achievement progress updates
+            logger.info("Achievement progress updated",
+                       user_id=user_id,
+                       total_achievements=len(achievements_docs),
+                       newly_unlocked=len(updated_achievements),
+                       unlocked_names=updated_achievements,
+                       points_earned=total_points_earned)
 
         except Exception as e:
             logger.error("Failed to check achievements", user_id=user_id, error=str(e))
@@ -191,12 +237,80 @@ class UserProfileService:
             "research_streak": stats.get("streak_days", 0) >= target,
             "domain_explorer": len(stats.get("domains_explored", [])) >= target,
             "citation_master": stats.get("citations_received", 0) >= target,
+            "early_adopter": stats.get("is_early_adopter", 0) >= 1,
             "knowledge_seeker": stats.get("total_chats", 0) >= target,
             "power_user": stats.get("total_points", 0) >= target
         }
 
         return conditions.get(ach_type, False)
 
+    def _calculate_progress(self, ach_type: str, stats: Dict) -> int:
+        """Calculate current progress for an achievement type."""
+        progress_map = {
+            "first_chat": stats.get("total_chats", 0),
+            "document_upload": stats.get("documents_uploaded", 0),
+            "research_streak": stats.get("streak_days", 0),
+            "domain_explorer": len(stats.get("domains_explored", [])),
+            "citation_master": stats.get("citations_received", 0),
+            "early_adopter": stats.get("is_early_adopter", 0),
+            "knowledge_seeker": stats.get("total_chats", 0),
+            "power_user": stats.get("total_points", 0)  # Based on total points
+        }
+        return progress_map.get(ach_type or "", 0)
+
+    async def _add_points_to_stats(self, user_id: str, points: int) -> bool:
+        """Add points to user's total points without triggering achievement check."""
+        try:
+            stats_ref = self.db.collection(f"users/{user_id}/stats").document("main")
+            doc = stats_ref.get()
+
+            if doc.exists:
+                stats = doc.to_dict() or {}
+                current_points = stats.get("total_points", 0)
+                stats["total_points"] = current_points + points
+                stats["updated_at"] = datetime.utcnow()
+                stats_ref.set(stats)
+
+                logger.info("Added points to user",
+                           user_id=user_id,
+                           points_added=points,
+                           total_points=stats["total_points"])
+                return True
+            return False
+        except Exception as e:
+            logger.error("Failed to add points", user_id=user_id, error=str(e))
+            return False
+
+    async def track_domain_exploration(self, user_id: str, domain_id: str) -> bool:
+        """Track when user explores a new domain/class."""
+        try:
+            stats_ref = self.db.collection(f"users/{user_id}/stats").document("main")
+            doc = stats_ref.get()
+
+            if doc.exists:
+                stats = doc.to_dict() or {}
+                domains_explored = stats.get("domains_explored", [])
+
+                # Add domain if not already explored
+                if domain_id not in domains_explored:
+                    domains_explored.append(domain_id)
+                    stats["domains_explored"] = domains_explored
+                    stats["updated_at"] = datetime.utcnow()
+                    stats_ref.set(stats)
+
+                    # Check for domain explorer achievement
+                    await self._check_achievements(user_id, stats)
+
+                    logger.info("Tracked domain exploration",
+                               user_id=user_id,
+                               domain_id=domain_id,
+                               total_domains=len(domains_explored))
+                return True
+            return False
+        except Exception as e:
+            logger.error("Failed to track domain exploration", user_id=user_id, error=str(e))
+            return False
+
     async def add_points(self, user_id: str, points: int) -> bool:
         """Add points to user total."""
-        return await self.update_user_stats(user_id, "total_points", points)
+        return await self._add_points_to_stats(user_id, points)

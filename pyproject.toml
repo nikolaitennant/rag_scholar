@@ -9,7 +9,7 @@ description = "Professional RAG-based research assistant for academic study"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    {name = "Nikolai Tennant", email = "your.email@example.com"}
+    {name = "Nikolai Tennant", email = "nikolaitennant@gmail.com"}
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

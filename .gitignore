@@ -1,8 +1,12 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# C extensions
 *.so
+
+# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -16,15 +20,36 @@ parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
 # Virtual environments
-.env.local
 .env
 .venv
 env/
@@ -33,35 +58,49 @@ ENV/
 env.bak/
 venv.bak/
 
-# IDEs
+# IDEs and editors
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+.project
+.pydevproject
 
-# OS
+# OS generated files
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
+ehthumbs.db
 Thumbs.db
 
 # Application specific
-data/
-indexes/
-uploads/
-logs/
 *.log
-*.faiss
 *.pkl
-faiss_*/
+*.sqlite3
+*.db
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
+# Linting & Type checking
+.ruff_cache/
+.mypy_cache/
 
-# Temporary files
-tmp/
-temp/.env.local
+# Docker
+.dockerignore
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Cloud Build
+cloudbuild-logs/
+
+# Node.js dependencies (handled by frontend/.gitignore)
+node_modules/
+
+# Build artifacts
+build/
+dist/

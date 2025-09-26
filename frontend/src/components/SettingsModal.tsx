@@ -533,7 +533,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   </p>
                 )}
                 <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Your API key is stored securely in your browser
+                  Your API key is stored securely in the cloud and syncs across all your devices
                 </p>
               </div>
 

@@ -229,20 +229,23 @@ const AppContent: React.FC = () => {
   }, [isAuthenticated, user]);
 
   const loadUserClasses = useCallback(async () => {
+    if (!user) return; // Don't load classes if user isn't authenticated
+
     try {
       setLoadingStatus('Loading your classes...');
-      // Load classes from localStorage or start with empty array
-      const savedClasses = localStorage.getItem('userClasses');
-      const classes: UserClass[] = savedClasses ? JSON.parse(savedClasses) : [];
+      // Load classes from cloud API
+      const classes = await apiService.getClasses();
 
       setUserClasses(classes);
       // Only auto-select first class on initial app load, not when user deselects
       // This prevents overriding user's intentional deselection
-      console.log('✅ User classes loaded:', classes.length);
+      console.log('✅ User classes loaded from cloud:', classes.length);
     } catch (error) {
-      console.error('Failed to load user classes:', error);
+      console.error('Failed to load user classes from cloud:', error);
+      // Fallback to empty array on error
+      setUserClasses([]);
     }
-  }, []); // Remove activeClass dependency to prevent re-triggering on deselection
+  }, [user]); // Depend on user authentication
 
   const checkApiHealth = useCallback(async () => {
     try {
@@ -2513,7 +2516,7 @@ const AppContent: React.FC = () => {
                           </p>
                         )}
                         <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                          Your API key is stored securely in your browser
+                          Your API key is stored securely in the cloud and syncs across all your devices
                         </p>
                       </div>
 

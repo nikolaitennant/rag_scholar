@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send, ChevronDown } from 'lucide-react';
 import { ChatInterface } from './components/ChatInterface';
 import { Sidebar } from './components/Sidebar';
@@ -48,8 +49,14 @@ const AppContent: React.FC = () => {
   const [mobileInput, setMobileInput] = useState('');
   const [mobileDocumentFilter, setMobileDocumentFilter] = useState<string | null>(null);
   const [mobileFilterDropdownOpen, setMobileFilterDropdownOpen] = useState(false);
+  const [mobileDropdownPosition, setMobileDropdownPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const mobileFilterRef = useRef<HTMLDivElement>(null);
+  const mobileFilterButtonRef = useRef<HTMLButtonElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [themeToggleVisible, setThemeToggleVisible] = useState(true);
   const [isNewChatSession, setIsNewChatSession] = useState(false);
@@ -1316,7 +1323,18 @@ const AppContent: React.FC = () => {
                   </label>
                   <div className="relative" ref={mobileFilterRef}>
                     <button
-                      onClick={() => setMobileFilterDropdownOpen(!mobileFilterDropdownOpen)}
+                      ref={mobileFilterButtonRef}
+                      onClick={() => {
+                        if (!mobileFilterDropdownOpen && mobileFilterButtonRef.current) {
+                          const rect = mobileFilterButtonRef.current.getBoundingClientRect();
+                          setMobileDropdownPosition({
+                            top: rect.bottom + window.scrollY,
+                            left: rect.left + window.scrollX,
+                            width: rect.width
+                          });
+                        }
+                        setMobileFilterDropdownOpen(!mobileFilterDropdownOpen);
+                      }}
                       className={`w-full px-4 py-3 rounded-full text-sm backdrop-blur-sm border focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 flex items-center justify-between ${
                         theme === 'dark'
                           ? 'bg-white/10 border-white/20 text-white'
@@ -1333,64 +1351,63 @@ const AppContent: React.FC = () => {
                           : 'All Documents'
                         }
                       </span>
-                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${
-                        mobileFilterDropdownOpen ? 'rotate-180' : ''
+                      <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${
+                        mobileFilterDropdownOpen ? 'rotate-90' : 'rotate-0'
                       }`} />
                     </button>
 
-                    {mobileFilterDropdownOpen && (
+                    {mobileFilterDropdownOpen && mobileDropdownPosition && createPortal(
                       <>
-                        {/* Full-screen backdrop for blur effect */}
                         <div
                           className="fixed inset-0 z-[9998]"
-                          style={{
-                            backdropFilter: 'blur(20px) saturate(150%) brightness(0.9)',
-                            WebkitBackdropFilter: 'blur(20px) saturate(150%) brightness(0.9)'
-                          }}
                           onClick={() => setMobileFilterDropdownOpen(false)}
                         />
-
-                        {/* Dropdown content */}
-                        <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl border shadow-2xl z-[9999] overflow-hidden ${
+                        <div className={`dropdown-container fixed rounded-2xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl ${
                           theme === 'dark'
-                            ? 'bg-black/40 border-white/10'
-                            : 'bg-white/70 border-black/5'
-                        }`}
-                        style={{
-                          backdropFilter: 'blur(40px) saturate(180%) brightness(0.8)',
-                          WebkitBackdropFilter: 'blur(40px) saturate(180%) brightness(0.8)'
+                            ? 'bg-black/30 border-white/20'
+                            : 'bg-white/10 border-black/20'
+                        }`} style={{
+                          top: mobileDropdownPosition.top + 2,
+                          left: mobileDropdownPosition.left,
+                          width: mobileDropdownPosition.width,
+                          backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
+                          WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
+                          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
                         }}>
-                        <button
-                          onClick={() => {
-                            setMobileDocumentFilter(null);
-                            setMobileFilterDropdownOpen(false);
-                          }}
-                          className={`w-full px-4 py-3 text-left text-sm transition-all duration-200 ${
-                            !mobileDocumentFilter
-                              ? theme === 'dark' ? 'bg-white/20 text-white font-medium' : 'bg-black/20 text-black font-medium'
-                              : theme === 'dark' ? 'hover:bg-white/10 text-white/90' : 'hover:bg-black/10 text-black/90'
-                          }`}
-                        >
-                          All Documents
-                        </button>
-                        {userClasses.map((cls) => (
-                          <button
-                            key={cls.id}
-                            onClick={() => {
-                              setMobileDocumentFilter(cls.id);
-                              setMobileFilterDropdownOpen(false);
-                            }}
-                            className={`w-full px-4 py-3 text-left text-sm transition-all duration-200 ${
-                              mobileDocumentFilter === cls.id
-                                ? theme === 'dark' ? 'bg-white/20 text-white font-medium' : 'bg-black/20 text-black font-medium'
-                                : theme === 'dark' ? 'hover:bg-white/10 text-white/90' : 'hover:bg-black/10 text-black/90'
-                            }`}
-                          >
-                            {cls.name}
-                          </button>
-                        ))}
-                      </div>
-                      </>
+                          <div className="relative z-10">
+                            <button
+                              onClick={() => {
+                                setMobileDocumentFilter(null);
+                                setMobileFilterDropdownOpen(false);
+                              }}
+                              className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
+                                !mobileDocumentFilter
+                                  ? theme === 'dark' ? 'bg-white/20 text-white font-medium' : 'bg-black/20 text-black font-medium'
+                                  : theme === 'dark' ? 'text-white/90 hover:bg-black/20' : 'text-gray-900/90 hover:bg-white/20'
+                              }`}
+                            >
+                              All Documents
+                            </button>
+                            {userClasses.map((cls) => (
+                              <button
+                                key={cls.id}
+                                onClick={() => {
+                                  setMobileDocumentFilter(cls.id);
+                                  setMobileFilterDropdownOpen(false);
+                                }}
+                                className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
+                                  mobileDocumentFilter === cls.id
+                                    ? theme === 'dark' ? 'bg-white/20 text-white font-medium' : 'bg-black/20 text-black font-medium'
+                                    : theme === 'dark' ? 'text-white/90 hover:bg-black/20' : 'text-gray-900/90 hover:bg-white/20'
+                                }`}
+                              >
+                                {cls.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>,
+                      document.body
                     )}
                   </div>
                 </div>

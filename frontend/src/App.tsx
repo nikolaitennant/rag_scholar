@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle } from 'lucide-react';
+import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun } from 'lucide-react';
 import { ChatInterface } from './components/ChatInterface';
 import { Sidebar } from './components/Sidebar';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -14,9 +14,9 @@ import { Message, DomainType, Document, UserClass } from './types';
 import { DOMAIN_TYPE_INFO } from './constants/domains';
 
 const AppContent: React.FC = () => {
-  const { theme, themeMode, toggleTheme, getBackgroundClass } = useTheme();
-  const { user, userProfile, login, signUp, resetPassword, refreshUserProfile, isAuthenticated, loading } = useUser();
-  const { newlyUnlocked, dismissNotification, checkForNewAchievements } = useAchievements();
+  const { theme, themeMode, background, toggleTheme, setBackground, getBackgroundClass } = useTheme();
+  const { user, userProfile, login, signUp, logout, resetPassword, refreshUserProfile, isAuthenticated, loading } = useUser();
+  const { achievements, newlyUnlocked, dismissNotification, checkForNewAchievements } = useAchievements();
 
   // Core state
   const [messages, setMessages] = useState<Message[]>([]);
@@ -39,17 +39,138 @@ const AppContent: React.FC = () => {
   const [loadingStatus, setLoadingStatus] = useState('Initializing...');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [backgroundCommandCount, setBackgroundCommandCount] = useState(1);
-  const [mobilePage, setMobilePage] = useState<'chat' | 'home' | 'docs' | 'achievements' | 'settings' | 'help'>('home');
+  const [mobilePage, setMobilePage] = useState<'chat' | 'home' | 'docs' | 'classes' | 'rewards' | 'settings'>('home');
   const [showMobileClassForm, setShowMobileClassForm] = useState(false);
   const [editingMobileClass, setEditingMobileClass] = useState<UserClass | null>(null);
+  const [mobileEditingClassDocs, setMobileEditingClassDocs] = useState<string[]>([]);
   const [mobileClassFormData, setMobileClassFormData] = useState({ name: '', type: DomainType.GENERAL, description: '' });
+  const [isEditingMobileClass, setIsEditingMobileClass] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [themeToggleVisible, setThemeToggleVisible] = useState(true);
   const [isNewChatSession, setIsNewChatSession] = useState(false);
+  const isMobile = window.innerWidth < 768;
+
+  // Provider detection helper
+  const getProviderAndModels = () => {
+    const apiKey = apiSettings.apiKey.trim();
+
+    if (!apiKey) {
+      return { provider: null, models: [] };
+    }
+
+    // OpenAI API keys start with 'sk-'
+    if (apiKey.startsWith('sk-') && !apiKey.startsWith('sk-ant-')) {
+      return {
+        provider: "OpenAI",
+        models: [
+          { value: "gpt-5", label: "GPT-5" },
+          { value: "gpt-5-mini", label: "GPT-5 Mini" },
+          { value: "gpt-5-nano", label: "GPT-5 Nano" },
+          { value: "gpt-4.1", label: "GPT-4.1" },
+          { value: "gpt-4.1-mini", label: "GPT-4.1 Mini" },
+          { value: "gpt-4.1-nano", label: "GPT-4.1 Nano" }
+        ]
+      };
+    }
+
+    // Anthropic API keys start with 'sk-ant-'
+    if (apiKey.startsWith('sk-ant-')) {
+      return {
+        provider: "Anthropic",
+        models: [
+          { value: "claude-3.5-sonnet", label: "Claude 3.5 Sonnet" },
+          { value: "claude-3-opus", label: "Claude 3 Opus" },
+          { value: "claude-3-sonnet", label: "Claude 3 Sonnet" },
+          { value: "claude-3-haiku", label: "Claude 3 Haiku" }
+        ]
+      };
+    }
+
+    // Google API keys start with 'AIza'
+    if (apiKey.startsWith('AIza')) {
+      return {
+        provider: "Google",
+        models: [
+          { value: "gemini-pro", label: "Gemini Pro" },
+          { value: "gemini-ultra", label: "Gemini Ultra" }
+        ]
+      };
+    }
+
+    // Meta API keys (example pattern, might vary)
+    if (apiKey.startsWith('meta-') || apiKey.includes('llama')) {
+      return {
+        provider: "Meta",
+        models: [
+          { value: "llama-3-70b", label: "Llama 3 70B" },
+          { value: "llama-3-8b", label: "Llama 3 8B" }
+        ]
+      };
+    }
+
+    // Unknown key format
+    return {
+      provider: "Unknown",
+      models: []
+    };
+  };
+
+  // Mobile settings state
+  const [formData, setFormData] = useState({
+    name: user?.displayName || '',
+  });
+  const [timezone, setTimezone] = useState(() => {
+    return localStorage.getItem('userTimezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  });
+  const [activeSettingsTab, setActiveSettingsTab] = useState<'general' | 'advanced'>('general');
+  const [isLoading, setIsLoading] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
+  const [showAdvancedParams, setShowAdvancedParams] = useState(false);
+  const [apiSettings, setApiSettings] = useState({
+    apiKey: localStorage.getItem('api_key') || '',
+    model: localStorage.getItem('preferred_model') || 'gpt-5-mini',
+    temperature: parseFloat(localStorage.getItem('model_temperature') || '0.7'),
+    maxTokens: parseInt(localStorage.getItem('max_tokens') || '2000'),
+  });
   const [sessions, setSessions] = useState<any[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [loadingSessions, setLoadingSessions] = useState(false);
+
+  // Mobile settings useEffect hooks
+  useEffect(() => {
+    localStorage.setItem('userTimezone', timezone);
+  }, [timezone]);
+
+  useEffect(() => {
+    localStorage.setItem('api_key', apiSettings.apiKey);
+    localStorage.setItem('preferred_model', apiSettings.model);
+    localStorage.setItem('model_temperature', apiSettings.temperature.toString());
+    localStorage.setItem('max_tokens', apiSettings.maxTokens.toString());
+  }, [apiSettings]);
+
+  // Auto-save profile changes
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (formData.name !== user?.displayName) {
+        try {
+          // Update display name if changed
+          if (user) {
+            await (user as any).updateProfile({ displayName: formData.name });
+          }
+        } catch (error) {
+          console.error('Auto-save failed:', error);
+        }
+      }
+    }, 1000); // Auto-save after 1 second of no changes
+
+    return () => clearTimeout(timer);
+  }, [formData.name, user]);
+
+  const handleLogout = () => {
+    logout();
+  };
 
 
   // NOTE: Document and session loading now handled by initializeApp coordinator
@@ -871,108 +992,218 @@ const AppContent: React.FC = () => {
     switch (mobilePage) {
       case 'chat':
         return (
-          <ChatInterface
-            messages={messages}
-            onSendMessage={handleSendMessage}
-            isLoading={isChatLoading}
-            currentDomain={activeClass?.domainType || DomainType.GENERAL}
-            activeCollection="default"
-            userName={user?.displayName || user?.email || 'User'}
-            sidebarOpen={sidebarOpen}
-          />
+          <div className="h-full flex flex-col">
+            {/* Mobile Chat Header */}
+            <div className={`px-4 py-3  flex items-center justify-between ${
+              theme === 'dark' ? 'backdrop-blur-md bg-white/10' : 'backdrop-blur-md bg-black/10'
+            }`}>
+              <div className="flex items-center space-x-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
+                }`}>
+                  <MessageSquare className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-black'}`} />
+                </div>
+                <div>
+                  <h1 className={`font-semibold text-lg ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    {activeClass ? activeClass.name : 'Chat'}
+                  </h1>
+                  {activeClass && (
+                    <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {DOMAIN_TYPE_INFO[activeClass.domainType]?.label || activeClass.domainType}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={handleNewChat}
+                className={`p-2 rounded-lg ${
+                  theme === 'dark' ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-600'
+                }`}
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Chat Interface */}
+            <div className="flex-1 min-h-0 pb-20">
+              <ChatInterface
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                isLoading={isChatLoading}
+                currentDomain={activeClass?.domainType || DomainType.GENERAL}
+                activeCollection="default"
+                userName={user?.displayName || user?.email || 'User'}
+                sidebarOpen={false}
+              />
+            </div>
+          </div>
         );
+
       case 'home':
         return (
-          <div className="h-full overflow-y-auto p-4 pb-20">
-            <div className="max-w-md mx-auto space-y-6">
+          <div className="h-full overflow-y-auto pb-20">
+            {/* Mobile Header */}
+            <div className="px-4 py-6">
               <div className="text-center">
                 <h1 className={`text-2xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                  Welcome to RAG Scholar
+                  {(() => {
+                    const hour = new Date().getHours();
+                    const userName = user?.displayName || user?.email || 'User';
+                    if (hour < 12) return `Good morning, ${userName}!`;
+                    if (hour < 17) return `Good afternoon, ${userName}!`;
+                    return `Good evening, ${userName}!`;
+                  })()}
+                  <Heart className="w-5 h-5 text-pink-400 animate-pulse inline-block ml-2" style={{ verticalAlign: 'middle' }} />
                 </h1>
-                <p className={`text-sm ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                  Your AI-powered research assistant
+                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Ready to explore your documents?
                 </p>
               </div>
+            </div>
+
+            <div className="px-4 pt-6 space-y-6 flex flex-col flex-1 min-h-0">
+              {/* Active Class */}
+              {activeClass && (
+                <div className={`p-4 rounded-xl ${
+                  theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
+                }`}>
+                  <div className="flex items-center space-x-3 mb-3">
+                    {(() => {
+                      const Icon = DOMAIN_TYPE_INFO[activeClass.domainType]?.icon;
+                      return Icon ? <Icon className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-black'}`} /> : null;
+                    })()}
+                    <div>
+                      <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        {activeClass.name}
+                      </h3>
+                      <p className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                        Active Class • {documents.filter(doc => doc.assigned_classes?.includes(activeClass.id)).length} documents
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      handleNewChat();
+                      setMobilePage('chat');
+                    }}
+                    className={`w-full py-2 px-4 rounded-lg font-medium text-sm ${
+                      theme === 'dark' ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-black/10 hover:bg-black/20 text-black'
+                    }`}
+                  >
+                    Start Chatting
+                  </button>
+                </div>
+              )}
 
               {/* Quick Actions */}
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => {
-                    handleNewChat();
-                    setMobilePage('chat');
+                    if (!activeClass) {
+                      setMobilePage('classes');
+                    } else {
+                      handleNewChat();
+                      setMobilePage('chat');
+                    }
                   }}
-                  className={`p-4 rounded-lg transition-colors ${
+                  className={`p-4 rounded-xl transition-all ${
                     theme === 'dark'
-                      ? 'bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30'
-                      : 'bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20'
+                      ? 'bg-white/5 hover:bg-white/10'
+                      : 'bg-black/5 hover:bg-black/10'
                   }`}
                 >
-                  <MessageSquare className={`w-6 h-6 mx-auto mb-2 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
-                  <span className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                    New Chat
+                  <MessageSquare className={`w-6 h-6 mx-auto mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`} />
+                  <span className={`text-sm font-medium block ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    {activeClass ? 'New Chat' : 'Select Class'}
                   </span>
                 </button>
 
                 <button
                   onClick={() => setMobilePage('docs')}
-                  className={`p-4 rounded-lg transition-colors ${
+                  className={`p-4 rounded-xl transition-all ${
                     theme === 'dark'
-                      ? 'bg-green-500/20 hover:bg-green-500/30 border border-green-500/30'
-                      : 'bg-green-500/10 hover:bg-green-500/20 border border-green-500/20'
+                      ? 'bg-white/5 hover:bg-white/10'
+                      : 'bg-black/5 hover:bg-black/10'
                   }`}
                 >
                   <Upload className={`w-6 h-6 mx-auto mb-2 ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`} />
-                  <span className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                    Documents
+                  <span className={`text-sm font-medium block ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    Upload
                   </span>
                 </button>
               </div>
 
-              {/* Stats */}
-              <div className={`p-4 rounded-lg border ${
-                theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-              }`}>
-                <h3 className={`font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                  Quick Stats
-                </h3>
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div>
-                    <div className={`text-2xl font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>
-                      {documents.length}
-                    </div>
-                    <div className={`text-xs ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                      Documents
-                    </div>
+              {/* Recent Chats */}
+              {sessions.length > 0 && (
+                <div className="flex flex-col flex-1 min-h-0">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                      Recent Chats
+                    </h3>
+                    <button
+                      onClick={() => setMobilePage('chat')}
+                      className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}
+                    >
+                      View All
+                    </button>
                   </div>
-                  <div>
-                    <div className={`text-2xl font-bold ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>
-                      {userClasses.length}
-                    </div>
-                    <div className={`text-xs ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                      Classes
-                    </div>
+                  <div className="space-y-2 flex-1 overflow-y-auto scrollbar-none">
+                    {sessions.map((session) => (
+                      <button
+                        key={session.id}
+                        onClick={() => {
+                          handleSelectSession(session.id);
+                          setMobilePage('chat');
+                        }}
+                        className={`w-full p-3 rounded-lg text-left transition-all ${
+                          theme === 'dark'
+                            ? 'bg-white/5 hover:bg-white/10'
+                            : 'bg-black/5 hover:bg-black/10'
+                        }`}
+                      >
+                        <p className={`font-medium text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                          {session.name}
+                        </p>
+                        <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {formatLocalDate(session.updated_at)}
+                        </p>
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </div>
+              )}
+
             </div>
           </div>
         );
+
       case 'docs':
         return (
-          <div className="h-full overflow-y-auto p-4 pb-20">
-            <div className="max-w-md mx-auto space-y-6">
+          <div className="h-full flex flex-col pb-20">
+            {/* Mobile Header */}
+            <div className={`px-4 py-4  ${
+              theme === 'dark' ? 'backdrop-blur-md bg-white/10' : 'backdrop-blur-md bg-black/10'
+            }`}>
               <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                 Documents
               </h2>
+              <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                {documents.length} document{documents.length !== 1 ? 's' : ''} uploaded
+              </p>
+            </div>
 
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* Upload Section */}
-              <div className={`p-4 rounded-lg border-2 border-dashed text-center ${
-                theme === 'dark' ? 'border-gray-600 bg-gray-800' : 'border-gray-300 bg-gray-50'
+              <div className={`p-6 rounded-xl rounded-xl text-center ${
+                theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
               }`}>
-                <Upload className={`w-8 h-8 mx-auto mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} />
+                <Upload className={`w-8 h-8 mx-auto mb-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} />
                 <label className="cursor-pointer">
-                  <span className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                  <span className={`text-sm font-medium block mb-1 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                     Upload Document
+                  </span>
+                  <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                    PDF, Word, Text, or Markdown
                   </span>
                   <input
                     type="file"
@@ -989,40 +1220,80 @@ const AppContent: React.FC = () => {
                 </label>
               </div>
 
-              {/* Documents List */}
+              {/* Loading State */}
               {isDocumentLoading && (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
+                <div className="flex items-center justify-center py-8">
+                  <div className="relative w-6 h-6">
+                    {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                      <div
+                        key={i}
+                        className={`absolute w-1.5 h-1.5 rounded-full ${
+                          theme === 'dark' ? 'bg-white/60' : 'bg-black/60'
+                        }`}
+                        style={{
+                          top: '50%',
+                          left: '50%',
+                          transform: `translate(-50%, -50%) rotate(${i * 45}deg) translateY(-12px)`,
+                          animation: `dotSpinner 1.2s ease-in-out infinite`,
+                          animationDelay: `${i * 0.15}s`
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
 
+              {/* Documents List */}
               {documents.length === 0 && !isDocumentLoading ? (
-                <p className={`text-center py-8 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  No documents uploaded yet
-                </p>
+                <div className="text-center py-12">
+                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
+                    theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+                  }`}>
+                    <Upload className={`w-8 h-8 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
+                  </div>
+                  <p className={`font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    No documents yet
+                  </p>
+                  <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Upload your first document to get started
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className={`p-3 rounded-lg border ${
+                      className={`p-4 rounded-xl  transition-all ${
                         theme === 'dark'
-                          ? 'bg-gray-800 border-gray-700'
-                          : 'bg-white border-gray-200'
+                          ? 'bg-white/5 hover:bg-gray-750'
+                          : 'bg-black/5 hover:bg-gray-50'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium truncate ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0 mr-3">
+                          <p className={`font-medium text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                             {doc.filename}
                           </p>
-                          <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            {doc.file_type}
-                          </p>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {doc.file_type.toUpperCase()}
+                            </span>
+                            {doc.assigned_classes && doc.assigned_classes.length > 0 && (
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                              }`}>
+                                {doc.assigned_classes.length} class{doc.assigned_classes.length !== 1 ? 'es' : ''}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <button
                           onClick={() => handleDeleteDocument(doc.id)}
-                          className="p-1 rounded text-red-500 hover:bg-red-500/20"
+                          className={`p-2 rounded-lg transition-colors ${
+                            theme === 'dark' ? 'hover:bg-red-500/20 text-gray-400 hover:text-red-400' : 'hover:bg-red-50 text-gray-500 hover:text-red-600'
+                          }`}
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -1034,106 +1305,1064 @@ const AppContent: React.FC = () => {
             </div>
           </div>
         );
-      case 'help':
+
+      case 'classes':
         return (
-          <div className="h-full overflow-y-auto p-4 pb-20">
-            <div className="max-w-md mx-auto space-y-6">
-              <h2 className={`text-xl font-black ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                Help & Support
-              </h2>
-
-              <div className="space-y-4">
-                <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
-                  <h3 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                    Getting Started
-                  </h3>
-                  <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                    1. Upload documents using the Documents tab<br/>
-                    2. Create classes to organize your content<br/>
-                    3. Start chatting with your documents<br/>
-                    4. Use citations to verify information
+          <div className="h-full flex flex-col pb-20">
+            {/* Mobile Header */}
+            <div className={`px-4 py-4  ${
+              theme === 'dark' ? 'backdrop-blur-md bg-white/10' : 'backdrop-blur-md bg-black/10'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    Classes
+                  </h2>
+                  <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {userClasses.length} class{userClasses.length !== 1 ? 'es' : ''} created
                   </p>
                 </div>
-
-                <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
-                  <h3 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                    Supported File Types
-                  </h3>
-                  <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                    • PDF (.pdf)<br/>
-                    • Microsoft Word (.docx)<br/>
-                    • Plain Text (.txt)<br/>
-                    • Markdown (.md)
-                  </p>
-                </div>
-
-                <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
-                  <h3 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                    Tips
-                  </h3>
-                  <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                    • Use specific questions for better results<br/>
-                    • Organize documents into relevant classes<br/>
-                    • Check citations for source verification<br/>
-                    • Try the background mode with /background
-                  </p>
-                </div>
+                <button
+                  onClick={() => setShowMobileClassForm(!showMobileClassForm)}
+                  className={`p-2 rounded-lg ${
+                    theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                  }`}
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
               </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Create Class Form */}
+              {showMobileClassForm && (
+                <div className={`p-4 rounded-xl  ${
+                  theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
+                }`}>
+                  <h3 className={`font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    Create New Class
+                  </h3>
+
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      value={mobileClassFormData.name}
+                      onChange={(e) => setMobileClassFormData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Class name (e.g., History 101)"
+                      className={`w-full px-4 py-3 rounded-lg  text-sm ${
+                        theme === 'dark'
+                          ? 'bg-gray-700 -gray-600 text-white placeholder-gray-400'
+                          : 'bg-gray-50 -gray-300 text-black placeholder-gray-500'
+                      }`}
+                    />
+
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Subject Type
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {Object.entries(DOMAIN_TYPE_INFO).map(([type, info]) => {
+                          const Icon = info.icon;
+                          return (
+                            <button
+                              key={type}
+                              onClick={() => setMobileClassFormData(prev => ({ ...prev, type: type as DomainType }))}
+                              className={`p-3 rounded-lg transition-all flex flex-col items-center space-y-1 ${
+                                mobileClassFormData.type === type
+                                  ? theme === 'dark'
+                                    ? 'bg-white/10 text-white'
+                                    : 'bg-black/10 lue-300 text-black'
+                                  : theme === 'dark'
+                                    ? 'bg-gray-700 -gray-600 text-gray-300 hover:bg-gray-600'
+                                    : 'bg-black/5 text-gray-600 hover:bg-gray-50'
+                              } `}
+                            >
+                              <Icon className="w-4 h-4" />
+                              <span className="text-xs font-medium">{info.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-3">
+                      <button
+                        onClick={() => {
+                          if (mobileClassFormData.name.trim()) {
+                            handleCreateClass(
+                              mobileClassFormData.name,
+                              mobileClassFormData.type,
+                              mobileClassFormData.description
+                            );
+                            setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
+                            setShowMobileClassForm(false);
+                          }
+                        }}
+                        disabled={!mobileClassFormData.name.trim()}
+                        className={`flex-1 py-3 px-4 rounded-lg font-medium text-sm ${
+                          mobileClassFormData.name.trim()
+                            ? 'bg-white text-white'
+                            : theme === 'dark'
+                              ? 'bg-gray-700 text-gray-500'
+                              : 'bg-gray-200 text-gray-400'
+                        }`}
+                      >
+                        Create Class
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowMobileClassForm(false);
+                          setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
+                        }}
+                        className={`px-4 py-3 rounded-lg text-sm ${
+                          theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Classes List */}
+              {userClasses.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
+                    theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+                  }`}>
+                    <BookOpen className={`w-8 h-8 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
+                  </div>
+                  <p className={`font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    No classes yet
+                  </p>
+                  <p className={`text-sm mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Create your first class to organize documents
+                  </p>
+                  <button
+                    onClick={() => setShowMobileClassForm(true)}
+                    className="px-6 py-2 bg-white text-white rounded-lg font-medium text-sm"
+                  >
+                    Create Class
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {userClasses.map((userClass) => {
+                    const typeInfo = DOMAIN_TYPE_INFO[userClass.domainType];
+                    const Icon = typeInfo?.icon;
+                    const isActive = activeClass?.id === userClass.id;
+                    const docCount = documents.filter(doc => doc.assigned_classes?.includes(userClass.id)).length;
+
+                    return (
+                      <div key={userClass.id} className="relative">
+                        <button
+                          onClick={() => handleSelectClass(userClass)}
+                          className={`w-full p-4 rounded-xl text-left transition-all ${
+                            isActive
+                              ? theme === 'dark'
+                                ? 'bg-white/10'
+                                : 'bg-black/10'
+                              : theme === 'dark'
+                                ? 'bg-white/5 hover:bg-white/10'
+                                : 'bg-black/5 hover:bg-black/10'
+                          }`}
+                        >
+                        <div className="flex items-start space-x-3">
+                          <div className={`p-2 rounded-lg ${
+                            isActive
+                              ? theme === 'dark' ? 'bg-white/20' : 'bg-black/20'
+                              : theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
+                          }`}>
+                            {Icon && <Icon className={`w-5 h-5 ${
+                              isActive
+                                ? theme === 'dark' ? 'text-white' : 'text-black'
+                                : theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                            }`} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className={`font-medium truncate ${
+                              theme === 'dark' ? 'text-white' : 'text-black'
+                            }`}>
+                              {userClass.name}
+                            </h3>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                {typeInfo?.label || userClass.domainType}
+                              </span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                {docCount} doc{docCount !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingMobileClass(userClass);
+                              setMobileEditingClassDocs(documents.filter(doc => doc.assigned_classes?.includes(userClass.id)).map(doc => doc.id));
+                            }}
+                            className={`p-2 rounded-lg transition-colors ${
+                              theme === 'dark' ? 'hover:bg-white/10 text-white/60' : 'hover:bg-black/10 text-black/60'
+                            }`}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        </div>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Edit Class Modal */}
+              {editingMobileClass && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+                  <div className={`w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl ${
+                    theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+                  }`}>
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                          Edit Class
+                        </h3>
+                        <button
+                          onClick={() => {
+                            setEditingMobileClass(null);
+                            setMobileEditingClassDocs([]);
+                          }}
+                          className={`p-1 rounded-lg ${
+                            theme === 'dark' ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Class Name
+                          </label>
+                          <input
+                            type="text"
+                            value={editingMobileClass.name}
+                            onChange={(e) => setEditingMobileClass(prev => prev ? { ...prev, name: e.target.value } : null)}
+                            className={`w-full px-3 py-2 rounded-lg text-sm ${
+                              theme === 'dark'
+                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                                : 'bg-gray-50 border-gray-300 text-black placeholder-gray-500'
+                            }`}
+                          />
+                        </div>
+
+                        <div>
+                          <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Assigned Documents ({mobileEditingClassDocs.length})
+                          </label>
+                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                            {documents.map((doc) => (
+                              <label key={doc.id} className="flex items-center space-x-3">
+                                <input
+                                  type="checkbox"
+                                  checked={mobileEditingClassDocs.includes(doc.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setMobileEditingClassDocs(prev => [...prev, doc.id]);
+                                    } else {
+                                      setMobileEditingClassDocs(prev => prev.filter(id => id !== doc.id));
+                                    }
+                                  }}
+                                  className="rounded"
+                                />
+                                <span className={`text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                                  {doc.filename}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex space-x-3 pt-4">
+                          <button
+                            onClick={async () => {
+                              if (editingMobileClass && !isEditingMobileClass) {
+                                setIsEditingMobileClass(true);
+                                try {
+                                  // Update class using the same logic as desktop
+                                  handleEditClass(editingMobileClass.id, editingMobileClass.name, editingMobileClass.domainType);
+                                  // Wait a bit longer to ensure React state updates complete
+                                  await new Promise(resolve => setTimeout(resolve, 100));
+                                  await handleAssignDocuments(editingMobileClass.id, mobileEditingClassDocs);
+                                  // Clear edit state after all operations complete
+                                  setEditingMobileClass(null);
+                                  setMobileEditingClassDocs([]);
+                                } finally {
+                                  setIsEditingMobileClass(false);
+                                }
+                              }
+                            }}
+                            disabled={!editingMobileClass || isEditingMobileClass}
+                            className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-3 rounded-lg transition-all duration-200 disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+                          >
+                            {isEditingMobileClass && (
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                            )}
+                            {isEditingMobileClass ? 'Updating...' : 'Update Class'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingMobileClass(null);
+                              setMobileEditingClassDocs([]);
+                            }}
+                            className={`px-4 py-3 rounded-lg text-sm ${
+                              theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
+
+      case 'rewards':
+        return (
+          <div className="h-full flex flex-col pb-20">
+            {/* Mobile Header */}
+            <div className={`px-4 py-4 ${
+              theme === 'dark' ? 'backdrop-blur-md bg-white/10' : 'backdrop-blur-md bg-black/10'
+            }`}>
+              <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                Achievements
+              </h2>
+              <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                Track your learning progress
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Achievement Stats */}
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    Rewards
+                  </h3>
+                  <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                    {achievements.filter(a => a.unlocked_at !== null).length} of {achievements.length} completed
+                  </p>
+                </div>
+                <div className="bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40 rounded-full px-3 py-1.5 flex items-center gap-2">
+                  <Star className="w-4 h-4 text-yellow-400" />
+                  <span className="font-bold text-sm text-yellow-400">
+                    {userProfile?.stats?.total_points || 0} pts
+                  </span>
+                </div>
+              </div>
+
+              {/* Goals Section */}
+              {achievements.filter(a => a.unlocked_at === null).length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 px-2">
+                    <Target className="w-4 h-4 text-blue-400" />
+                    <h4 className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                      GOALS ({achievements.filter(a => a.unlocked_at === null).length})
+                    </h4>
+                  </div>
+                  <div className="space-y-3">
+                    {achievements.filter(a => a.unlocked_at === null).map((achievement) => {
+                      const getIcon = (type: string) => {
+                        const iconMap: { [key: string]: any } = {
+                          first_chat: MessageCircle,
+                          prolific_researcher: Target,
+                          document_uploader: Upload,
+                          early_adopter: Trophy,
+                          knowledge_seeker: BookOpen,
+                          domain_explorer: Sparkles,
+                        };
+                        return iconMap[type] || Trophy;
+                      };
+
+                      const getColor = (type: string) => {
+                        const colorMap: { [key: string]: string } = {
+                          first_chat: 'text-blue-400',
+                          prolific_researcher: 'text-green-400',
+                          document_uploader: 'text-orange-400',
+                          early_adopter: 'text-yellow-400',
+                          knowledge_seeker: 'text-indigo-400',
+                          domain_explorer: 'text-purple-400',
+                        };
+                        return colorMap[type] || 'text-gray-400';
+                      };
+
+                      const Icon = getIcon(achievement.type);
+
+                      return (
+                        <div
+                          key={achievement.id}
+                          className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <Icon className={`w-5 h-5 ${getColor(achievement.type)}`} />
+                            <div className="bg-gradient-to-r from-blue-400/20 to-purple-400/20 border border-purple-400/40 rounded-full px-2 py-1 flex items-center gap-1">
+                              <Zap className="w-3 h-3 text-purple-400" />
+                              <span className="text-xs font-bold text-purple-400">
+                                +{achievement.points} pts
+                              </span>
+                            </div>
+                          </div>
+
+                          <h4 className={`text-sm font-medium mb-1 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                            {achievement.name}
+                          </h4>
+
+                          <p className={`text-xs mb-2 ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                            {achievement.description}
+                          </p>
+
+                          <div className="space-y-1">
+                            <div className={`w-full rounded-full h-2 ${theme === 'dark' ? 'bg-white/10' : 'bg-black/10'}`}>
+                              <div
+                                className="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${((achievement.progress || 0) / (achievement.target || 1)) * 100}%` }}
+                              />
+                            </div>
+                            <div className="text-right">
+                              <span className={`text-xs ${theme === 'dark' ? 'text-white/50' : 'text-black/50'}`}>
+                                {achievement.progress || 0}/{achievement.target || 0}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Unlocked Section */}
+              {achievements.filter(a => a.unlocked_at !== null).length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 px-2">
+                    <Trophy className="w-4 h-4 text-yellow-400" />
+                    <h4 className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                      UNLOCKED ({achievements.filter(a => a.unlocked_at !== null).length})
+                    </h4>
+                  </div>
+                  <div className="space-y-3">
+                    {achievements.filter(a => a.unlocked_at !== null).map((achievement) => {
+                      const getIcon = (type: string) => {
+                        const iconMap: { [key: string]: any } = {
+                          first_chat: MessageCircle,
+                          prolific_researcher: Target,
+                          document_uploader: Upload,
+                          early_adopter: Trophy,
+                          knowledge_seeker: BookOpen,
+                          domain_explorer: Sparkles,
+                        };
+                        return iconMap[type] || Trophy;
+                      };
+
+                      const getColor = (type: string) => {
+                        const colorMap: { [key: string]: string } = {
+                          first_chat: 'text-blue-400',
+                          prolific_researcher: 'text-green-400',
+                          document_uploader: 'text-orange-400',
+                          early_adopter: 'text-yellow-400',
+                          knowledge_seeker: 'text-indigo-400',
+                          domain_explorer: 'text-purple-400',
+                        };
+                        return colorMap[type] || 'text-gray-400';
+                      };
+
+                      const Icon = getIcon(achievement.type);
+
+                      return (
+                        <div
+                          key={achievement.id}
+                          className={`relative p-3 rounded-lg ${theme === 'dark' ? 'bg-white/10 shadow-lg' : 'bg-black/10 shadow-lg'}`}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 rounded-lg animate-pulse" />
+
+                          <div className="relative">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <Icon className={`w-5 h-5 ${getColor(achievement.type)}`} />
+                                <Award className="w-4 h-4 text-yellow-400" />
+                              </div>
+                              <div className="bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40 rounded-full px-2 py-1 flex items-center gap-1">
+                                <Zap className="w-3 h-3 text-yellow-400" />
+                                <span className="text-xs font-bold text-yellow-400">
+                                  +{achievement.points}
+                                </span>
+                              </div>
+                            </div>
+
+                            <h4 className={`text-sm font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                              {achievement.name}
+                            </h4>
+
+                            <p className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                              {achievement.description}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Empty State */}
+              {achievements.length === 0 && (
+                <div className="text-center py-12">
+                  <Trophy className={`w-12 h-12 mx-auto mb-3 ${theme === 'dark' ? 'text-white/30' : 'text-black/30'}`} />
+                  <p className={`text-sm ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                    No achievements yet
+                  </p>
+                  <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-white/40' : 'text-black/40'}`}>
+                    Start using RAG Scholar to unlock rewards!
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
       case 'settings':
         return (
-          <div className="h-full overflow-y-auto p-4 pb-20">
-            <div className="max-w-md mx-auto space-y-6">
+          <div className="h-full flex flex-col pb-20">
+            {/* Mobile Header */}
+            <div className={`px-4 py-4  ${
+              theme === 'dark' ? 'backdrop-blur-md bg-white/10' : 'backdrop-blur-md bg-black/10'
+            }`}>
               <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                 Settings
               </h2>
+              <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                Customize your experience
+              </p>
+            </div>
 
-              <div className="space-y-4">
-                <div className={`p-4 rounded-lg border ${
-                  theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                        Theme
-                      </h3>
-                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
-                      </p>
-                    </div>
-                    <button
-                      onClick={toggleTheme}
-                      className={`px-4 py-2 rounded-lg transition-colors ${
-                        theme === 'dark'
-                          ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                          : 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20'
-                      }`}
-                    >
-                      Toggle
-                    </button>
-                  </div>
-                </div>
+            {/* Settings Tabs */}
+            <div className={`px-4 border-b ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}>
+              <div className="flex space-x-6">
+                <button
+                  onClick={() => setActiveSettingsTab('general')}
+                  className={`py-3 px-2 text-sm font-medium transition-all ${
+                    activeSettingsTab === 'general'
+                      ? (theme === 'dark' ? 'text-white border-b-2 border-white' : 'text-black border-b-2 border-black')
+                      : (theme === 'dark' ? 'text-gray-400' : 'text-gray-600')
+                  }`}
+                >
+                  General
+                </button>
+                <button
+                  onClick={() => setActiveSettingsTab('advanced')}
+                  className={`py-3 px-2 text-sm font-medium transition-all ${
+                    activeSettingsTab === 'advanced'
+                      ? (theme === 'dark' ? 'text-white border-b-2 border-white' : 'text-black border-b-2 border-black')
+                      : (theme === 'dark' ? 'text-gray-400' : 'text-gray-600')
+                  }`}
+                >
+                  Advanced
+                </button>
+              </div>
+            </div>
 
-                <div className={`p-4 rounded-lg border ${
-                  theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {activeSettingsTab === 'general' ? (
+                <>
+                  {/* Account Section */}
+                  <div className={`p-4 rounded-xl ${
+                    theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
+                  }`}>
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                      <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                         Account
                       </h3>
-                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {user?.email}
-                      </p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Display Name
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                          className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                            theme === 'dark'
+                              ? 'bg-black/30 border-white/20 text-white placeholder-gray-400'
+                              : 'bg-white border-gray-300 text-black placeholder-gray-500'
+                          } focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
+                        />
+                      </div>
+
+                      <div className={`p-3 rounded-lg ${
+                        theme === 'dark' ? 'bg-black/10 border border-white/10' : 'bg-white border border-gray-200'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                              Email
+                            </p>
+                            <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {user?.email}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {!isResetPasswordMode && (
+                        <button
+                          onClick={() => setIsResetPasswordMode(true)}
+                          className={`w-full flex items-center justify-center space-x-2 p-3 rounded-lg transition-all ${
+                            theme === 'dark'
+                              ? 'bg-white/10 text-white hover:bg-white/20'
+                              : 'bg-black/10 text-black hover:bg-black/20'
+                          }`}
+                        >
+                          <Key className="w-4 h-4" />
+                          <span className="font-medium">Reset Password</span>
+                        </button>
+                      )}
+
+                      {isResetPasswordMode && (
+                        <div className="space-y-4">
+                          <div className="text-center">
+                            <h4 className={`font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                              Reset Password
+                            </h4>
+                            <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                              Send password reset email to your account
+                            </p>
+                          </div>
+
+                          {saveMessage && (
+                            <div className={`p-3 rounded-lg text-center text-sm ${
+                              saveMessage.includes('sent')
+                                ? theme === 'dark'
+                                  ? 'bg-green-900/20 text-green-400'
+                                  : 'bg-green-50 text-green-600'
+                                : theme === 'dark'
+                                  ? 'bg-red-900/20 text-red-400'
+                                  : 'bg-red-50 text-red-600'
+                            }`}>
+                              {saveMessage}
+                            </div>
+                          )}
+
+                          <div className="flex space-x-3">
+                            <button
+                              onClick={async () => {
+                                if (user?.email) {
+                                  try {
+                                    setIsLoading(true);
+                                    await resetPassword(user.email);
+                                    setSaveMessage('Password reset email sent! Check your inbox.');
+                                    setTimeout(() => setSaveMessage(null), 5000);
+                                  } catch (error) {
+                                    setSaveMessage('Failed to send reset email');
+                                    setTimeout(() => setSaveMessage(null), 5000);
+                                  } finally {
+                                    setIsLoading(false);
+                                  }
+                                }
+                              }}
+                              disabled={isLoading}
+                              className={`flex-1 py-3 rounded-lg font-medium text-sm ${
+                                theme === 'dark'
+                                  ? 'bg-white/20 hover:bg-white/30 text-white'
+                                  : 'bg-black/20 hover:bg-black/30 text-black'
+                              } disabled:opacity-50`}
+                            >
+                              {isLoading ? 'Sending...' : 'Send Reset Email'}
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setIsResetPasswordMode(false);
+                                setSaveMessage(null);
+                              }}
+                              className={`flex-1 py-3 rounded-lg font-medium text-sm ${
+                                theme === 'dark'
+                                  ? 'bg-white/10 text-white hover:bg-white/20'
+                                  : 'bg-black/10 text-black hover:bg-black/20'
+                              }`}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={handleLogout}
+                        className={`w-full flex items-center justify-center space-x-2 p-3 rounded-lg transition-all ${
+                          theme === 'dark'
+                            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                            : 'bg-red-100 text-red-600 hover:bg-red-200'
+                        }`}
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span className="font-medium">Sign Out</span>
+                      </button>
                     </div>
                   </div>
+
+                  {/* Appearance Section */}
+                  <div className={`p-4 rounded-xl ${
+                    theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
+                  }`}>
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
+                        <Palette className="w-4 h-4 text-white" />
+                      </div>
+                      <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        Appearance
+                      </h3>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Theme Toggle */}
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Color Theme
+                        </label>
+                        <button
+                          onClick={toggleTheme}
+                          className={`w-full flex items-center justify-between p-3 rounded-lg transition-all ${
+                            theme === 'dark'
+                              ? 'bg-white/10 hover:bg-white/20'
+                              : 'bg-black/10 hover:bg-black/20'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            {theme === 'dark' ? (
+                              <Moon className="w-5 h-5 text-blue-400" />
+                            ) : (
+                              <Sun className="w-5 h-5 text-orange-500" />
+                            )}
+                            <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                              {themeMode === 'auto' ? `Auto (${theme})` : theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                            </span>
+                          </div>
+                          <div className={`w-12 h-6 rounded-full transition-colors ${
+                            theme === 'dark' ? 'bg-blue-500' : 'bg-gray-300'
+                          }`}>
+                            <div className={`w-5 h-5 mt-0.5 rounded-full bg-white transition-transform ${
+                              theme === 'dark' ? 'translate-x-6' : 'translate-x-0.5'
+                            }`} />
+                          </div>
+                        </button>
+                      </div>
+
+                      {/* Background Style */}
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Background
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {(['classic', 'gradient', 'mountain', 'ocean', 'sunset', 'forest'] as const).map((bg) => (
+                            <button
+                              key={bg}
+                              onClick={() => setBackground(bg)}
+                              className={`px-3 py-2 text-xs rounded-lg transition-all ${
+                                background === bg
+                                  ? theme === 'dark'
+                                    ? 'bg-white/20 text-white'
+                                    : 'bg-black/20 text-black'
+                                  : theme === 'dark'
+                                    ? 'bg-white/5 text-gray-400 hover:bg-white/10'
+                                    : 'bg-black/5 text-gray-600 hover:bg-black/10'
+                              }`}
+                            >
+                              {bg.charAt(0).toUpperCase() + bg.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* API Configuration */}
+                  <div className={`p-4 rounded-xl ${
+                    theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
+                  }`}>
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center">
+                        <Key className="w-4 h-4 text-white" />
+                      </div>
+                      <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        API Configuration
+                      </h3>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          API Key
+                        </label>
+                        <input
+                          type="password"
+                          value={apiSettings.apiKey}
+                          onChange={(e) => setApiSettings(prev => ({ ...prev, apiKey: e.target.value }))}
+                          placeholder="sk-... (OpenAI) | sk-ant-... (Anthropic)"
+                          className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                            theme === 'dark'
+                              ? 'bg-black/30 border-white/20 text-white placeholder-gray-400'
+                              : 'bg-white border-gray-300 text-black placeholder-gray-500'
+                          } focus:outline-none focus:ring-2 focus:ring-green-500/50`}
+                        />
+                        {getProviderAndModels().provider && (
+                          <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>
+                            ✓ Detected: {getProviderAndModels().provider}
+                          </p>
+                        )}
+                        <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Your API key is stored securely in your browser
+                        </p>
+                      </div>
+
+                      <div className={`p-3 rounded-lg ${
+                        theme === 'dark' ? 'bg-black/10' : 'bg-white'
+                      }`}>
+                        <div className="flex items-start space-x-3">
+                          <Shield className={`w-4 h-4 mt-0.5 ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`} />
+                          <div>
+                            <h4 className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                              Secure Integration
+                            </h4>
+                            <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                              Your key never leaves your browser and provides unlimited usage
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Timezone */}
+                  <div className={`p-4 rounded-xl ${
+                    theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
+                  }`}>
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-teal-600 rounded-full flex items-center justify-center">
+                        <Clock className="w-4 h-4 text-white" />
+                      </div>
+                      <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        Timezone
+                      </h3>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Timezone
+                        </label>
+                        <select
+                          value={timezone}
+                          onChange={(e) => setTimezone(e.target.value)}
+                          className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                            theme === 'dark'
+                              ? 'bg-black/30 border-white/20 text-white'
+                              : 'bg-white border-gray-300 text-black'
+                          } focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
+                        >
+                          <option value={Intl.DateTimeFormat().resolvedOptions().timeZone}>Auto-detect</option>
+                          <option value="America/New_York">Eastern Time</option>
+                          <option value="America/Chicago">Central Time</option>
+                          <option value="America/Denver">Mountain Time</option>
+                          <option value="America/Los_Angeles">Pacific Time</option>
+                          <option value="Europe/London">London</option>
+                          <option value="Europe/Paris">Paris</option>
+                          <option value="Asia/Tokyo">Tokyo</option>
+                        </select>
+                      </div>
+
+                      <div className={`p-3 rounded-lg ${
+                        theme === 'dark' ? 'bg-black/10' : 'bg-white'
+                      }`}>
+                        <div className="flex items-center space-x-3">
+                          <Globe className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} />
+                          <div className="text-sm">
+                            <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                              Current Time
+                            </p>
+                            <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {new Date().toLocaleString('en-US', {
+                                timeZone: timezone,
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Advanced Tab */
+                <div className={`p-4 rounded-xl ${
+                  theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
+                }`}>
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
+                      <Cpu className="w-4 h-4 text-white" />
+                    </div>
+                    <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                      Model Parameters
+                    </h3>
+                  </div>
+
+                  {!showAdvancedParams ? (
+                    <div className={`p-4 rounded-lg text-center ${
+                      theme === 'dark' ? 'bg-black/10' : 'bg-white'
+                    }`}>
+                      <div className={`text-lg font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        Default
+                      </div>
+                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
+                        Model parameters are currently using default settings
+                      </p>
+                      <button
+                        onClick={() => setShowAdvancedParams(true)}
+                        className={`px-4 py-2 rounded-lg transition-all ${
+                          theme === 'dark'
+                            ? 'bg-white/10 text-white hover:bg-white/20'
+                            : 'bg-black/10 text-black hover:bg-black/20'
+                        }`}
+                      >
+                        Customize Parameters
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className={`text-lg font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                          Model Parameters
+                        </h4>
+                        <button
+                          onClick={() => setShowAdvancedParams(false)}
+                          className={`text-sm px-3 py-1 rounded-lg transition-all ${
+                            theme === 'dark'
+                              ? 'text-gray-400 hover:text-white hover:bg-white/10'
+                              : 'text-gray-600 hover:text-black hover:bg-black/10'
+                          }`}
+                        >
+                          Use Default
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Model
+                        </label>
+                        <select
+                          value={apiSettings.model}
+                          onChange={(e) => setApiSettings(prev => ({ ...prev, model: e.target.value }))}
+                          disabled={getProviderAndModels().models.length === 0}
+                          className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                            getProviderAndModels().models.length === 0
+                              ? 'opacity-50 cursor-not-allowed'
+                              : ''
+                          } ${
+                            theme === 'dark'
+                              ? 'bg-black/30 border-white/20 text-white'
+                              : 'bg-white border-gray-300 text-black'
+                          } focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
+                        >
+                          {getProviderAndModels().models.length === 0 ? (
+                            <option>Add API key to enable model selection</option>
+                          ) : (
+                            getProviderAndModels().models.map(({ value, label }) => (
+                              <option key={value} value={value}>{label}</option>
+                            ))
+                          )}
+                        </select>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4">
+                        <div>
+                          <label className={`block text-sm font-medium mb-2 ${
+                            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            Temperature ({apiSettings.temperature})
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="2"
+                            step="0.1"
+                            value={apiSettings.temperature}
+                            onChange={(e) => setApiSettings(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
+                            className="w-full h-2 rounded-full appearance-none cursor-pointer bg-gray-200 dark:bg-gray-700"
+                          />
+                          <div className="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>Focused</span>
+                            <span>Creative</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className={`block text-sm font-medium mb-2 ${
+                            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            Max Tokens ({apiSettings.maxTokens})
+                          </label>
+                          <input
+                            type="range"
+                            min="100"
+                            max="4000"
+                            step="100"
+                            value={apiSettings.maxTokens}
+                            onChange={(e) => setApiSettings(prev => ({ ...prev, maxTokens: parseInt(e.target.value) }))}
+                            className="w-full h-2 rounded-full appearance-none cursor-pointer bg-gray-200 dark:bg-gray-700"
+                          />
+                          <div className="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>100</span>
+                            <span>4000</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         );
+
       default:
         return null;
     }
@@ -1143,7 +2372,7 @@ const AppContent: React.FC = () => {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 -2 lue-500 mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
       </div>
@@ -1181,12 +2410,13 @@ const AppContent: React.FC = () => {
         />
       ))}
 
-      {/* Theme Toggle with hover area */}
-      <div
-        className="fixed top-0 right-0 w-20 h-20 z-40 flex items-start justify-end p-4"
-        onMouseEnter={handleThemeToggleMouseEnter}
-        onMouseLeave={handleThemeToggleMouseLeave}
-      >
+      {/* Theme Toggle with hover area - Desktop only */}
+      {!isMobile && (
+        <div
+          className="fixed top-0 right-0 w-20 h-20 z-40 flex items-start justify-end p-4"
+          onMouseEnter={handleThemeToggleMouseEnter}
+          onMouseLeave={handleThemeToggleMouseLeave}
+        >
         <div className={`transition-all duration-300 ${
           themeToggleVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
         }`}>
@@ -1196,7 +2426,8 @@ const AppContent: React.FC = () => {
             onToggle={handleThemeToggleClick}
           />
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Desktop Layout */}
       <div className="hidden md:flex w-full">
@@ -1260,31 +2491,51 @@ const AppContent: React.FC = () => {
       <div className="md:hidden w-full">
         {renderMobilePage()}
 
-        {/* Mobile Bottom Navigation */}
-        <div className={`fixed bottom-0 left-0 right-0 border-t ${
-          theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        {/* Mobile Bottom Navigation - Desktop Style */}
+        <div className={`fixed bottom-0 left-0 right-0 -t backdrop-blur-md ${
+          theme === 'dark'
+            ? background === 'classic' ? 'bg-neutral-900/95 -neutral-700' : 'bg-white/10 -white/20'
+            : 'bg-black/10 lack/20'
         }`}>
-          <div className="flex justify-around py-2">
+          <div className="flex justify-around py-1">
             {[
               { page: 'home', icon: Home, label: 'Home' },
               { page: 'chat', icon: MessageSquare, label: 'Chat' },
               { page: 'docs', icon: Upload, label: 'Docs' },
-              { page: 'help', icon: HelpCircle, label: 'Help' },
-              { page: 'settings', icon: Settings, label: 'Settings' },
-            ].map(({ page, icon: Icon, label }) => (
-              <button
-                key={page}
-                onClick={() => setMobilePage(page as any)}
-                className={`flex flex-col items-center p-2 transition-colors ${
-                  mobilePage === page
-                    ? theme === 'dark' ? 'text-blue-400' : 'text-blue-600'
-                    : theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-xs mt-1">{label}</span>
-              </button>
-            ))}
+              { page: 'classes', icon: BookOpen, label: 'Classes' },
+              { page: 'rewards', icon: Settings, label: 'Rewards' },
+              { page: 'settings', icon: User, label: 'Settings' },
+            ].map(({ page, icon: Icon, label }) => {
+              const isActive = mobilePage === page;
+              return (
+                <button
+                  key={page}
+                  onClick={() => setMobilePage(page as any)}
+                  className={`flex flex-col items-center p-3 transition-all duration-200 ${
+                    isActive
+                      ? theme === 'dark' ? 'text-white font-bold' : 'text-black font-bold'
+                      : theme === 'dark' ? 'text-white/60 hover:text-white hover:font-bold' : 'text-black/60 hover:text-black hover:font-bold'
+                  }`}
+                >
+                  <div className={`p-1 rounded-lg transition-all duration-200 ${
+                    isActive
+                      ? theme === 'dark'
+                        ? 'bg-white/10 scale-110'
+                        : 'bg-black/10 scale-110'
+                      : 'scale-100'
+                  }`}>
+                    <Icon className={`w-5 h-5 transition-transform duration-200 ${
+                      isActive ? 'scale-110' : 'scale-100'
+                    }`} />
+                  </div>
+                  <span className={`text-xs mt-1 font-medium transition-all duration-200 ${
+                    isActive ? 'opacity-100' : 'opacity-70'
+                  }`}>
+                    {label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

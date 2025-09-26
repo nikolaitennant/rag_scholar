@@ -185,6 +185,12 @@ export const apiService = {
     return response.data;
   },
 
+  // Classes
+  updateClass: async (classId: string, data: { name: string; domainType: string }): Promise<any> => {
+    const response = await api.put(`/classes/${classId}`, data);
+    return response.data;
+  },
+
   // Debug
   debugFirestore: async (): Promise<any> => {
     // Mock debug response since we removed the debug endpoint

@@ -1288,24 +1288,30 @@ const AppContent: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* Class Filter */}
               {userClasses.length > 0 && (
-                <div className={`p-3 rounded-xl ${
-                  theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
+                <div className={`p-4 rounded-xl backdrop-blur-sm border ${
+                  theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-black/10 border-black/20'
                 }`}>
-                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                  <label className={`block text-sm font-medium mb-3 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                     Filter by Class
                   </label>
                   <select
                     value={mobileDocumentFilter || ''}
                     onChange={(e) => setMobileDocumentFilter(e.target.value || null)}
-                    className={`w-full px-3 py-2 rounded-lg text-sm border ${
+                    className={`w-full px-4 py-3 rounded-full text-sm backdrop-blur-sm border focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 ${
                       theme === 'dark'
-                        ? 'bg-gray-800 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-black'
+                        ? 'bg-white/10 border-white/20 text-white'
+                        : 'bg-black/10 border-black/20 text-black'
                     }`}
+                    style={{
+                      backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
+                      WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)'
+                    }}
                   >
-                    <option value="">All Documents</option>
+                    <option value="" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-black'}>
+                      All Documents
+                    </option>
                     {userClasses.map((cls) => (
-                      <option key={cls.id} value={cls.id}>
+                      <option key={cls.id} value={cls.id} className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-black'}>
                         {cls.name}
                       </option>
                     ))}
@@ -1398,11 +1404,6 @@ const AppContent: React.FC = () => {
                             {doc.filename}
                           </p>
                           <div className="flex items-center space-x-2 mt-1">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
-                            }`}>
-                              {doc.file_type.toUpperCase()}
-                            </span>
                             {doc.assigned_classes && doc.assigned_classes.length > 0 && (
                               <span className={`text-xs px-2 py-0.5 rounded-full ${
                                 theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'

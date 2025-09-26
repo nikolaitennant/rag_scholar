@@ -1359,16 +1359,12 @@ const AppContent: React.FC = () => {
                           disabled={!mobileClassFormData.name.trim() || isEditingMobileClass}
                           className={`flex-1 py-3 px-4 rounded-lg font-medium text-sm transition-all ${
                             mobileClassFormData.name.trim() && !isEditingMobileClass
-                              ? theme === 'dark'
-                                ? 'bg-white/10 text-white hover:bg-white/20'
-                                : 'bg-black/10 text-black hover:bg-black/20'
-                              : theme === 'dark'
-                                ? 'bg-white/5 text-white/50'
-                                : 'bg-black/5 text-black/50'
+                              ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
+                              : 'bg-gradient-to-r from-gray-400 to-gray-500 text-gray-300 cursor-not-allowed opacity-50'
                           } flex items-center justify-center gap-2`}
                         >
                           {isEditingMobileClass && (
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                           )}
                           {isEditingMobileClass
                             ? (editingMobileClass ? 'Updating...' : 'Creating...')
@@ -1409,11 +1405,7 @@ const AppContent: React.FC = () => {
                     </p>
                     <button
                       onClick={() => setShowMobileClassForm(true)}
-                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                        theme === 'dark'
-                          ? 'bg-white/10 text-white hover:bg-white/20'
-                          : 'bg-black/10 text-black hover:bg-black/20'
-                      }`}
+                      className="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
                     >
                       Create Class
                     </button>

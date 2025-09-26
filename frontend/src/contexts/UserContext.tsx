@@ -84,7 +84,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const refreshUser = async () => {
     if (auth.currentUser) {
       await auth.currentUser.reload();
-      setUser({ ...auth.currentUser });
+      // Force a state update with a small delay to ensure Firebase has updated
+      setTimeout(() => {
+        setUser({ ...auth.currentUser } as FirebaseUser);
+      }, 100);
     }
   };
 

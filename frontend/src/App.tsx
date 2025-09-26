@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun } from 'lucide-react';
+import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send } from 'lucide-react';
 import { ChatInterface } from './components/ChatInterface';
 import { Sidebar } from './components/Sidebar';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -45,6 +45,8 @@ const AppContent: React.FC = () => {
   const [mobileEditingClassDocs, setMobileEditingClassDocs] = useState<string[]>([]);
   const [mobileClassFormData, setMobileClassFormData] = useState({ name: '', type: DomainType.GENERAL, description: '' });
   const [isEditingMobileClass, setIsEditingMobileClass] = useState(false);
+  const [mobileInput, setMobileInput] = useState('');
+  const [mobileDocumentFilter, setMobileDocumentFilter] = useState<string | null>(null);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [themeToggleVisible, setThemeToggleVisible] = useState(true);
@@ -1024,17 +1026,104 @@ const AppContent: React.FC = () => {
               </button>
             </div>
 
-            {/* Chat Interface */}
-            <div className="flex-1 min-h-0 pb-20">
-              <ChatInterface
-                messages={messages}
-                onSendMessage={handleSendMessage}
-                isLoading={isChatLoading}
-                currentDomain={activeClass?.domainType || DomainType.GENERAL}
-                activeCollection="default"
-                userName={user?.displayName || user?.email || 'User'}
-                sidebarOpen={false}
-              />
+            {/* Mobile Chat Interface */}
+            <div className="flex-1 min-h-0 pb-20 flex flex-col">
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {messages.length === 0 ? (
+                  /* Mobile welcome state - simpler than desktop */
+                  <div className="flex flex-col justify-center h-full text-center">
+                    <div className={`mb-8 ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                      <h2 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        {(() => {
+                          const hour = new Date().getHours();
+                          const userName = user?.displayName || user?.email || 'User';
+                          if (hour < 12) return `Good morning, ${userName}!`;
+                          if (hour < 17) return `Good afternoon, ${userName}!`;
+                          return `Good evening, ${userName}!`;
+                        })()}
+                      </h2>
+                      <p className={`text-sm ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                        Ask questions about your documents
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  /* Messages */
+                  <div className="space-y-6">
+                    {messages.map((message, index) => (
+                      <div
+                        key={index}
+                        className={`flex ${
+                          message.role === 'user' ? 'justify-end' : 'justify-start'
+                        }`}
+                      >
+                        <div
+                          className={`max-w-[85%] ${
+                            message.role === 'user'
+                              ? `px-4 py-2 rounded-2xl overflow-hidden backdrop-blur-2xl ${theme === 'dark' ? 'bg-black/10 text-white' : 'bg-white/10 text-black'}`
+                              : `px-0 py-0 bg-transparent ${theme === 'dark' ? 'text-white' : 'text-black'}`
+                          }`}
+                          style={message.role === 'user' ? {
+                            backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
+                            WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)'
+                          } : {}}
+                        >
+                          <div className="prose prose-sm max-w-none text-sm prose-invert">
+                            {message.content}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {isChatLoading && (
+                      <div className="flex justify-start">
+                        <div className="flex space-x-1 p-3">
+                          <div className={`w-2 h-2 rounded-full animate-bounce ${theme === 'dark' ? 'bg-white/60' : 'bg-black/60'}`}></div>
+                          <div className={`w-2 h-2 rounded-full animate-bounce delay-75 ${theme === 'dark' ? 'bg-white/60' : 'bg-black/60'}`}></div>
+                          <div className={`w-2 h-2 rounded-full animate-bounce delay-150 ${theme === 'dark' ? 'bg-white/60' : 'bg-black/60'}`}></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Fixed Bottom Input */}
+              <div className="p-4 border-t border-gray-200/20">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  if (mobileInput.trim() && !isChatLoading) {
+                    handleSendMessage(mobileInput.trim());
+                    setMobileInput('');
+                  }
+                }} className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={mobileInput}
+                    onChange={(e) => setMobileInput(e.target.value)}
+                    placeholder="Ask anything..."
+                    className={`flex-1 backdrop-blur-sm border rounded-full px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 ${
+                      theme === 'dark'
+                        ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
+                        : 'bg-black/10 border-black/20 text-black placeholder-black/50'
+                    }`}
+                    disabled={isChatLoading}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!mobileInput.trim() || isChatLoading}
+                    className={`p-3 rounded-full transition-all duration-200 ${
+                      mobileInput.trim() && !isChatLoading
+                        ? 'bg-purple-500 hover:bg-purple-600 text-white shadow-md'
+                        : theme === 'dark'
+                          ? 'bg-white/10 text-white/40'
+                          : 'bg-black/10 text-black/40'
+                    }`}
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         );
@@ -1136,16 +1225,10 @@ const AppContent: React.FC = () => {
               {/* Recent Chats */}
               {sessions.length > 0 && (
                 <div className="flex flex-col flex-1 min-h-0">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="mb-3">
                     <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                       Recent Chats
                     </h3>
-                    <button
-                      onClick={() => setMobilePage('chat')}
-                      className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}
-                    >
-                      View All
-                    </button>
                   </div>
                   <div className="space-y-2 flex-1 overflow-y-auto scrollbar-none">
                     {sessions.map((session) => (
@@ -1188,37 +1271,72 @@ const AppContent: React.FC = () => {
                 Documents
               </h2>
               <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                {documents.length} document{documents.length !== 1 ? 's' : ''} uploaded
+                {(() => {
+                  const filteredCount = mobileDocumentFilter
+                    ? documents.filter(doc => doc.assigned_classes?.includes(mobileDocumentFilter)).length
+                    : documents.length;
+                  const totalCount = documents.length;
+
+                  if (mobileDocumentFilter && filteredCount !== totalCount) {
+                    return `${filteredCount} of ${totalCount} documents`;
+                  }
+                  return `${totalCount} document${totalCount !== 1 ? 's' : ''} uploaded`;
+                })()}
               </p>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Class Filter */}
+              {userClasses.length > 0 && (
+                <div className={`p-3 rounded-xl ${
+                  theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
+                }`}>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    Filter by Class
+                  </label>
+                  <select
+                    value={mobileDocumentFilter || ''}
+                    onChange={(e) => setMobileDocumentFilter(e.target.value || null)}
+                    className={`w-full px-3 py-2 rounded-lg text-sm border ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-black'
+                    }`}
+                  >
+                    <option value="">All Documents</option>
+                    {userClasses.map((cls) => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Upload Section */}
-              <div className={`p-6 rounded-xl rounded-xl text-center ${
-                theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
+              <label className={`block p-6 rounded-xl text-center cursor-pointer transition-all ${
+                theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-black/5 hover:bg-black/10'
               }`}>
                 <Upload className={`w-8 h-8 mx-auto mb-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} />
-                <label className="cursor-pointer">
-                  <span className={`text-sm font-medium block mb-1 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                    Upload Document
-                  </span>
-                  <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                    PDF, Word, Text, or Markdown
-                  </span>
-                  <input
-                    type="file"
-                    accept=".pdf,.txt,.md,.docx"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleUploadDocument(file);
-                        e.target.value = '';
-                      }
-                    }}
-                    className="hidden"
-                  />
-                </label>
-              </div>
+                <span className={`text-sm font-medium block mb-1 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                  Upload Document
+                </span>
+                <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  PDF, Word, Text, or Markdown
+                </span>
+                <input
+                  type="file"
+                  accept=".pdf,.txt,.md,.docx"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleUploadDocument(file);
+                      e.target.value = '';
+                    }
+                  }}
+                  className="hidden"
+                />
+              </label>
 
               {/* Loading State */}
               {isDocumentLoading && (
@@ -1244,7 +1362,7 @@ const AppContent: React.FC = () => {
               )}
 
               {/* Documents List */}
-              {documents.length === 0 && !isDocumentLoading ? (
+              {documents.filter(doc => !mobileDocumentFilter || doc.assigned_classes?.includes(mobileDocumentFilter)).length === 0 && !isDocumentLoading ? (
                 <div className="text-center py-12">
                   <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
                     theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
@@ -1252,15 +1370,20 @@ const AppContent: React.FC = () => {
                     <Upload className={`w-8 h-8 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
                   </div>
                   <p className={`font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                    No documents yet
+                    {mobileDocumentFilter ? 'No documents in this class' : 'No documents yet'}
                   </p>
                   <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Upload your first document to get started
+                    {mobileDocumentFilter
+                      ? 'Try selecting a different class or upload documents to this class'
+                      : 'Upload your first document to get started'
+                    }
                   </p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {documents.map((doc) => (
+                  {documents
+                    .filter(doc => !mobileDocumentFilter || doc.assigned_classes?.includes(mobileDocumentFilter))
+                    .map((doc) => (
                     <div
                       key={doc.id}
                       className={`p-4 rounded-xl  transition-all ${

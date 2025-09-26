@@ -13,12 +13,13 @@ services:
       # Doppler configuration for secure secret management
       - DOPPLER_PROJECT=rag-scholar
       - DOPPLER_CONFIG=dev
+      - DOPPLER_TOKEN=${DOPPLER_TOKEN}
     # Environment variables provided by Doppler
     volumes:
       - ./src:/app/src
       - ~/.config/gcloud/application_default_credentials.json:/app/credentials.json
     # Use Doppler for secure secret injection in development
-    command: ["python", "-m", "uvicorn", "rag_scholar.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: ["doppler", "run", "--", "python", "-m", "uvicorn", "rag_scholar.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     depends_on:
       - redis
 
@@ -30,10 +31,14 @@ services:
       - "3000:3000"
     environment:
       - REACT_APP_API_URL=http://localhost:8000/api/v1
+      # Doppler configuration for secure secret management
+      - DOPPLER_PROJECT=rag-scholar
+      - DOPPLER_CONFIG=dev
+      - DOPPLER_TOKEN=${DOPPLER_TOKEN}
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
-    command: ["npm", "start"]
+    command: ["doppler", "run", "--", "npm", "start"]
     depends_on:
       - backend
 

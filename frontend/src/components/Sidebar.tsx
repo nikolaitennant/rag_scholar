@@ -5,7 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
 import { DomainType, Document, UserClass } from '../types';
 import { apiService } from '../services/api';
-import { AchievementSection, ClassSection, DocumentSection, SessionHistorySection } from './sidebar';
+import { AchievementSection, ClassSection, DocumentSection, SessionHistorySection } from './sidebar/index';
 import { DOMAIN_TYPE_INFO } from '../constants/domains';
 
 interface SidebarProps {

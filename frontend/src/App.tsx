@@ -1266,11 +1266,11 @@ const AppContent: React.FC = () => {
                                 className={`p-3 rounded-lg transition-all flex flex-col items-center space-y-1 ${
                                   mobileClassFormData.type === type
                                     ? theme === 'dark'
-                                      ? 'bg-white/10 text-white'
-                                      : 'bg-black/10 text-black'
+                                      ? 'bg-white/20 text-white'
+                                      : 'bg-black/20 text-black'
                                     : theme === 'dark'
-                                      ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
-                                      : 'bg-black/5 text-gray-600 hover:bg-gray-50'
+                                      ? 'bg-white/5 text-white/70 hover:bg-white/10'
+                                      : 'bg-black/5 text-black/70 hover:bg-black/10'
                                 }`}
                               >
                                 <Icon className="w-4 h-4" />

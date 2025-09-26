@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send, ChevronDown } from 'lucide-react';
 import { ChatInterface } from './components/ChatInterface';
 import { Sidebar } from './components/Sidebar';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -47,7 +47,9 @@ const AppContent: React.FC = () => {
   const [isEditingMobileClass, setIsEditingMobileClass] = useState(false);
   const [mobileInput, setMobileInput] = useState('');
   const [mobileDocumentFilter, setMobileDocumentFilter] = useState<string | null>(null);
+  const [mobileFilterDropdownOpen, setMobileFilterDropdownOpen] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const mobileFilterRef = useRef<HTMLDivElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [themeToggleVisible, setThemeToggleVisible] = useState(true);
   const [isNewChatSession, setIsNewChatSession] = useState(false);
@@ -283,6 +285,23 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     initializeApp();
   }, [initializeApp]);
+
+  // Close mobile filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (mobileFilterRef.current && !mobileFilterRef.current.contains(event.target as Node)) {
+        setMobileFilterDropdownOpen(false);
+      }
+    };
+
+    if (mobileFilterDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [mobileFilterDropdownOpen]);
 
   // Watch for when data is actually loaded and finish app loading
   useEffect(() => {
@@ -1294,28 +1313,72 @@ const AppContent: React.FC = () => {
                   <label className={`block text-sm font-medium mb-3 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                     Filter by Class
                   </label>
-                  <select
-                    value={mobileDocumentFilter || ''}
-                    onChange={(e) => setMobileDocumentFilter(e.target.value || null)}
-                    className={`w-full px-4 py-3 rounded-full text-sm backdrop-blur-sm border focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 ${
-                      theme === 'dark'
-                        ? 'bg-white/10 border-white/20 text-white'
-                        : 'bg-black/10 border-black/20 text-black'
-                    }`}
-                    style={{
-                      backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
-                      WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)'
-                    }}
-                  >
-                    <option value="" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-black'}>
-                      All Documents
-                    </option>
-                    {userClasses.map((cls) => (
-                      <option key={cls.id} value={cls.id} className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-black'}>
-                        {cls.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative" ref={mobileFilterRef}>
+                    <button
+                      onClick={() => setMobileFilterDropdownOpen(!mobileFilterDropdownOpen)}
+                      className={`w-full px-4 py-3 rounded-full text-sm backdrop-blur-sm border focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 flex items-center justify-between ${
+                        theme === 'dark'
+                          ? 'bg-white/10 border-white/20 text-white'
+                          : 'bg-black/10 border-black/20 text-black'
+                      }`}
+                      style={{
+                        backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
+                        WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)'
+                      }}
+                    >
+                      <span>
+                        {mobileDocumentFilter
+                          ? userClasses.find(cls => cls.id === mobileDocumentFilter)?.name || 'All Documents'
+                          : 'All Documents'
+                        }
+                      </span>
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${
+                        mobileFilterDropdownOpen ? 'rotate-180' : ''
+                      }`} />
+                    </button>
+
+                    {mobileFilterDropdownOpen && (
+                      <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl border backdrop-blur-2xl shadow-2xl z-50 overflow-hidden ${
+                        theme === 'dark'
+                          ? 'bg-black/20 border-white/10'
+                          : 'bg-white/40 border-black/5'
+                      }`}
+                      style={{
+                        backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
+                        WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)'
+                      }}>
+                        <button
+                          onClick={() => {
+                            setMobileDocumentFilter(null);
+                            setMobileFilterDropdownOpen(false);
+                          }}
+                          className={`w-full px-4 py-3 text-left text-sm transition-all duration-200 ${
+                            !mobileDocumentFilter
+                              ? theme === 'dark' ? 'bg-white/20 text-white font-medium' : 'bg-black/20 text-black font-medium'
+                              : theme === 'dark' ? 'hover:bg-white/10 text-white/90' : 'hover:bg-black/10 text-black/90'
+                          }`}
+                        >
+                          All Documents
+                        </button>
+                        {userClasses.map((cls) => (
+                          <button
+                            key={cls.id}
+                            onClick={() => {
+                              setMobileDocumentFilter(cls.id);
+                              setMobileFilterDropdownOpen(false);
+                            }}
+                            className={`w-full px-4 py-3 text-left text-sm transition-all duration-200 ${
+                              mobileDocumentFilter === cls.id
+                                ? theme === 'dark' ? 'bg-white/20 text-white font-medium' : 'bg-black/20 text-black font-medium'
+                                : theme === 'dark' ? 'hover:bg-white/10 text-white/90' : 'hover:bg-black/10 text-black/90'
+                            }`}
+                          >
+                            {cls.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

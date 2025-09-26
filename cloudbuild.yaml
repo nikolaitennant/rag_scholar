@@ -22,7 +22,7 @@ steps:
         doppler run -- npm run build
     env:
       - 'NODE_ENV=production'
-      - 'REACT_APP_API_URL=https://${_SERVICE_NAME}-${PROJECT_NUMBER}.${_DEPLOY_REGION}.run.app'
+      - 'REACT_APP_API_URL=https://${_SERVICE_NAME}-${PROJECT_NUMBER}.${_DEPLOY_REGION}.run.app/api/v1'
     secretEnv: ['DOPPLER_TOKEN']
 
   # Build backend

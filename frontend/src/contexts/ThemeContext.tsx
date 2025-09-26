@@ -24,9 +24,31 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const getStorageValue = (key: string, defaultValue: string): string => {
+    try {
+      return localStorage.getItem(key) || defaultValue;
+    } catch (error) {
+      console.warn('localStorage not available:', error);
+      // For theme specifically, try to use system preference if storage fails
+      if (key === 'theme' || key === 'themeMode') {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          return 'dark';
+        }
+      }
+      return defaultValue;
+    }
+  };
+
+  const setStorageValue = (key: string, value: string): void => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (error) {
+      console.warn('localStorage write failed:', error);
+    }
+  };
+
   const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
-    const savedThemeMode = localStorage.getItem('themeMode') as ThemeMode | null;
-    return savedThemeMode || 'auto';
+    return getStorageValue('themeMode', 'dark') as ThemeMode;
   });
 
   const getAutoTheme = (): 'light' | 'dark' => {
@@ -37,17 +59,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const savedThemeMode = localStorage.getItem('themeMode') as ThemeMode | null;
+    const savedThemeMode = getStorageValue('themeMode', 'dark') as ThemeMode;
     if (savedThemeMode === 'auto') {
       return getAutoTheme();
     }
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    return savedTheme || 'dark';
+    return getStorageValue('theme', 'dark') as 'light' | 'dark';
   });
 
   const [background, setBackgroundState] = useState<BackgroundType>(() => {
-    const savedBackground = localStorage.getItem('background') as BackgroundType | null;
-    return savedBackground || 'classic';
+    return getStorageValue('background', 'classic') as BackgroundType;
   });
 
   const backgroundClasses = {
@@ -98,16 +118,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     document.documentElement.classList.add(theme);
     // Only save theme to localStorage if not in auto mode
     if (themeMode !== 'auto') {
-      localStorage.setItem('theme', theme);
+      setStorageValue('theme', theme);
     }
   }, [theme, themeMode]);
 
   useEffect(() => {
-    localStorage.setItem('themeMode', themeMode);
+    setStorageValue('themeMode', themeMode);
   }, [themeMode]);
 
   useEffect(() => {
-    localStorage.setItem('background', background);
+    setStorageValue('background', background);
   }, [background]);
 
   const toggleTheme = () => {

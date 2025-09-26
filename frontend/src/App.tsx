@@ -1445,7 +1445,7 @@ const AppContent: React.FC = () => {
                       const docCount = documents.filter(doc => doc.assigned_classes?.includes(userClass.id)).length;
 
                       return (
-                        <div className={`p-3 rounded-xl transition-all ${
+                        <div key={userClass.id} className={`p-3 rounded-xl transition-all ${
                           isActive
                             ? theme === 'dark'
                               ? 'bg-white/10'
@@ -1851,9 +1851,17 @@ const AppContent: React.FC = () => {
                     Redeem your points for rewards
                   </p>
                 </div>
-                <div className="bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40 rounded-full px-3 py-1 flex items-center gap-1">
-                  <Star className="w-4 h-4 text-yellow-400" />
-                  <span className="font-bold text-sm text-yellow-400">
+                <div className={`rounded-full px-4 py-1 flex items-center gap-2 whitespace-nowrap ${
+                  theme === 'dark'
+                    ? 'bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40'
+                    : 'bg-gradient-to-r from-yellow-300/50 to-amber-400/50 border border-amber-500/50'
+                }`}>
+                  <Star className={`w-4 h-4 ${
+                    theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                  }`} />
+                  <span className={`font-bold text-sm ${
+                    theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                  }`}>
                     {userProfile?.stats?.total_points || 0} pts
                   </span>
                 </div>
@@ -1868,7 +1876,9 @@ const AppContent: React.FC = () => {
                 }`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <Zap className={`w-4 h-4 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-600'}`} />
+                      <Zap className={`w-4 h-4 ${
+                        theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                      }`} />
                       <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                         Rounded Chat Input
                       </span>
@@ -1966,8 +1976,14 @@ const AppContent: React.FC = () => {
                         Cyberpunk Theme
                       </span>
                     </div>
-                    <div className="bg-gradient-to-r from-cyan-400/20 to-teal-400/20 border border-cyan-400/40 rounded-full px-2 py-1 flex items-center gap-1">
-                      <span className="text-xs text-cyan-400 font-bold">
+                    <div className={`rounded-full px-2 py-1 flex items-center gap-1 whitespace-nowrap ${
+                      theme === 'dark'
+                        ? 'bg-gradient-to-r from-cyan-400/20 to-teal-400/20 border border-cyan-400/40'
+                        : 'bg-slate-200/80 border border-slate-500/80'
+                    }`}>
+                      <span className={`text-xs font-bold ${
+                        theme === 'dark' ? 'text-cyan-400' : 'text-slate-800'
+                      }`}>
                         400 pts
                       </span>
                     </div>
@@ -1997,8 +2013,14 @@ const AppContent: React.FC = () => {
                         Particle Effects
                       </span>
                     </div>
-                    <div className="bg-gradient-to-r from-green-400/20 to-emerald-400/20 border border-green-400/40 rounded-full px-2 py-1 flex items-center gap-1">
-                      <span className="text-xs text-green-400 font-bold">
+                    <div className={`rounded-full px-2 py-1 flex items-center gap-1 whitespace-nowrap ${
+                      theme === 'dark'
+                        ? 'bg-gradient-to-r from-green-400/20 to-emerald-400/20 border border-green-400/40'
+                        : 'bg-emerald-200/80 border border-emerald-600/80'
+                    }`}>
+                      <span className={`text-xs font-bold ${
+                        theme === 'dark' ? 'text-green-400' : 'text-emerald-800'
+                      }`}>
                         500 pts
                       </span>
                     </div>
@@ -2030,7 +2052,7 @@ const AppContent: React.FC = () => {
               theme === 'dark' ? 'backdrop-blur-md bg-white/10' : 'backdrop-blur-md bg-black/10'
             }`}>
               <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                Achievements
+                Rewards
               </h2>
               <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                 Track your learning progress
@@ -2048,9 +2070,17 @@ const AppContent: React.FC = () => {
                     {achievements.filter(a => a.unlocked_at !== null).length} of {achievements.length} completed
                   </p>
                 </div>
-                <div className="bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40 rounded-full px-3 py-1.5 flex items-center gap-2">
-                  <Star className="w-4 h-4 text-yellow-400" />
-                  <span className="font-bold text-sm text-yellow-400">
+                <div className={`rounded-full px-3 py-1.5 flex items-center gap-2 whitespace-nowrap ${
+                  theme === 'dark'
+                    ? 'bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40'
+                    : 'bg-gradient-to-r from-yellow-300/50 to-amber-400/50 border border-amber-500/50'
+                }`}>
+                  <Star className={`w-4 h-4 ${
+                    theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                  }`} />
+                  <span className={`font-bold text-sm ${
+                    theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                  }`}>
                     {userProfile?.stats?.total_points || 0} pts
                   </span>
                 </div>
@@ -2100,7 +2130,7 @@ const AppContent: React.FC = () => {
                         >
                           <div className="flex items-start justify-between mb-2">
                             <Icon className={`w-5 h-5 ${getColor(achievement.type)}`} />
-                            <div className="bg-gradient-to-r from-blue-400/20 to-purple-400/20 border border-purple-400/40 rounded-full px-2 py-1 flex items-center gap-1">
+                            <div className="bg-gradient-to-r from-blue-400/20 to-purple-400/20 border border-purple-400/40 rounded-full px-2 py-1 flex items-center gap-1 whitespace-nowrap">
                               <Zap className="w-3 h-3 text-purple-400" />
                               <span className="text-xs font-bold text-purple-400">
                                 +{achievement.points} pts
@@ -2140,7 +2170,9 @@ const AppContent: React.FC = () => {
               {achievements.filter(a => a.unlocked_at !== null).length > 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 px-2">
-                    <Trophy className="w-4 h-4 text-yellow-400" />
+                    <Trophy className={`w-4 h-4 ${
+                      theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                    }`} />
                     <h4 className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                       UNLOCKED ({achievements.filter(a => a.unlocked_at !== null).length})
                     </h4>
@@ -2178,17 +2210,31 @@ const AppContent: React.FC = () => {
                           key={achievement.id}
                           className={`relative p-3 rounded-lg ${theme === 'dark' ? 'bg-white/10 shadow-lg' : 'bg-black/10 shadow-lg'}`}
                         >
-                          <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 rounded-lg animate-pulse" />
+                          <div className={`absolute inset-0 rounded-lg animate-pulse ${
+                            theme === 'dark'
+                              ? 'bg-gradient-to-r from-yellow-400/20 to-orange-400/20'
+                              : 'bg-gradient-to-r from-yellow-300/40 to-amber-400/40'
+                          }`} />
 
                           <div className="relative">
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex items-center gap-2">
                                 <Icon className={`w-5 h-5 ${getColor(achievement.type)}`} />
-                                <Award className="w-4 h-4 text-yellow-400" />
+                                <Award className={`w-4 h-4 ${
+                                  theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                                }`} />
                               </div>
-                              <div className="bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40 rounded-full px-2 py-1 flex items-center gap-1">
-                                <Zap className="w-3 h-3 text-yellow-400" />
-                                <span className="text-xs font-bold text-yellow-400">
+                              <div className={`rounded-full px-2 py-1 flex items-center gap-1 whitespace-nowrap ${
+                                theme === 'dark'
+                                  ? 'bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40'
+                                  : 'bg-gradient-to-r from-yellow-300/50 to-amber-400/50 border border-amber-500/50'
+                              }`}>
+                                <Zap className={`w-3 h-3 ${
+                                  theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                                }`} />
+                                <span className={`text-xs font-bold ${
+                                  theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                                }`}>
                                   +{achievement.points}
                                 </span>
                               </div>

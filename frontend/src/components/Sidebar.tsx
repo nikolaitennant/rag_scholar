@@ -553,9 +553,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   theme === 'dark' ? 'text-white/60' : 'text-black/60'
                 }`}>Redeem your points for rewards</p>
               </div>
-              <div className="bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40 rounded-full px-2 py-1 flex items-center gap-1">
-                <Star className="w-3 h-3 text-yellow-400" />
-                <span className="font-bold text-xs text-yellow-400">
+              <div className={`rounded-full px-3 py-1 flex items-center gap-1 whitespace-nowrap ${
+                theme === 'dark'
+                  ? 'bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40'
+                  : 'bg-gradient-to-r from-yellow-300/50 to-amber-400/50 border border-amber-500/50'
+              }`}>
+                <Star className={`w-3 h-3 ${
+                  theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                }`} />
+                <span className={`font-bold text-xs ${
+                  theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                }`}>
                   {totalPoints} pts
                 </span>
               </div>
@@ -568,7 +576,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Zap className={`w-4 h-4 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-600'}`} />
+                    <Zap className={`w-4 h-4 ${
+                      theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                    }`} />
                     <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                       Rounded Chat Input
                     </span>
@@ -629,13 +639,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
               }`}>
                 <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
                     <Heart className={`w-4 h-4 ${theme === 'dark' ? 'text-pink-400' : 'text-pink-600'}`} />
                     <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                       Cherry Blossom Theme
                     </span>
                   </div>
-                  <div className="bg-gradient-to-r from-pink-400/20 to-rose-400/20 border border-pink-400/40 rounded-full px-2 py-1 flex items-center gap-1">
+                  <div className="bg-gradient-to-r from-pink-400/20 to-rose-400/20 border border-pink-400/40 rounded-full px-2 py-1 flex items-center gap-1 whitespace-nowrap">
                     <span className="text-xs text-pink-400 font-bold">
                       300 pts
                     </span>
@@ -666,8 +676,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       Cyberpunk Theme
                     </span>
                   </div>
-                  <div className="bg-gradient-to-r from-cyan-400/20 to-teal-400/20 border border-cyan-400/40 rounded-full px-2 py-1 flex items-center gap-1">
-                    <span className="text-xs text-cyan-400 font-bold">
+                  <div className={`rounded-full px-2 py-1 flex items-center gap-1 whitespace-nowrap ${
+                    theme === 'dark'
+                      ? 'bg-gradient-to-r from-cyan-400/20 to-teal-400/20 border border-cyan-400/40'
+                      : 'bg-slate-200/60 border border-slate-500/60'
+                  }`}>
+                    <span className={`text-xs font-bold ${
+                      theme === 'dark' ? 'text-cyan-400' : 'text-slate-800'
+                    }`}>
                       400 pts
                     </span>
                   </div>
@@ -697,8 +713,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       Particle Effects
                     </span>
                   </div>
-                  <div className="bg-gradient-to-r from-green-400/20 to-emerald-400/20 border border-green-400/40 rounded-full px-2 py-1 flex items-center gap-1">
-                    <span className="text-xs text-green-400 font-bold">
+                  <div className={`rounded-full px-2 py-1 flex items-center gap-1 whitespace-nowrap ${
+                    theme === 'dark'
+                      ? 'bg-gradient-to-r from-green-400/20 to-emerald-400/20 border border-green-400/40'
+                      : 'bg-emerald-200/60 border border-emerald-600/60'
+                  }`}>
+                    <span className={`text-xs font-bold ${
+                      theme === 'dark' ? 'text-green-400' : 'text-emerald-800'
+                    }`}>
                       500 pts
                     </span>
                   </div>

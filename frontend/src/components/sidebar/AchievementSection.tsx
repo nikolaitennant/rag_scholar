@@ -48,7 +48,7 @@ export const AchievementSection: React.FC<AchievementSectionProps> = ({ userProf
   const getAchievementColor = (type: string) => {
     const colorMap: { [key: string]: string } = {
       first_chat: 'text-blue-400',
-      prolific_researcher: 'text-green-400',
+      prolific_researcher: theme === 'dark' ? 'text-green-400' : 'text-green-800',
       document_uploader: 'text-orange-400',
       early_adopter: 'text-yellow-400',
       knowledge_seeker: 'text-indigo-400',
@@ -75,7 +75,11 @@ export const AchievementSection: React.FC<AchievementSectionProps> = ({ userProf
       >
         {/* Achievement unlocked glow effect */}
         {isUnlocked && (
-          <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 rounded-lg animate-pulse" />
+          <div className={`absolute inset-0 rounded-lg animate-pulse ${
+            theme === 'dark'
+              ? 'bg-gradient-to-r from-yellow-400/20 to-orange-400/20'
+              : 'bg-gradient-to-r from-yellow-300/40 to-amber-400/40'
+          }`} />
         )}
 
         <div className="relative">
@@ -83,17 +87,29 @@ export const AchievementSection: React.FC<AchievementSectionProps> = ({ userProf
             <div className="flex items-center gap-2">
               <Icon className={`w-5 h-5 ${getAchievementColor(achievement.type)}`} />
               {isUnlocked && (
-                <Award className="w-4 h-4 text-yellow-400" />
+                <Award className={`w-4 h-4 ${
+                theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+              }`} />
               )}
             </div>
             {/* Points display for both unlocked and locked achievements */}
-            <div className={`rounded-full px-2 py-1 flex items-center gap-1 ${
+            <div className={`rounded-full px-3 py-1 flex items-center gap-1 whitespace-nowrap ${
               isUnlocked
-                ? 'bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40'
+                ? theme === 'dark'
+                  ? 'bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40'
+                  : 'bg-gradient-to-r from-yellow-300/50 to-amber-400/50 border border-amber-500/50'
                 : 'bg-gradient-to-r from-blue-400/20 to-purple-400/20 border border-purple-400/40'
             }`}>
-              <Zap className={`w-3 h-3 ${isUnlocked ? 'text-yellow-400' : 'text-purple-400'}`} />
-              <span className={`text-xs font-bold ${isUnlocked ? 'text-yellow-400' : 'text-purple-400'}`}>
+              <Zap className={`w-3 h-3 ${
+                isUnlocked
+                  ? theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                  : 'text-purple-400'
+              }`} />
+              <span className={`text-xs font-bold ${
+                isUnlocked
+                  ? theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                  : 'text-purple-400'
+              }`}>
                 +{achievement.points}{isUnlocked ? '' : ' pts'}
               </span>
             </div>
@@ -149,9 +165,17 @@ export const AchievementSection: React.FC<AchievementSectionProps> = ({ userProf
             theme === 'dark' ? 'text-white/60' : 'text-black/60'
           }`}>{achievedAchievements.length} of {achievements.length} completed</p>
         </div>
-        <div className="bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40 rounded-full px-3 py-1.5 flex items-center gap-2">
-          <Star className="w-4 h-4 text-yellow-400" />
-          <span className="font-bold text-sm text-yellow-400">
+        <div className={`rounded-full px-4 py-1.5 flex items-center gap-2 whitespace-nowrap ${
+          theme === 'dark'
+            ? 'bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40'
+            : 'bg-gradient-to-r from-yellow-300/50 to-amber-400/50 border border-amber-500/50'
+        }`}>
+          <Star className={`w-4 h-4 ${
+            theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+          }`} />
+          <span className={`font-bold text-sm ${
+            theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+          }`}>
             {totalPoints} pts
           </span>
         </div>
@@ -179,7 +203,9 @@ export const AchievementSection: React.FC<AchievementSectionProps> = ({ userProf
         {achievedAchievements.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-2">
-              <Trophy className="w-4 h-4 text-yellow-400" />
+              <Trophy className={`w-4 h-4 ${
+                theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+              }`} />
               <h4 className={`text-xs font-semibold ${
                 theme === 'dark' ? 'text-white' : 'text-black'
               }`}>
@@ -200,7 +226,7 @@ export const AchievementSection: React.FC<AchievementSectionProps> = ({ userProf
             }`} />
             <p className={`text-sm ${
               theme === 'dark' ? 'text-white/60' : 'text-black/60'
-            }`}>No achievements yet</p>
+            }`}>No rewards yet</p>
             <p className={`text-xs mt-1 ${
               theme === 'dark' ? 'text-white/40' : 'text-black/40'
             }`}>Start using RAG Scholar to unlock rewards!</p>

@@ -3,6 +3,7 @@ import { X, User, Mail, LogOut, Palette, Clock, Shield, Sparkles, Bell, Globe, M
 import { createPortal } from 'react-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
+import { apiService } from '../services/api';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -36,11 +37,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   // Advanced settings state
   const [apiSettings, setApiSettings] = useState({
-    apiKey: localStorage.getItem('api_key') || '',
-    model: localStorage.getItem('preferred_model') || 'gpt-5-mini',
-    temperature: parseFloat(localStorage.getItem('model_temperature') || '0.7'),
-    maxTokens: parseInt(localStorage.getItem('max_tokens') || '2000'),
+    apiKey: '',
+    model: 'gpt-5-mini',
+    temperature: 0.7,
+    maxTokens: 2000,
   });
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
   const backgroundOptions = [
     { id: 'classic', name: 'Default', color: 'from-gray-900 to-gray-100' },
@@ -50,6 +52,52 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     { id: 'sunset', name: 'Sunset', color: 'from-orange-500 to-pink-600' },
     { id: 'forest', name: 'Forest', color: 'from-green-500 to-emerald-600' },
   ];
+
+  // Load API settings from cloud when modal opens
+  useEffect(() => {
+    if (isOpen && user) {
+      loadApiSettings();
+    }
+  }, [isOpen, user]);
+
+  const loadApiSettings = async () => {
+    try {
+      setIsLoadingSettings(true);
+      const settings = await apiService.getAPISettings();
+      setApiSettings({
+        apiKey: settings.api_key || '',
+        model: settings.preferred_model || 'gpt-5-mini',
+        temperature: settings.temperature || 0.7,
+        maxTokens: settings.max_tokens || 2000,
+      });
+    } catch (error) {
+      console.error('Failed to load API settings:', error);
+      // Keep default values on error
+    } finally {
+      setIsLoadingSettings(false);
+    }
+  };
+
+  const saveApiSettings = async () => {
+    try {
+      setIsLoading(true);
+      await apiService.updateAPISettings({
+        api_key: apiSettings.apiKey,
+        preferred_model: apiSettings.model,
+        temperature: apiSettings.temperature,
+        max_tokens: apiSettings.maxTokens,
+        timezone: timezone
+      });
+      setSaveMessage('API settings saved successfully');
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (error) {
+      console.error('Failed to save API settings:', error);
+      setSaveMessage('Failed to save API settings');
+      setTimeout(() => setSaveMessage(null), 3000);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem('userTimezone', timezone);
@@ -71,12 +119,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     return () => clearTimeout(timer);
   }, [formData.name]);
 
+  // Auto-save API settings to cloud when they change (with debounce)
   useEffect(() => {
-    localStorage.setItem('api_key', apiSettings.apiKey);
-    localStorage.setItem('preferred_model', apiSettings.model);
-    localStorage.setItem('model_temperature', apiSettings.temperature.toString());
-    localStorage.setItem('max_tokens', apiSettings.maxTokens.toString());
-  }, [apiSettings]);
+    if (!isLoadingSettings && user) {
+      const timer = setTimeout(() => {
+        saveApiSettings();
+      }, 1000); // Auto-save after 1 second of no changes
+
+      return () => clearTimeout(timer);
+    }
+  }, [apiSettings, isLoadingSettings, user]);
 
   // Detect provider and get available models based on API key format
   const getProviderAndModels = () => {
@@ -520,7 +572,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     value={apiSettings.apiKey}
                     onChange={(e) => setApiSettings(prev => ({ ...prev, apiKey: e.target.value }))}
                     placeholder={apiSettings.apiKey ? '••••••••••••••••••••' : 'sk-... (OpenAI) | sk-ant-... (Anthropic)'}
-                    className={`w-full px-4 py-2.5 text-sm rounded-2xl border transition-all duration-200 ${
+                    disabled={isLoadingSettings}
+                    className={`w-full px-4 py-2.5 text-sm rounded-2xl border transition-all duration-200 ${isLoadingSettings ? 'opacity-50 cursor-not-allowed' : ''} ${
                       theme === 'dark'
                         ? 'bg-black/30 border-white/20 text-white/90 placeholder-gray-400 focus:border-green-400 hover:bg-black/40'
                         : 'bg-black/10 border-gray-300/50 text-gray-900 placeholder-gray-500 focus:border-green-500 hover:bg-white/25'
@@ -533,7 +586,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   </p>
                 )}
                 <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Your API key is stored securely in the cloud and syncs across all your devices
+                  {isLoadingSettings ? 'Loading settings...' : 'Your API key is stored securely in the cloud and syncs across all your devices'}
                 </p>
               </div>
 
@@ -547,7 +600,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                       Secure Integration
                     </h4>
                     <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Your key never leaves your browser and provides unlimited usage
+                      Your key is encrypted and stored securely in the cloud, providing unlimited usage across all devices
                     </p>
                   </div>
                 </div>
@@ -854,8 +907,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                           }
                           setModelDropdownOpen(!modelDropdownOpen);
                         }}
-                        disabled={getProviderAndModels().models.length === 0}
-                        className={`w-full px-3 py-1.5 text-sm text-left flex items-center justify-between transition-all rounded-full ${
+                        disabled={getProviderAndModels().models.length === 0 || isLoadingSettings}
+                        className={`w-full px-3 py-1.5 text-sm text-left flex items-center justify-between transition-all rounded-full ${isLoadingSettings ? 'opacity-50 cursor-not-allowed' : ''} ${
                           getProviderAndModels().models.length === 0
                             ? 'opacity-50 cursor-not-allowed'
                             : ''
@@ -934,7 +987,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                           step="0.1"
                           value={apiSettings.temperature}
                           onChange={(e) => setApiSettings(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
-                          className={`w-full h-2 rounded-full appearance-none cursor-pointer transition-all duration-200 ${
+                          disabled={isLoadingSettings}
+                          className={`w-full h-2 rounded-full appearance-none cursor-pointer transition-all duration-200 ${isLoadingSettings ? 'opacity-50 cursor-not-allowed' : ''} ${
                             theme === 'dark'
                               ? 'bg-black/20 [&::-webkit-slider-thumb]:bg-purple-400 [&::-webkit-slider-thumb]:border-white/20'
                               : 'bg-white/40 [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:border-black/10'
@@ -959,7 +1013,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                           step="100"
                           value={apiSettings.maxTokens}
                           onChange={(e) => setApiSettings(prev => ({ ...prev, maxTokens: parseInt(e.target.value) }))}
-                          className={`w-full h-2 rounded-full appearance-none cursor-pointer transition-all duration-200 ${
+                          disabled={isLoadingSettings}
+                          className={`w-full h-2 rounded-full appearance-none cursor-pointer transition-all duration-200 ${isLoadingSettings ? 'opacity-50 cursor-not-allowed' : ''} ${
                             theme === 'dark'
                               ? 'bg-black/20 [&::-webkit-slider-thumb]:bg-purple-400 [&::-webkit-slider-thumb]:border-white/20'
                               : 'bg-white/40 [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:border-black/10'

@@ -21,6 +21,7 @@ interface UserContextType {
   logout: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateDisplayName: (newDisplayName: string) => Promise<void>;
   updateUserProfile: (data: { bio?: string; research_interests?: string[]; preferred_domains?: string[] }) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   isAuthenticated: boolean;
@@ -91,6 +92,19 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
+  const updateDisplayName = async (newDisplayName: string) => {
+    if (auth.currentUser) {
+      await updateProfile(auth.currentUser, { displayName: newDisplayName });
+      // Force immediate state update by setting user to null then back to current user
+      const currentUser = auth.currentUser;
+      setUser(null);
+      // Use requestAnimationFrame to ensure the null state is rendered first
+      requestAnimationFrame(() => {
+        setUser(currentUser);
+      });
+    }
+  };
+
   const updateUserProfile = async (data: { bio?: string; research_interests?: string[]; preferred_domains?: string[] }) => {
     await refreshUserProfile();
   };
@@ -111,6 +125,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       logout,
       refreshUserProfile,
       refreshUser,
+      updateDisplayName,
       updateUserProfile,
       resetPassword,
       isAuthenticated

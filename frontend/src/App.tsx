@@ -16,7 +16,7 @@ import { DOMAIN_TYPE_INFO } from './constants/domains';
 
 const AppContent: React.FC = () => {
   const { theme, themeMode, background, toggleTheme, setBackground, getBackgroundClass } = useTheme();
-  const { user, userProfile, login, signUp, logout, resetPassword, refreshUserProfile, refreshUser, isAuthenticated, loading } = useUser();
+  const { user, userProfile, login, signUp, logout, resetPassword, refreshUserProfile, refreshUser, updateDisplayName, isAuthenticated, loading } = useUser();
   const { achievements, newlyUnlocked, dismissNotification, checkForNewAchievements } = useAchievements();
 
   // Core state
@@ -167,10 +167,7 @@ const AppContent: React.FC = () => {
       if (formData.name !== user?.displayName) {
         try {
           // Update display name if changed
-          if (user) {
-            await (user as any).updateProfile({ displayName: formData.name });
-            await refreshUser(); // Refresh user state to trigger re-render
-          }
+          await updateDisplayName(formData.name);
         } catch (error) {
           console.error('Auto-save failed:', error);
         }

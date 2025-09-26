@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send, ChevronDown, Gift, Trash2 } from 'lucide-react';
+import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Edit2, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send, ChevronDown, Gift, Trash2 } from 'lucide-react';
 import { ChatInterface } from './components/ChatInterface';
 import { Sidebar } from './components/Sidebar';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -294,7 +294,12 @@ const AppContent: React.FC = () => {
   // Close mobile filter dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (mobileFilterRef.current && !mobileFilterRef.current.contains(event.target as Node)) {
+      // Check if click is outside both the button and the dropdown
+      const target = event.target as Node;
+      const isInButton = mobileFilterRef.current && mobileFilterRef.current.contains(target);
+      const isInDropdown = target && (target as Element).closest('.dropdown-container');
+
+      if (!isInButton && !isInDropdown) {
         setMobileFilterDropdownOpen(false);
       }
     };
@@ -1345,52 +1350,81 @@ const AppContent: React.FC = () => {
                       const docCount = documents.filter(doc => doc.assigned_classes?.includes(userClass.id)).length;
 
                       return (
-                        <button
-                          key={userClass.id}
-                          onClick={() => handleSelectClass(userClass)}
-                          className={`w-full p-3 rounded-xl text-left transition-all ${
-                            isActive
-                              ? theme === 'dark'
-                                ? 'bg-white/10'
-                                : 'bg-black/10'
-                              : theme === 'dark'
-                                ? 'bg-white/5 hover:bg-white/10'
-                                : 'bg-black/5 hover:bg-black/10'
-                          }`}
-                        >
+                        <div className={`p-3 rounded-xl transition-all ${
+                          isActive
+                            ? theme === 'dark'
+                              ? 'bg-white/10'
+                              : 'bg-black/10'
+                            : theme === 'dark'
+                              ? 'bg-white/5'
+                              : 'bg-black/5'
+                        }`}>
                           <div className="flex items-center space-x-3">
-                            <div className={`p-2 rounded-lg ${
-                              isActive
-                                ? theme === 'dark' ? 'bg-white/20' : 'bg-black/20'
-                                : theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
-                            }`}>
-                              {Icon && <Icon className={`w-4 h-4 ${
+                            <button
+                              onClick={() => handleSelectClass(userClass)}
+                              className="flex items-center space-x-3 flex-1 min-w-0"
+                            >
+                              <div className={`p-2 rounded-lg ${
                                 isActive
-                                  ? theme === 'dark' ? 'text-white' : 'text-black'
-                                  : theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                              }`} />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className={`font-medium truncate text-sm ${
-                                theme === 'dark' ? 'text-white' : 'text-black'
+                                  ? theme === 'dark' ? 'bg-white/20' : 'bg-black/20'
+                                  : theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
                               }`}>
-                                {userClass.name}
-                              </h4>
-                              <div className="flex items-center space-x-2 mt-1">
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                  theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-                                }`}>
-                                  {typeInfo?.label || userClass.domainType}
-                                </span>
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                  theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-                                }`}>
-                                  {docCount} doc{docCount !== 1 ? 's' : ''}
-                                </span>
+                                {Icon && <Icon className={`w-4 h-4 ${
+                                  isActive
+                                    ? theme === 'dark' ? 'text-white' : 'text-black'
+                                    : theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                                }`} />}
                               </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className={`font-medium truncate text-sm ${
+                                  theme === 'dark' ? 'text-white' : 'text-black'
+                                }`}>
+                                  {userClass.name}
+                                </h4>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                    theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                                  }`}>
+                                    {typeInfo?.label || userClass.domainType}
+                                  </span>
+                                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                    theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                                  }`}>
+                                    {docCount} doc{docCount !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                              </div>
+                            </button>
+                            <div className="flex space-x-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditClass(userClass);
+                                }}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  theme === 'dark'
+                                    ? 'text-gray-400 hover:text-white hover:bg-white/10'
+                                    : 'text-gray-600 hover:text-black hover:bg-black/10'
+                                }`}
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteClass(userClass.id);
+                                }}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  theme === 'dark'
+                                    ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10'
+                                    : 'text-gray-600 hover:text-red-600 hover:bg-red-500/10'
+                                }`}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
                             </div>
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -1404,7 +1438,7 @@ const AppContent: React.FC = () => {
                   ? sessions.filter(session => session.class_id === activeClass.id)
                   : sessions.filter(session => !session.class_id || session.class_id === null);
 
-                return filteredSessions.length > 0 && (
+                return (
                   <div className="flex flex-col flex-1 min-h-0">
                     <div className="mb-3">
                       <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
@@ -1412,27 +1446,43 @@ const AppContent: React.FC = () => {
                       </h3>
                     </div>
                     <div className="space-y-2 flex-1 overflow-y-auto scrollbar-none">
-                      {filteredSessions.map((session) => (
-                        <button
-                          key={session.id}
-                          onClick={() => {
-                            handleSelectSession(session.id);
-                            setMobilePage('chat');
-                          }}
-                          className={`w-full p-3 rounded-lg text-left transition-all ${
-                            theme === 'dark'
-                              ? 'bg-white/5 hover:bg-white/10'
-                              : 'bg-black/5 hover:bg-black/10'
-                          }`}
-                        >
-                          <p className={`font-medium text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                            {session.name}
+                      {filteredSessions.length === 0 ? (
+                        <div className="text-center py-8">
+                          <div className={`w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center ${
+                            theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+                          }`}>
+                            <MessageSquare className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
+                          </div>
+                          <p className={`font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                            No recent chats
                           </p>
-                          <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            {formatLocalDate(session.updated_at)}
+                          <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {activeClass ? `Start a conversation in ${activeClass.name}` : 'Start a new conversation'}
                           </p>
-                        </button>
-                      ))}
+                        </div>
+                      ) : (
+                        filteredSessions.map((session) => (
+                          <button
+                            key={session.id}
+                            onClick={() => {
+                              handleSelectSession(session.id);
+                              setMobilePage('chat');
+                            }}
+                            className={`w-full p-3 rounded-lg text-left transition-all ${
+                              theme === 'dark'
+                                ? 'bg-white/5 hover:bg-white/10'
+                                : 'bg-black/5 hover:bg-black/10'
+                            }`}
+                          >
+                            <p className={`font-medium text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                              {session.name}
+                            </p>
+                            <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {formatLocalDate(session.updated_at)}
+                            </p>
+                          </button>
+                        ))
+                      )}
                     </div>
                   </div>
                 );
@@ -1704,7 +1754,7 @@ const AppContent: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-3 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 space-y-4">
               <div className="space-y-3">
                 {/* Store Items - Exact copy from desktop */}
                 <div className={`border rounded-lg p-3 ${

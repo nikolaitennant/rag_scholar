@@ -13,7 +13,7 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     // Security: Ensure HTTPS in production
-    if (process.env.NODE_ENV === 'production' && config.url && !config.url.startsWith('https://')) {
+    if (process.env.NODE_ENV === 'production' && config.baseURL && !config.baseURL.startsWith('https://')) {
       console.warn('🔒 Security Warning: API calls should use HTTPS in production');
     }
 

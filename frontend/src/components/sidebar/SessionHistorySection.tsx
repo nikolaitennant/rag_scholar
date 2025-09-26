@@ -118,7 +118,7 @@ export const SessionHistorySection: React.FC<SessionHistorySectionProps> = ({
               key={session.id}
               className={`group rounded-lg p-3 transition-all duration-200 cursor-pointer ${
                 sessionId === session.id
-                  ? (theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-500/20')
+                  ? (theme === 'dark' ? 'bg-violet-500/20' : 'bg-violet-500/20')
                   : (theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-black/5 hover:bg-black/10')
               }`}
                 onClick={() => onSelectSession?.(session.id)}
@@ -146,19 +146,18 @@ export const SessionHistorySection: React.FC<SessionHistorySectionProps> = ({
                           setEditingSessionName('');
                         }
                       }}
-                      className={`w-full text-sm font-medium rounded-full px-2 py-1 outline-none focus:outline-none focus:ring-0 focus:ring-offset-0 focus:shadow-none transition-all duration-300 backdrop-blur-xl border-0 ${
+                      className={`w-full text-sm font-medium rounded-full px-2 py-1 outline-none transition-all duration-300 backdrop-blur-xl border-0 ${
                         theme === 'dark'
-                          ? 'text-white bg-white/5 focus:bg-white/8'
-                          : 'text-black bg-black/3 focus:bg-black/5'
+                          ? 'text-white bg-white/5 focus:bg-white/8 focus:ring-2 focus:ring-violet-400/50'
+                          : 'text-black bg-black/3 focus:bg-black/5 focus:ring-2 focus:ring-violet-500/50'
                       } hover:scale-[1.02] focus:scale-[1.02]`}
                       style={{
-                        boxShadow: 'none',
-                        outline: 'none',
                         border: 'none',
                         WebkitAppearance: 'none',
                         MozAppearance: 'none'
                       }}
                       autoFocus
+                      onFocus={(e) => e.target.select()}
                       onClick={(e) => e.stopPropagation()}
                     />
                   ) : (
@@ -175,7 +174,7 @@ export const SessionHistorySection: React.FC<SessionHistorySectionProps> = ({
                           {session.preview}
                         </p>
                       )}
-                      <div className={`text-xs mt-2 ${
+                      <div className={`text-xs mt-3 ${
                         theme === 'dark' ? 'text-white/50' : 'text-black/50'
                       }`}>
                         {formatLocalDate(session.updated_at)}
@@ -213,8 +212,8 @@ export const SessionHistorySection: React.FC<SessionHistorySectionProps> = ({
                     className={`p-1.5 rounded-full transition-all duration-200 backdrop-blur-sm ${
                       editingSessionId === session.id
                         ? theme === 'dark'
-                          ? 'text-blue-400 bg-blue-400/20 shadow-lg'
-                          : 'text-blue-600 bg-blue-500/20 shadow-lg'
+                          ? 'text-violet-400 bg-violet-400/20 shadow-lg'
+                          : 'text-violet-600 bg-violet-500/20 shadow-lg'
                         : theme === 'dark'
                         ? 'text-white/50 hover:text-white hover:bg-white/10'
                         : 'text-black/50 hover:text-black hover:bg-black/10'

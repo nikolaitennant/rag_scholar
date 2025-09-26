@@ -269,7 +269,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
                               return (
                                 <span
                                   key={classId}
-                                  className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs"
+                                  className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs select-none"
                                 >
                                   {userClass?.name || classId}
                                   <button
@@ -291,7 +291,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
                   </div>
                   <button
                     onClick={() => onDelete(doc.id)}
-                    className="p-2 text-white/40 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
+                    className="text-white/40 hover:text-red-400 transition-all duration-200 opacity-0 group-hover:opacity-100"
                     title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />

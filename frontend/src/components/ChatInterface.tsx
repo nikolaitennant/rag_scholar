@@ -132,7 +132,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     return `Good evening, ${userName}!`;
                   })()}
                 </span>
-                <Heart className="w-5 h-5 text-pink-400 animate-pulse inline-block ml-2" style={{ verticalAlign: 'middle', transform: 'translateY(-1.5px)' }} />
+                <Heart className="w-5 h-5 text-violet-400 animate-pulse inline-block ml-2" style={{ verticalAlign: 'middle', transform: 'translateY(-1.5px)' }} />
               </div>
               <p className={`text-sm mb-6 ${
                 theme === 'dark' ? 'text-white/60' : 'text-black/60'

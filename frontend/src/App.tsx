@@ -61,6 +61,7 @@ const AppContent: React.FC = () => {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const mobileFilterRef = useRef<HTMLDivElement>(null);
   const mobileFilterButtonRef = useRef<HTMLButtonElement>(null);
+  const feedbackDropdownButtonRef = useRef<HTMLButtonElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackForm, setFeedbackForm] = useState({
@@ -69,6 +70,12 @@ const AppContent: React.FC = () => {
     email: ''
   });
   const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
+  const [feedbackDropdownOpen, setFeedbackDropdownOpen] = useState(false);
+  const [feedbackDropdownPosition, setFeedbackDropdownPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
   const [themeToggleVisible, setThemeToggleVisible] = useState(true);
   const [isNewChatSession, setIsNewChatSession] = useState(false);
   const isMobile = window.innerWidth < 768;
@@ -204,21 +211,23 @@ const AppContent: React.FC = () => {
 
     setIsFeedbackLoading(true);
     try {
-      await apiService.sendFeedback({
+      const feedbackData = {
         type: feedbackForm.type,
         message: feedbackForm.message,
-        email: feedbackForm.email || undefined
-      });
+        email: feedbackForm.email.trim() || undefined
+      };
+      console.log('Sending feedback data:', feedbackData);
+      await apiService.sendFeedback(feedbackData);
 
       // Reset form and close modal
       setFeedbackForm({ type: 'general', message: '', email: '' });
       setShowFeedbackModal(false);
 
-      // Show success message (could add a toast notification here)
-      console.log('Feedback sent successfully!');
+      // Show success message
+      alert('Feedback sent successfully! Thank you for your input.');
     } catch (error) {
       console.error('Failed to send feedback:', error);
-      // Could show error message here
+      alert(`Failed to send feedback: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsFeedbackLoading(false);
     }
@@ -1285,7 +1294,7 @@ const AppContent: React.FC = () => {
                     if (hour < 17) return `Good afternoon, ${userName}`;
                     return `Good evening, ${userName}`;
                   })()}
-                  <Heart className="w-5 h-5 text-pink-400 animate-pulse inline-block ml-2" style={{ verticalAlign: 'middle', transform: 'translateY(-1.5px)' }} />
+                  <Heart className="w-5 h-5 text-violet-400 animate-pulse inline-block ml-2" style={{ verticalAlign: 'middle', transform: 'translateY(-1.5px)' }} />
                 </h1>
                 <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                   Ready to explore your documents?
@@ -1552,17 +1561,11 @@ const AppContent: React.FC = () => {
                               onClick={() => handleSelectClass(userClass)}
                               className="flex items-center space-x-3 flex-1 min-w-0 text-left"
                             >
-                              <div className={`p-2 rounded-lg ${
+                              {Icon && <Icon className={`w-4 h-4 ${
                                 isActive
-                                  ? theme === 'dark' ? 'bg-white/20' : 'bg-black/20'
-                                  : theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
-                              }`}>
-                                {Icon && <Icon className={`w-4 h-4 ${
-                                  isActive
-                                    ? theme === 'dark' ? 'text-white' : 'text-black'
-                                    : theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                                }`} />}
-                              </div>
+                                  ? theme === 'dark' ? 'text-violet-400' : 'text-violet-500'
+                                  : theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                              }`} />}
                               <div className="flex-1 min-w-0">
                                 <h4 className={`font-medium truncate text-sm text-left ${
                                   theme === 'dark' ? 'text-white' : 'text-black'
@@ -1676,7 +1679,7 @@ const AppContent: React.FC = () => {
                             <p className={`font-medium text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                               {session.name}
                             </p>
-                            <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                               {formatLocalDate(session.updated_at)}
                             </p>
                           </button>
@@ -2214,7 +2217,7 @@ const AppContent: React.FC = () => {
                           : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
                       }`}
                     >
-                      {(userProfile?.stats?.total_points || 0) >= 150 ? 'Redeem' : `Need ${150 - (userProfile?.stats?.total_points || 0)} more points`}
+                      {(userProfile?.stats?.total_points || 0) >= 50 ? 'Redeem' : `Need ${50 - (userProfile?.stats?.total_points || 0)} more points`}
                     </button>
                   </div>
 
@@ -2245,7 +2248,7 @@ const AppContent: React.FC = () => {
                           : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
                       }`}
                     >
-                      {(userProfile?.stats?.total_points || 0) >= 250 ? 'Redeem' : `Need ${250 - (userProfile?.stats?.total_points || 0)} more points`}
+                      {(userProfile?.stats?.total_points || 0) >= 100 ? 'Redeem' : `Need ${100 - (userProfile?.stats?.total_points || 0)} more points`}
                     </button>
                   </div>
 
@@ -2276,7 +2279,7 @@ const AppContent: React.FC = () => {
                           : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
                       }`}
                     >
-                      {(userProfile?.stats?.total_points || 0) >= 300 ? 'Redeem' : `Need ${300 - (userProfile?.stats?.total_points || 0)} more points`}
+                      {(userProfile?.stats?.total_points || 0) >= 150 ? 'Redeem' : `Need ${150 - (userProfile?.stats?.total_points || 0)} more points`}
                     </button>
                   </div>
 
@@ -2313,7 +2316,7 @@ const AppContent: React.FC = () => {
                           : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
                       }`}
                     >
-                      {(userProfile?.stats?.total_points || 0) >= 400 ? 'Redeem' : `Need ${400 - (userProfile?.stats?.total_points || 0)} more points`}
+                      {(userProfile?.stats?.total_points || 0) >= 200 ? 'Redeem' : `Need ${200 - (userProfile?.stats?.total_points || 0)} more points`}
                     </button>
                   </div>
 
@@ -2350,7 +2353,7 @@ const AppContent: React.FC = () => {
                           : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
                       }`}
                     >
-                      {(userProfile?.stats?.total_points || 0) >= 500 ? 'Redeem' : `Need ${500 - (userProfile?.stats?.total_points || 0)} more points`}
+                      {(userProfile?.stats?.total_points || 0) >= 300 ? 'Redeem' : `Need ${300 - (userProfile?.stats?.total_points || 0)} more points`}
                     </button>
                   </div>
                 </div>
@@ -2439,7 +2442,7 @@ const AppContent: React.FC = () => {
                             theme === 'dark'
                               ? 'bg-black/30 border-white/20 text-white placeholder-gray-400'
                               : 'bg-white border-gray-300 text-black placeholder-gray-500'
-                          } focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
+                          } focus:outline-none focus:ring-2 focus:ring-violet-500/50`}
                         />
                       </div>
 
@@ -2720,7 +2723,7 @@ const AppContent: React.FC = () => {
                             theme === 'dark'
                               ? 'bg-black/30 border-white/20 text-white'
                               : 'bg-white border-gray-300 text-black'
-                          } focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
+                          } focus:outline-none focus:ring-2 focus:ring-violet-500/50`}
                         >
                           <option value={Intl.DateTimeFormat().resolvedOptions().timeZone}>Auto-detect</option>
                           <option value="America/New_York">Eastern Time</option>
@@ -2829,7 +2832,7 @@ const AppContent: React.FC = () => {
                             theme === 'dark'
                               ? 'bg-black/30 border-white/20 text-white'
                               : 'bg-white border-gray-300 text-black'
-                          } focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
+                          } focus:outline-none focus:ring-2 focus:ring-violet-500/50`}
                         >
                           {getProviderAndModels().models.length === 0 ? (
                             <option>Add API key to enable model selection</option>
@@ -3181,6 +3184,7 @@ const AppContent: React.FC = () => {
           onCloseSidebar={() => setSidebarOpen(false)}
           backgroundCommandCount={backgroundCommandCount}
           onOpenSettings={() => setSettingsOpen(true)}
+          onOpenFeedback={() => setShowFeedbackModal(true)}
           // Pass loading state to sidebar
           appLoading={appLoading}
           loadingStatus={loadingStatus}
@@ -3268,11 +3272,18 @@ const AppContent: React.FC = () => {
 
       {/* Feedback Modal */}
       {showFeedbackModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className={`w-full max-w-md rounded-xl shadow-2xl border ${
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-lg"
+            onClick={() => setShowFeedbackModal(false)}
+          />
+
+          {/* Modal */}
+          <div className={`relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden ${
             theme === 'dark'
-              ? 'bg-gray-800 border-gray-700'
-              : 'bg-white border-gray-200'
+              ? 'bg-white/5 border border-white/20'
+              : 'bg-black/5 border border-black/20'
           }`}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -3301,22 +3312,101 @@ const AppContent: React.FC = () => {
                   }`}>
                     Type
                   </label>
-                  <select
-                    value={feedbackForm.type}
-                    onChange={(e) => setFeedbackForm(prev => ({
-                      ...prev,
-                      type: e.target.value as 'bug' | 'feature' | 'general'
-                    }))}
-                    className={`w-full px-3 py-2 rounded-lg border transition-colors ${
-                      theme === 'dark'
-                        ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500'
-                        : 'bg-white border-gray-300 text-black focus:border-blue-500'
-                    } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
-                  >
-                    <option value="general">General Feedback</option>
-                    <option value="bug">Bug Report</option>
-                    <option value="feature">Feature Request</option>
-                  </select>
+                  <div className="relative">
+                    <button
+                      ref={feedbackDropdownButtonRef}
+                      onClick={() => {
+                        if (!feedbackDropdownOpen && feedbackDropdownButtonRef.current) {
+                          const rect = feedbackDropdownButtonRef.current.getBoundingClientRect();
+                          setFeedbackDropdownPosition({
+                            top: rect.bottom + window.scrollY,
+                            left: rect.left + window.scrollX,
+                            width: rect.width
+                          });
+                        }
+                        setFeedbackDropdownOpen(!feedbackDropdownOpen);
+                      }}
+                      className={`w-full px-4 py-2.5 text-sm text-left flex items-center justify-between transition-all duration-200 rounded-2xl border focus:outline-none ${
+                        theme === 'dark'
+                          ? 'bg-white/5 border-white/20 text-white/90 placeholder-gray-400 focus:border-violet-400 hover:bg-white/10'
+                          : 'bg-black/5 border-gray-300/50 text-gray-900 placeholder-gray-500 focus:border-violet-500 hover:bg-black/10'
+                      }`}
+                    >
+                      <span className="truncate">
+                        {feedbackForm.type === 'general' ? 'General Feedback' :
+                         feedbackForm.type === 'bug' ? 'Bug Report' : 'Feature Request'}
+                      </span>
+                      <ChevronRight className={`w-4 h-4 transition-transform ${
+                        feedbackDropdownOpen ? 'rotate-90' : 'rotate-0'
+                      } ${
+                        theme === 'dark' ? 'text-white/50' : 'text-gray-400'
+                      }`} />
+                    </button>
+
+                    {feedbackDropdownOpen && feedbackDropdownPosition && createPortal(
+                      <>
+                        <div
+                          className="fixed inset-0 z-[9998]"
+                          onClick={() => setFeedbackDropdownOpen(false)}
+                        />
+                        <div className={`dropdown-container fixed rounded-2xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl ${
+                        theme === 'dark'
+                          ? 'bg-black/30 border-white/20'
+                          : 'bg-white/10 border-black/20'
+                      }`} style={{
+                        top: feedbackDropdownPosition.top + 2,
+                        left: feedbackDropdownPosition.left,
+                        width: feedbackDropdownPosition.width,
+                        backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
+                        WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
+                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                      }}>
+                        <div className="relative z-10">
+                          <button
+                            onClick={() => {
+                              setFeedbackForm(prev => ({ ...prev, type: 'general' }));
+                              setFeedbackDropdownOpen(false);
+                            }}
+                            className={`w-full px-4 py-3 text-sm text-left transition-colors ${
+                              theme === 'dark'
+                                ? 'text-white/90 hover:bg-black/20'
+                                : 'text-gray-900/90 hover:bg-white/20'
+                            }`}
+                          >
+                            General Feedback
+                          </button>
+                          <button
+                            onClick={() => {
+                              setFeedbackForm(prev => ({ ...prev, type: 'bug' }));
+                              setFeedbackDropdownOpen(false);
+                            }}
+                            className={`w-full px-4 py-3 text-sm text-left transition-colors ${
+                              theme === 'dark'
+                                ? 'text-white/90 hover:bg-black/20'
+                                : 'text-gray-900/90 hover:bg-white/20'
+                            }`}
+                          >
+                            Bug Report
+                          </button>
+                          <button
+                            onClick={() => {
+                              setFeedbackForm(prev => ({ ...prev, type: 'feature' }));
+                              setFeedbackDropdownOpen(false);
+                            }}
+                            className={`w-full px-4 py-3 text-sm text-left transition-colors ${
+                              theme === 'dark'
+                                ? 'text-white/90 hover:bg-black/20'
+                                : 'text-gray-900/90 hover:bg-white/20'
+                            }`}
+                          >
+                            Feature Request
+                          </button>
+                        </div>
+                      </div>
+                      </>,
+                      document.body
+                    )}
+                  </div>
                 </div>
 
                 {/* Message */}
@@ -3334,11 +3424,11 @@ const AppContent: React.FC = () => {
                     }))}
                     placeholder="Tell us about your experience, report a bug, or suggest a feature..."
                     rows={4}
-                    className={`w-full px-3 py-2 rounded-lg border transition-colors resize-none ${
+                    className={`w-full px-4 py-2.5 rounded-2xl border transition-all duration-200 resize-none ${
                       theme === 'dark'
-                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
-                        : 'bg-white border-gray-300 text-black placeholder-gray-500 focus:border-blue-500'
-                    } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                        ? 'bg-black/30 border-white/20 text-white/90 placeholder-gray-400 focus:border-violet-400 hover:bg-black/40'
+                        : 'bg-black/10 border-gray-300/50 text-gray-900 placeholder-gray-500 focus:border-violet-500 hover:bg-white/25'
+                    } focus:outline-none`}
                   />
                 </div>
 
@@ -3357,11 +3447,11 @@ const AppContent: React.FC = () => {
                       email: e.target.value
                     }))}
                     placeholder="your@email.com"
-                    className={`w-full px-3 py-2 rounded-lg border transition-colors ${
+                    className={`w-full px-4 py-2.5 rounded-2xl border transition-all duration-200 ${
                       theme === 'dark'
-                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
-                        : 'bg-white border-gray-300 text-black placeholder-gray-500 focus:border-blue-500'
-                    } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                        ? 'bg-black/30 border-white/20 text-white/90 placeholder-gray-400 focus:border-violet-400 hover:bg-black/40'
+                        : 'bg-black/10 border-gray-300/50 text-gray-900 placeholder-gray-500 focus:border-violet-500 hover:bg-white/25'
+                    } focus:outline-none`}
                   />
                   <p className={`text-xs mt-1 ${
                     theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
@@ -3385,10 +3475,10 @@ const AppContent: React.FC = () => {
                 <button
                   onClick={handleSubmitFeedback}
                   disabled={!feedbackForm.message.trim() || isFeedbackLoading}
-                  className={`flex-1 px-4 py-2 rounded-lg transition-colors font-medium ${
+                  className={`flex-1 px-4 py-2 rounded-2xl transition-all duration-200 font-medium ${
                     !feedbackForm.message.trim() || isFeedbackLoading
                       ? 'bg-gray-400 cursor-not-allowed text-gray-200'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
                   }`}
                 >
                   {isFeedbackLoading ? 'Sending...' : 'Send Feedback'}

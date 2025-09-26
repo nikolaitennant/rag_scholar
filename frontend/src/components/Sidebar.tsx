@@ -35,6 +35,7 @@ interface SidebarProps {
   onCloseSidebar?: () => void;
   backgroundCommandCount?: number;
   onOpenSettings?: () => void;
+  onOpenFeedback?: () => void;
   sessions?: any[];
   currentBackendSessionId?: string | null;
   onDeleteSession?: (sessionId: string) => void;
@@ -83,6 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseSidebar,
   backgroundCommandCount = 1,
   onOpenSettings,
+  onOpenFeedback,
   sessions: propSessions = [],
   currentBackendSessionId,
   onDeleteSession,
@@ -534,21 +536,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Contact */}
             <div className={`p-4 rounded-xl border ${
-              theme === 'dark' ? 'bg-blue-500/5 border-blue-500/20' : 'bg-blue-50 border-blue-200'
+              theme === 'dark' ? 'bg-white/5 border-white/20' : 'bg-black/5 border-black/20'
             }`}>
               <h4 className={`text-sm font-medium mb-2 ${
-                theme === 'dark' ? 'text-blue-300' : 'text-blue-700'
+                theme === 'dark' ? 'text-white' : 'text-black'
               }`}>Need Help?</h4>
               <p className={`text-xs mb-3 ${
-                theme === 'dark' ? 'text-blue-200/80' : 'text-blue-600/80'
+                theme === 'dark' ? 'text-white/80' : 'text-black/80'
               }`}>
                 Found a bug or have a suggestion?
               </p>
-              <button className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
-                theme === 'dark'
-                  ? 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-300'
-                  : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-700'
-              }`}>
+              <button
+                onClick={onOpenFeedback}
+                className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
+                  theme === 'dark'
+                    ? 'bg-white/10 hover:bg-white/15 text-white/90'
+                    : 'bg-black/10 hover:bg-black/15 text-black/90'
+                }`}
+              >
                 Send Feedback
               </button>
             </div>
@@ -1160,11 +1165,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <div
                         key={userClass.id}
                         onClick={() => onSelectClass(userClass)}
-                        className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group cursor-pointer ${
+                        className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group cursor-pointer select-none ${
                           isActive
                             ? theme === 'dark'
-                              ? 'bg-blue-500/20'
-                              : 'bg-blue-500/20'
+                              ? 'bg-violet-500/20'
+                              : 'bg-violet-500/20'
                             : theme === 'dark'
                               ? 'bg-white/5 hover:bg-white/10'
                               : 'bg-black/5 hover:bg-black/10'
@@ -1172,23 +1177,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <div className={`p-2 rounded-lg ${
+                            {Icon && <Icon className={`w-4 h-4 ${
                               isActive
                                 ? theme === 'dark'
-                                  ? 'bg-blue-400/20 text-blue-300'
-                                  : 'bg-blue-500/20 text-blue-600'
+                                  ? 'text-violet-400'
+                                  : 'text-violet-500'
                                 : theme === 'dark'
                                   ? 'text-white'
                                   : 'text-black'
-                            }`}>
-                              {Icon && <Icon className="w-4 h-4" />}
-                            </div>
+                            }`} />}
                             <div className="flex-1">
                               <div className={`font-medium text-sm ${
                                 isActive
                                   ? theme === 'dark'
-                                    ? 'text-blue-200'
-                                    : 'text-blue-700'
+                                    ? 'text-white'
+                                    : 'text-black'
                                   : theme === 'dark'
                                     ? 'text-white'
                                     : 'text-black'
@@ -1198,18 +1201,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               <div className={`text-xs flex items-center justify-between ${
                                 isActive
                                   ? theme === 'dark'
-                                    ? 'text-blue-300/80'
-                                    : 'text-blue-600/80'
+                                    ? 'text-white/80'
+                                    : 'text-black/80'
                                   : theme === 'dark'
                                     ? 'text-white/60'
                                     : 'text-black/60'
                               }`}>
                                 <span>{typeInfo?.shortLabel || userClass.domainType}</span>
-                                <span className={`text-xs px-1.5 py-0.5 rounded-full ml-2 ${
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full ml-2 select-none ${
                                   isActive
                                     ? theme === 'dark'
-                                      ? 'bg-blue-400/20 text-blue-200'
-                                      : 'bg-blue-500/20 text-blue-700'
+                                      ? 'bg-violet-400/20 text-white'
+                                      : 'bg-violet-500/20 text-black'
                                     : theme === 'dark'
                                       ? 'bg-white/10'
                                       : 'bg-black/10'
@@ -1235,10 +1238,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                   .map(doc => doc.id);
                                 setEditingClassDocuments(actuallyAssignedDocs);
                               }}
-                              className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${
-                                theme === 'dark' 
-                                  ? 'hover:bg-white/10 text-white/60 hover:text-white' 
-                                  : 'hover:bg-black/10 text-black/60 hover:text-black'
+                              className={`opacity-0 group-hover:opacity-100 transition-colors ${
+                                theme === 'dark'
+                                  ? 'text-white/60 hover:text-white'
+                                  : 'text-black/60 hover:text-black'
                               }`}
                               title="Edit Class"
                             >
@@ -1257,10 +1260,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 }
                               }}
                               disabled={!!deletingClassId}
-                              className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${
+                              className={`opacity-0 group-hover:opacity-100 transition-colors ${
                                 theme === 'dark'
-                                  ? 'hover:bg-red-500/20 text-white/60 hover:text-red-400'
-                                  : 'hover:bg-red-500/20 text-black/60 hover:text-red-600'
+                                  ? 'text-white/60 hover:text-red-400'
+                                  : 'text-black/60 hover:text-red-600'
                               }`}
                               title="Delete Class"
                             >
@@ -1345,8 +1348,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group ${
                               isActive
                                 ? theme === 'dark'
-                                  ? 'bg-blue-500/20'
-                                  : 'bg-blue-500/20'
+                                  ? 'bg-violet-500/20'
+                                  : 'bg-violet-500/20'
                                 : theme === 'dark'
                                   ? 'bg-white/5 hover:bg-white/10'
                                   : 'bg-black/5 hover:bg-black/10'
@@ -1381,17 +1384,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                       }}
                                       className={`w-full text-sm font-medium rounded-full px-1.5 py-0.5 outline-none transition-all duration-300 backdrop-blur-xl border-0 ${
                                         theme === 'dark'
-                                          ? 'text-white bg-white/5 focus:bg-white/8 shadow-lg'
-                                          : 'text-black bg-black/3 focus:bg-black/5 shadow-lg'
+                                          ? 'text-white bg-white/5 focus:bg-white/8 shadow-lg focus:ring-2 focus:ring-violet-400/50'
+                                          : 'text-black bg-black/3 focus:bg-black/5 shadow-lg focus:ring-2 focus:ring-violet-500/50'
                                       } hover:scale-[1.02] focus:scale-[1.02]`}
                                       autoFocus
+                                      onFocus={(e) => e.target.select()}
                                       onClick={(e) => e.stopPropagation()}
                                     />
                                   ) : (
                                     <span className="truncate min-w-0 flex-1">{session.name}</span>
                                   )}
                                 </div>
-                                <div className={`text-xs flex items-center gap-2 ${
+                                <div className={`text-xs flex items-center gap-2 mt-2 ${
                                   theme === 'dark' ? 'text-white/60' : 'text-black/60'
                                 }`}>
                                   <span>{formatLocalDate(session.updated_at)}</span>
@@ -1407,10 +1411,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                       setEditingSessionId(session.id);
                                       setEditingSessionName(session.name);
                                     }}
-                                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded cursor-pointer ${
+                                    className={`opacity-0 group-hover:opacity-100 transition-colors cursor-pointer ${
                                       theme === 'dark'
-                                        ? 'hover:bg-white/10 text-white/60 hover:text-white'
-                                        : 'hover:bg-black/10 text-black/60 hover:text-black'
+                                        ? 'text-white/60 hover:text-white'
+                                        : 'text-black/60 hover:text-black'
                                     }`}
                                   >
                                     <Edit3 className="w-3 h-3" />
@@ -1420,10 +1424,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                       e.stopPropagation();
                                       handleDeleteSession(session.id);
                                     }}
-                                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded cursor-pointer ${
+                                    className={`opacity-0 group-hover:opacity-100 transition-colors cursor-pointer ${
                                       theme === 'dark'
-                                        ? 'hover:bg-red-500/20 text-white/60 hover:text-red-400'
-                                        : 'hover:bg-red-500/20 text-black/60 hover:text-red-600'
+                                        ? 'text-white/60 hover:text-red-400'
+                                        : 'text-black/60 hover:text-red-600'
                                     }`}
                                   >
                                     <Trash2 className="w-3 h-3" />

@@ -327,8 +327,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   className={`w-full px-4 py-2.5 text-sm rounded-2xl border transition-all duration-200 ${
                     theme === 'dark'
-                      ? 'bg-black/30 border-white/20 text-white/90 placeholder-gray-400 focus:border-blue-400 hover:bg-black/40'
-                      : 'bg-black/10 border-gray-300/50 text-gray-900 placeholder-gray-500 focus:border-blue-500 hover:bg-white/25'
+                      ? 'bg-black/30 border-white/20 text-white/90 placeholder-gray-400 focus:border-violet-400 hover:bg-black/40'
+                      : 'bg-black/10 border-gray-300/50 text-gray-900 placeholder-gray-500 focus:border-violet-500 hover:bg-white/25'
                   } focus:outline-none`}
                 />
               </div>

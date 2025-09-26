@@ -321,10 +321,10 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
                           return (
                             <span
                               key={classId}
-                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs ${
+                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs select-none ${
                                 theme === 'dark'
-                                  ? 'bg-blue-500/20 text-blue-300'
-                                  : 'bg-blue-500/20 text-blue-700'
+                                  ? 'bg-violet-500/20 text-white'
+                                  : 'bg-violet-500/20 text-black'
                               }`}
                             >
                               {userClass?.name || classId}
@@ -333,7 +333,7 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
                                   await onAssignToClass(doc.id, doc.filename, classId, 'remove');
                                 }}
                                 className={`hover:text-red-300 transition-colors ${
-                                  theme === 'dark' ? 'text-blue-200' : 'text-blue-600'
+                                  theme === 'dark' ? 'text-white' : 'text-black'
                                 }`}
                                 disabled={isLoading}
                               >
@@ -360,12 +360,12 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
                     }
                   }}
                   disabled={deletingDocId === doc.id}
-                  className={`p-1 rounded transition-colors opacity-0 group-hover:opacity-100 ${
+                  className={`transition-colors opacity-0 group-hover:opacity-100 ${
                     deletingDocId === doc.id
-                      ? 'text-red-400 bg-red-400/10 cursor-not-allowed animate-pulse'
+                      ? 'text-red-400 cursor-not-allowed animate-pulse'
                       : theme === 'dark'
-                      ? 'text-white/40 hover:text-red-400 hover:bg-red-400/10'
-                      : 'text-black/40 hover:text-red-400 hover:bg-red-400/10'
+                      ? 'text-white/40 hover:text-red-400'
+                      : 'text-black/40 hover:text-red-400'
                   }`}
                   title={deletingDocId === doc.id ? 'Deleting...' : 'Delete Document'}
                 >

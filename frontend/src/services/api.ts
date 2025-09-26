@@ -223,7 +223,19 @@ export const apiService = {
     message: string;
     email?: string;
   }): Promise<any> => {
-    const response = await api.post('/feedback', feedbackData);
+    // Ensure only valid fields are sent - never send undefined or null values
+    const payload: { type: string; message: string; email?: string } = {
+      type: feedbackData.type,
+      message: feedbackData.message.trim(),
+    };
+
+    // Only add email if it exists and is a valid non-empty string
+    if (feedbackData.email && typeof feedbackData.email === 'string' && feedbackData.email.trim().length > 0) {
+      payload.email = feedbackData.email.trim();
+    }
+
+    console.log('Sending feedback payload:', payload);
+    const response = await api.post('/feedback', payload);
     return response.data;
   },
 

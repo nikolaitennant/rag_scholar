@@ -134,14 +134,14 @@ def create_default_achievements() -> list[Achievement]:
             type=AchievementType.FIRST_CHAT,
             name="First Steps",
             description="Send your first message to RAG Scholar",
-            points=10,
+            points=20,
             target=1,
         ),
         Achievement(
             type=AchievementType.DOCUMENT_UPLOAD,
             name="Knowledge Sharer",
             description="Upload your first document",
-            points=25,
+            points=40,
             target=1,
         ),
         Achievement(
@@ -155,7 +155,7 @@ def create_default_achievements() -> list[Achievement]:
             type=AchievementType.DOMAIN_EXPLORER,
             name="Domain Explorer",
             description="Try research in 3 different domains",
-            points=50,
+            points=60,
             target=3,
         ),
         Achievement(
@@ -175,15 +175,15 @@ def create_default_achievements() -> list[Achievement]:
         Achievement(
             type=AchievementType.KNOWLEDGE_SEEKER,
             name="Knowledge Seeker",
-            description="Ask 100 research questions",
-            points=150,
-            target=100,
+            description="Ask 25 research questions",
+            points=80,
+            target=25,
         ),
         Achievement(
             type=AchievementType.POWER_USER,
             name="Power User",
-            description="Accumulate 1000 total points",
-            points=500,
-            target=1000,
+            description="Accumulate 300 total points",
+            points=100,
+            target=300,
         ),
     ]

@@ -230,6 +230,14 @@ class UserProfileService:
             if total_points_earned > 0:
                 await self._add_points_to_stats(user_id, total_points_earned)
 
+                # Check for any additional achievements that may now qualify (like Power User)
+                # Get updated stats after adding points
+                stats_ref = self.db.collection(f"users/{user_id}/stats").document("main")
+                updated_stats_doc = stats_ref.get()
+                if updated_stats_doc.exists:
+                    updated_stats = updated_stats_doc.to_dict() or {}
+                    await self._check_achievements(user_id, updated_stats)
+
             # Always log achievement progress updates
             logger.info("Achievement progress updated",
                        user_id=user_id,

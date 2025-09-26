@@ -276,10 +276,10 @@ export const ClassSection: React.FC<ClassSectionProps> = ({
                             .map(doc => doc.id);
                           setEditingClassDocuments(actuallyAssignedDocs);
                         }}
-                        className={`p-1 rounded transition-colors ${
+                        className={`transition-colors ${
                           theme === 'dark'
-                            ? 'hover:bg-white/10 text-white/60 hover:text-white/80'
-                            : 'hover:bg-black/10 text-black/60 hover:text-black/80'
+                            ? 'text-white/60 hover:text-white/80'
+                            : 'text-black/60 hover:text-black/80'
                         }`}
                       >
                         <Edit3 className="w-3 h-3" />
@@ -289,10 +289,10 @@ export const ClassSection: React.FC<ClassSectionProps> = ({
                           e.stopPropagation();
                           onDeleteClass(userClass.id);
                         }}
-                        className={`p-1 rounded transition-colors ${
+                        className={`transition-colors ${
                           theme === 'dark'
-                            ? 'hover:bg-red-500/20 text-white/60 hover:text-red-400'
-                            : 'hover:bg-red-500/20 text-black/60 hover:text-red-600'
+                            ? 'text-white/60 hover:text-red-400'
+                            : 'text-black/60 hover:text-red-600'
                         }`}
                       >
                         <Trash2 className="w-3 h-3" />

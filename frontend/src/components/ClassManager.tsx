@@ -85,9 +85,9 @@ export const ClassManager: React.FC<ClassManagerProps> = ({
               placeholder="e.g., Law 101, Biology Research"
               className={`w-full px-3 py-2 rounded-lg border transition-colors ${
                 theme === 'dark'
-                  ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500'
-                  : 'bg-white border-gray-300 text-black placeholder-gray-500 focus:border-blue-500'
-              } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                  ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-violet-500'
+                  : 'bg-white border-gray-300 text-black placeholder-gray-500 focus:border-violet-500'
+              } focus:outline-none focus:ring-2 focus:ring-violet-500/20`}
             />
           </div>
 
@@ -184,8 +184,8 @@ export const ClassManager: React.FC<ClassManagerProps> = ({
                   className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group cursor-pointer ${
                     isActive
                       ? theme === 'dark'
-                        ? 'bg-blue-500/20 border-2 border-blue-500/50'
-                        : 'bg-blue-50 border-2 border-blue-200'
+                        ? 'bg-violet-500/20 border-2 border-violet-500/50'
+                        : 'bg-violet-50 border-2 border-violet-200'
                       : theme === 'dark'
                         ? 'bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20'
                         : 'bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:border-gray-300'
@@ -193,11 +193,7 @@ export const ClassManager: React.FC<ClassManagerProps> = ({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1">
-                      <div className={`p-2 rounded-lg ${
-                        theme === 'dark' ? 'bg-white/10' : 'bg-white'
-                      }`}>
-                        <Icon className={`h-5 w-5 text-${typeInfo.color}-500`} />
-                      </div>
+                      <Icon className={`h-5 w-5 text-${typeInfo.color}-500`} />
                       <div className="flex-1">
                         <div className={`font-medium ${
                           theme === 'dark' ? 'text-white' : 'text-black'
@@ -220,10 +216,10 @@ export const ClassManager: React.FC<ClassManagerProps> = ({
                           e.stopPropagation();
                           handleEditClass(userClass);
                         }}
-                        className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${
+                        className={`opacity-0 group-hover:opacity-100 transition-colors ${
                           theme === 'dark'
-                            ? 'hover:bg-white/20 text-white/60 hover:text-white'
-                            : 'hover:bg-black/10 text-black/60 hover:text-black'
+                            ? 'text-white/60 hover:text-white'
+                            : 'text-black/60 hover:text-black'
                         }`}
                       >
                         <Edit3 className="h-4 w-4" />
@@ -233,10 +229,10 @@ export const ClassManager: React.FC<ClassManagerProps> = ({
                           e.stopPropagation();
                           onDeleteClass(userClass.id);
                         }}
-                        className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${
+                        className={`opacity-0 group-hover:opacity-100 transition-colors ${
                           theme === 'dark'
-                            ? 'hover:bg-red-500/20 text-red-400 hover:text-red-300'
-                            : 'hover:bg-red-50 text-red-600 hover:text-red-700'
+                            ? 'text-red-400 hover:text-red-300'
+                            : 'text-red-600 hover:text-red-700'
                         }`}
                       >
                         <Trash2 className="h-4 w-4" />

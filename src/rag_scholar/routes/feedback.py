@@ -51,10 +51,16 @@ async def submit_feedback(
 
     Stores feedback in Firestore for review by administrators.
     """
-    try:
-        # Initialize Firestore client
-        db = firestore.Client()
+    logger.info(
+        "Received feedback submission",
+        feedback_type=feedback.type,
+        message_length=len(feedback.message),
+        has_email=feedback.email is not None,
+        email_value=feedback.email,
+        user_id=current_user.get("uid")
+    )
 
+    try:
         # Prepare feedback document
         feedback_doc = {
             "type": feedback.type,
@@ -69,9 +75,23 @@ async def submit_feedback(
             "resolved_at": None,
         }
 
-        # Store in Firestore
-        feedback_ref = db.collection("feedback").add(feedback_doc)
-        feedback_id = feedback_ref[1].id
+        feedback_id = None
+
+        try:
+            # Try to store in Firestore with a timeout-like approach
+            logger.info("Attempting to store feedback in Firestore")
+            db = firestore.Client()
+            feedback_ref = db.collection("feedback").add(feedback_doc)
+            feedback_id = feedback_ref[1].id
+            logger.info("Feedback stored in Firestore successfully", feedback_id=feedback_id)
+        except Exception as firestore_error:
+            # Fallback: Log to console if Firestore fails
+            logger.warning(
+                "Failed to store in Firestore, logging to console instead",
+                error=str(firestore_error),
+                feedback_doc=feedback_doc
+            )
+            feedback_id = f"local_{datetime.now().timestamp()}"
 
         logger.info(
             "Feedback submitted successfully",

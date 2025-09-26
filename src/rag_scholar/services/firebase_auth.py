@@ -4,8 +4,13 @@ import firebase_admin
 from firebase_admin import auth, credentials
 import structlog
 from typing import Optional
+from fastapi import HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 logger = structlog.get_logger()
+
+# Security scheme for dependency injection
+security = HTTPBearer()
 
 # Initialize Firebase Admin SDK
 if not firebase_admin._apps:
@@ -42,3 +47,18 @@ async def get_firebase_user(uid: str) -> Optional[dict]:
     except Exception as e:
         logger.error("Failed to get Firebase user", uid=uid, error=str(e))
         return None
+
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """FastAPI dependency to get current authenticated user from Firebase token."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+
+    # Extract token from "Bearer <token>" format
+    token = credentials.credentials
+
+    user_info = await verify_firebase_token(token)
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    return user_info

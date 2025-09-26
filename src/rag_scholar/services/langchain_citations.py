@@ -148,3 +148,43 @@ def is_meaningful_query(query: str) -> bool:
         return False
 
     return True
+
+
+def is_conversational_query(query: str) -> bool:
+    """Check if query is a simple conversational greeting or social interaction."""
+    if not query:
+        return False
+
+    query_lower = query.strip().lower()
+
+    # Simple greetings and conversational patterns
+    conversational_patterns = [
+        # Direct greetings
+        r'^(hi|hello|hey|hiya|howdy)$',
+        r'^(hi|hello|hey|hiya|howdy)[.!]*$',
+
+        # How are you variants
+        r'^(how are you|how\'re you|how are ya)[\?\!\.]*$',
+        r'^(what\'s up|whats up|wassup)[\?\!\.]*$',
+        r'^(how\'s it going|hows it going)[\?\!\.]*$',
+
+        # Good morning/evening etc
+        r'^(good morning|good afternoon|good evening|good night)[\!\.\,]*$',
+
+        # Thanks and responses
+        r'^(thanks|thank you|thx|ty)[\!\.\,]*$',
+        r'^(you\'re welcome|youre welcome|no problem|np)[\!\.\,]*$',
+
+        # Simple affirmatives/negatives
+        r'^(yes|yeah|yep|yup|ok|okay|sure|fine)[\!\.\,]*$',
+        r'^(no|nope|nah)[\!\.\,]*$',
+
+        # Goodbye
+        r'^(bye|goodbye|see ya|see you|cya|later)[\!\.\,]*$',
+    ]
+
+    for pattern in conversational_patterns:
+        if re.match(pattern, query_lower):
+            return True
+
+    return False

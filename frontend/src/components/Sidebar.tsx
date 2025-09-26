@@ -1163,8 +1163,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group cursor-pointer ${
                           isActive
                             ? theme === 'dark'
-                              ? 'bg-white/10'
-                              : 'bg-black/10'
+                              ? 'bg-blue-500/20'
+                              : 'bg-blue-500/20'
                             : theme === 'dark'
                               ? 'bg-white/5 hover:bg-white/10'
                               : 'bg-black/5 hover:bg-black/10'
@@ -1172,21 +1172,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <div className="p-2">
-                              {Icon && <Icon className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-black'}`} />}
+                            <div className={`p-2 rounded-lg ${
+                              isActive
+                                ? theme === 'dark'
+                                  ? 'bg-blue-400/20 text-blue-300'
+                                  : 'bg-blue-500/20 text-blue-600'
+                                : theme === 'dark'
+                                  ? 'text-white'
+                                  : 'text-black'
+                            }`}>
+                              {Icon && <Icon className="w-4 h-4" />}
                             </div>
                             <div className="flex-1">
                               <div className={`font-medium text-sm ${
-                                theme === 'dark' ? 'text-white' : 'text-black'
+                                isActive
+                                  ? theme === 'dark'
+                                    ? 'text-blue-200'
+                                    : 'text-blue-700'
+                                  : theme === 'dark'
+                                    ? 'text-white'
+                                    : 'text-black'
                               }`}>
                                 {userClass.name}
                               </div>
                               <div className={`text-xs flex items-center justify-between ${
-                                theme === 'dark' ? 'text-white/60' : 'text-black/60'
+                                isActive
+                                  ? theme === 'dark'
+                                    ? 'text-blue-300/80'
+                                    : 'text-blue-600/80'
+                                  : theme === 'dark'
+                                    ? 'text-white/60'
+                                    : 'text-black/60'
                               }`}>
                                 <span>{typeInfo?.shortLabel || userClass.domainType}</span>
                                 <span className={`text-xs px-1.5 py-0.5 rounded-full ml-2 ${
-                                  theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
+                                  isActive
+                                    ? theme === 'dark'
+                                      ? 'bg-blue-400/20 text-blue-200'
+                                      : 'bg-blue-500/20 text-blue-700'
+                                    : theme === 'dark'
+                                      ? 'bg-white/10'
+                                      : 'bg-black/10'
                                 }`}>
                                   {(() => {
                                     const docCount = documents.filter(doc => doc.assigned_classes?.includes(userClass.id)).length;
@@ -1319,15 +1345,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group ${
                               isActive
                                 ? theme === 'dark'
-                                  ? 'bg-blue-500/20 border border-blue-400/40 shadow-lg'
-                                  : 'bg-blue-500/20 border border-blue-500/40 shadow-lg'
+                                  ? 'bg-blue-500/20'
+                                  : 'bg-blue-500/20'
                                 : theme === 'dark'
-                                  ? 'bg-white/5 hover:bg-white/10 border border-transparent'
-                                  : 'bg-black/5 hover:bg-black/10 border border-transparent'
+                                  ? 'bg-white/5 hover:bg-white/10'
+                                  : 'bg-black/5 hover:bg-black/10'
                           }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center space-x-3 flex-1 min-w-0">
                               {/* Chat Content */}
                               <div className="flex-1 min-w-0">
                                 <div className={`flex items-center gap-2 font-medium text-sm ${
@@ -1362,7 +1388,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                       onClick={(e) => e.stopPropagation()}
                                     />
                                   ) : (
-                                    <span className="truncate">{session.name}</span>
+                                    <span className="truncate min-w-0 flex-1">{session.name}</span>
                                   )}
                                 </div>
                                 <div className={`text-xs flex items-center gap-2 ${
@@ -1372,7 +1398,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-2 flex-shrink-0">
                               {!editingSessionId && (
                                 <>
                                   <div

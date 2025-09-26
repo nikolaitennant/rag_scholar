@@ -217,6 +217,16 @@ export const apiService = {
     return response.data;
   },
 
+  // Feedback
+  sendFeedback: async (feedbackData: {
+    type: 'bug' | 'feature' | 'general';
+    message: string;
+    email?: string;
+  }): Promise<any> => {
+    const response = await api.post('/feedback', feedbackData);
+    return response.data;
+  },
+
   // Debug
   debugFirestore: async (): Promise<any> => {
     // Mock debug response since we removed the debug endpoint

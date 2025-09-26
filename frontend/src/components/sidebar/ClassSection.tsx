@@ -223,16 +223,22 @@ export const ClassSection: React.FC<ClassSectionProps> = ({
             return (
               <div key={userClass.id}>
                 <div
-                  className={`w-full p-3 rounded-lg transition-all ${
+                  className={`w-full p-3 rounded-lg transition-all relative ${
                     isActive
                       ? theme === 'dark'
-                        ? 'bg-white/15 border border-white/20'
-                        : 'bg-white/40 border border-gray-200/50'
+                        ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20'
+                        : 'bg-gradient-to-r from-blue-50 to-purple-50'
                       : theme === 'dark'
                         ? 'bg-white/5 hover:bg-white/10 border border-transparent'
                         : 'bg-white/20 hover:bg-white/30 border border-transparent'
+                  } ${
+                    isActive ? 'ring-2 ring-blue-400/30' : ''
                   }`}
                 >
+                  {/* Active indicator bar */}
+                  {isActive && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-purple-500 rounded-l-lg"></div>
+                  )}
                   <div className="flex items-center justify-between">
                     <button
                       onClick={(e) => {

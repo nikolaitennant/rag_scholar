@@ -69,7 +69,7 @@ export const AchievementSection: React.FC<AchievementSectionProps> = ({ userProf
         key={achievement.type}
         className={`relative p-3 rounded-lg transition-all duration-200 ${
           isUnlocked
-            ? (theme === 'dark' ? 'bg-white/10 shadow-lg' : 'bg-black/10 shadow-lg')
+            ? (theme === 'dark' ? 'bg-white/10' : 'bg-black/10')
             : (theme === 'dark' ? 'bg-white/5' : 'bg-black/5')
         }`}
       >

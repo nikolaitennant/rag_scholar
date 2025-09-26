@@ -43,6 +43,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     maxTokens: 2000,
   });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
 
   const backgroundOptions = [
     { id: 'classic', name: 'Default', color: 'from-gray-900 to-gray-100' },
@@ -57,6 +58,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   useEffect(() => {
     if (isOpen && user) {
       loadApiSettings();
+    } else if (!isOpen) {
+      // Reset the flag when modal closes
+      setHasLoadedSettings(false);
     }
   }, [isOpen, user]);
 
@@ -70,9 +74,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         temperature: settings.temperature || 0.7,
         maxTokens: settings.max_tokens || 2000,
       });
+      setHasLoadedSettings(true);
     } catch (error) {
       console.error('Failed to load API settings:', error);
       // Keep default values on error
+      setHasLoadedSettings(true);
     } finally {
       setIsLoadingSettings(false);
     }
@@ -121,7 +127,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   // Auto-save API settings to cloud when they change (with debounce)
   useEffect(() => {
-    if (!isLoadingSettings && user) {
+    if (!isLoadingSettings && user && hasLoadedSettings) {
       const timer = setTimeout(() => {
         saveApiSettings();
       }, 1000); // Auto-save after 1 second of no changes

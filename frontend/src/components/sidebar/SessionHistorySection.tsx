@@ -118,7 +118,7 @@ export const SessionHistorySection: React.FC<SessionHistorySectionProps> = ({
               key={session.id}
               className={`group rounded-lg p-3 transition-all duration-200 cursor-pointer ${
                 sessionId === session.id
-                  ? (theme === 'dark' ? 'bg-blue-500/20 border border-blue-400/40 shadow-lg' : 'bg-blue-500/20 border border-blue-500/40 shadow-lg')
+                  ? (theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-500/20')
                   : (theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-black/5 hover:bg-black/10')
               }`}
                 onClick={() => onSelectSession?.(session.id)}

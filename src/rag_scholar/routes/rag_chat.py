@@ -6,7 +6,8 @@ from pydantic import BaseModel
 
 from rag_scholar.services.langchain_pipeline import LangChainRAGPipeline
 from rag_scholar.services.langchain_ingestion import LangChainIngestionPipeline
-from rag_scholar.services.langchain_citations import extract_citations_from_response, is_meaningful_query
+from rag_scholar.services.langchain_citations import extract_citations_from_response, is_meaningful_query, is_conversational_query
+from rag_scholar.services.langchain_tools import generate_conversational_response
 from rag_scholar.services.user_profile import UserProfileService
 from rag_scholar.config.settings import get_settings
 
@@ -34,6 +35,7 @@ class ChatResponse(BaseModel):
     response: str
     session_id: str
     sources: list[str]
+    chat_name: str | None = None
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -72,7 +74,35 @@ async def chat(
     rag_pipeline = LangChainRAGPipeline(user_settings)
     ingestion_pipeline = LangChainIngestionPipeline(user_settings)
 
-    # Validate query meaningfulness
+    # Handle conversational queries (greetings, simple interactions) without citations
+    if is_conversational_query(request.query):
+        conversational_response = generate_conversational_response(request.query)
+        session_id = request.session_id or str(uuid.uuid4())
+
+        # Store session metadata for conversational interactions
+        try:
+            generated_name = await rag_pipeline._store_session_metadata(
+                user_id=current_user["id"],
+                session_id=session_id,
+                class_id=request.class_id,
+                question=request.query,
+                response=conversational_response,
+                class_name=request.class_name,
+                domain_type=request.domain_type
+            )
+        except Exception:
+            generated_name = request.query[:40] + "..." if len(request.query) > 40 else request.query
+
+        return {
+            "response": conversational_response,
+            "sources": [],
+            "citations": [],
+            "grouped_sources": [],
+            "session_id": session_id,
+            "chat_name": generated_name
+        }
+
+    # Validate query meaningfulness for research queries
     if not is_meaningful_query(request.query):
         return {
             "response": "I didn't understand your question. Could you rephrase?",

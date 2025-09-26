@@ -318,15 +318,35 @@ User: "Python error help" AI: "This error occurs when..." → "Python Error Fix"
                 return chat_name
             else:
                 # Update existing session - always update timestamp when new message added
-                session_ref.update({
+                existing_data = session_doc.to_dict()
+                current_name = existing_data.get("name", "Chat")
+
+                # Optionally regenerate name if current name seems generic/incomplete
+                # This helps improve session names as conversations develop
+                should_regenerate = (
+                    current_name == "Chat" or
+                    current_name.endswith("...") or
+                    len(current_name) < 10 or
+                    current_name.startswith("Chat ")
+                )
+
+                update_data = {
                     "updated_at": datetime.now(timezone.utc).isoformat(),
                     "class_id": class_id,  # Update class_id in case it changed
                     "class_name": class_name,  # Update class_name in case it changed
                     "domain": domain_type,  # Update domain in case it changed
-                })
-                # Return existing name from database
-                existing_data = session_doc.to_dict()
-                return existing_data.get("name", "Chat")
+                }
+
+                if should_regenerate and response:
+                    # Generate a better name using the latest conversation context
+                    new_name = await self._generate_chat_name(question, response)
+                    if new_name and new_name != current_name:
+                        update_data["name"] = new_name
+                        current_name = new_name
+                        logger.info("Updated session name", session_id=session_id, old_name=existing_data.get("name"), new_name=new_name)
+
+                session_ref.update(update_data)
+                return current_name
 
         except Exception as e:
             logger.error("Failed to store session metadata", error=str(e), session_id=session_id)

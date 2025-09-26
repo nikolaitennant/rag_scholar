@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     """Create and configure FastAPI application."""
     # Import routes here to avoid heavy imports at module level
-    from rag_scholar.routes import auth, health, rag_chat, documents, sessions, classes
+    from rag_scholar.routes import auth, health, rag_chat, documents, sessions, classes, feedback
 
     app = FastAPI(
         title="RAG Scholar",  # Use defaults, will be updated in lifespan
@@ -62,12 +62,17 @@ def create_app() -> FastAPI:
         redoc_url="/api/v1/redoc",
     )
 
-    # Configure CORS with safe defaults
+    # Configure CORS for local development
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Will be updated after settings load if needed
+        allow_origins=[
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:3001",  # In case frontend runs on different port
+            "http://127.0.0.1:3001"
+        ],
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
 
@@ -101,6 +106,11 @@ def create_app() -> FastAPI:
         classes.router,
         prefix="/api/v1/classes",
         tags=["classes"],
+    )
+    app.include_router(
+        feedback.router,
+        prefix="/api/v1",
+        tags=["feedback"],
     )
 
     # Exception handlers

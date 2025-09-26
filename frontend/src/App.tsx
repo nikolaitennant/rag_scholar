@@ -1107,7 +1107,7 @@ const AppContent: React.FC = () => {
             </div>
 
             {/* Mobile Chat Interface */}
-            <div className="flex-1 min-h-0 pb-20 flex flex-col">
+            <div className="flex-1 min-h-0 pb-32 flex flex-col">
               {/* Messages Area */}
               <div className="flex-1 overflow-y-auto p-4">
                 {messages.length === 0 ? (
@@ -1169,7 +1169,10 @@ const AppContent: React.FC = () => {
               </div>
 
               {/* Fixed Bottom Input */}
-              <div className="p-4 border-t border-gray-200/20">
+              <div className="fixed left-0 right-0 p-4 border-t border-gray-200/20 backdrop-blur-md" style={{
+                background: theme === 'dark' ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.9)',
+                bottom: 'calc(4rem + env(keyboard-inset-height, 0px))'
+              }}>
                 <div className="relative">
                   <CommandSuggestions
                     suggestions={getCommandSuggestions(mobileInput)}
@@ -1196,12 +1199,23 @@ const AppContent: React.FC = () => {
                       setShowCommandSuggestions(value.startsWith('/'));
                     }}
                     placeholder="Ask anything..."
-                    className={`flex-1 backdrop-blur-sm border rounded-full px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 ${
+                    className={`flex-1 backdrop-blur-sm border rounded-full px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 ${
                       theme === 'dark'
                         ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
                         : 'bg-black/10 border-black/20 text-black placeholder-black/50'
                     }`}
                     disabled={isChatLoading}
+                    onFocus={(e) => {
+                      // Prevent zoom and handle keyboard
+                      e.target.style.fontSize = '16px';
+                      // Small delay to ensure keyboard is open, then scroll input into view
+                      setTimeout(() => {
+                        e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }, 300);
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.fontSize = '';
+                    }}
                   />
                   <button
                     type="submit"

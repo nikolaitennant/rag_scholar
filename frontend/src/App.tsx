@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Edit2, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send, ChevronDown, Gift, Trash2 } from 'lucide-react';
+import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Edit2, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send, ChevronDown, Trash2 } from 'lucide-react';
 import { ChatInterface } from './components/ChatInterface';
 import { Sidebar } from './components/Sidebar';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -42,7 +42,8 @@ const AppContent: React.FC = () => {
   const [loadingStatus, setLoadingStatus] = useState('Initializing...');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [backgroundCommandCount, setBackgroundCommandCount] = useState(1);
-  const [mobilePage, setMobilePage] = useState<'chat' | 'home' | 'docs' | 'store' | 'rewards' | 'settings'>('home');
+  const [mobilePage, setMobilePage] = useState<'chat' | 'home' | 'docs' | 'rewards' | 'settings'>('home');
+  const [mobileRewardsTab, setMobileRewardsTab] = useState<'achievements' | 'store'>('achievements');
   const [showMobileClassForm, setShowMobileClassForm] = useState(false);
   const [editingMobileClass, setEditingMobileClass] = useState<UserClass | null>(null);
   const [mobileEditingClassDocs, setMobileEditingClassDocs] = useState<string[]>([]);
@@ -1243,18 +1244,18 @@ const AppContent: React.FC = () => {
             {/* Mobile Header */}
             <div className="px-4 py-6">
               <div className="text-center">
-                <h1 className={`text-2xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                <h1 className={`text-3xl font-bold mb-3 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                   {(() => {
                     const hour = new Date().getHours();
                     const userName = user?.displayName || user?.email || 'User';
-                    if (hour < 12) return `Good morning, ${userName}!`;
-                    if (hour < 17) return `Good afternoon, ${userName}!`;
-                    return `Good evening, ${userName}!`;
+                    if (hour < 12) return `Good morning, ${userName}`;
+                    if (hour < 17) return `Good afternoon, ${userName}`;
+                    return `Good evening, ${userName}`;
                   })()}
                   <Heart className="w-5 h-5 text-pink-400 animate-pulse inline-block ml-2" style={{ verticalAlign: 'middle', transform: 'translateY(-1.5px)' }} />
                 </h1>
                 <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Ready to explore your documents?
+                  Ready to explore your documents and discover new insights?
                 </p>
               </div>
             </div>
@@ -1614,7 +1615,7 @@ const AppContent: React.FC = () => {
                             <MessageSquare className={`w-6 h-6 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`} />
                           </div>
                           <p className={`font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                            No recent chats
+                            Welcome to RAG Scholar
                           </p>
                           <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                             {activeClass ? `Start a conversation in ${activeClass.name}` : 'Start a new conversation'}
@@ -1889,7 +1890,8 @@ const AppContent: React.FC = () => {
           </div>
         );
 
-      case 'store':
+
+      case 'rewards':
         return (
           <div className="h-full flex flex-col pb-20">
             {/* Mobile Header */}
@@ -1899,229 +1901,10 @@ const AppContent: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                    Store
+                    Rewards
                   </h2>
                   <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Redeem your points for rewards
-                  </p>
-                </div>
-                <div className={`rounded-full px-4 py-1 flex items-center gap-2 whitespace-nowrap ${
-                  theme === 'dark'
-                    ? 'bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40'
-                    : 'bg-gradient-to-r from-yellow-300/50 to-amber-400/50 border border-amber-500/50'
-                }`}>
-                  <Star className={`w-4 h-4 ${
-                    theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
-                  }`} />
-                  <span className={`font-bold text-sm ${
-                    theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
-                  }`}>
-                    {userProfile?.stats?.total_points || 0} pts
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-3 space-y-4">
-              <div className="space-y-3">
-                {/* Store Items - Exact copy from desktop */}
-                <div className={`border rounded-lg p-3 ${
-                  theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
-                }`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Zap className={`w-4 h-4 ${
-                        theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
-                      }`} />
-                      <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                        Rounded Chat Input
-                      </span>
-                    </div>
-                    <div className="bg-gradient-to-r from-blue-400/20 to-indigo-400/20 border border-blue-400/40 rounded-full px-2 py-1 flex items-center gap-1">
-                      <span className="text-xs text-blue-400 font-bold">
-                        150 pts
-                      </span>
-                    </div>
-                  </div>
-                  <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                    Pill-shaped chat input with smooth corners
-                  </p>
-                  <button
-                    disabled={(userProfile?.stats?.total_points || 0) < 150}
-                    className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
-                      (userProfile?.stats?.total_points || 0) >= 150
-                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg'
-                        : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
-                    }`}
-                  >
-                    {(userProfile?.stats?.total_points || 0) >= 150 ? 'Redeem' : `Need ${150 - (userProfile?.stats?.total_points || 0)} more points`}
-                  </button>
-                </div>
-
-                <div className={`border rounded-lg p-3 ${
-                  theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
-                }`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Star className={`w-4 h-4 ${theme === 'dark' ? 'text-purple-400' : 'text-purple-600'}`} />
-                      <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                        Space Theme
-                      </span>
-                    </div>
-                    <div className="bg-gradient-to-r from-purple-400/20 to-violet-400/20 border border-purple-400/40 rounded-full px-2 py-1 flex items-center gap-1">
-                      <span className="text-xs text-purple-400 font-bold">
-                        250 pts
-                      </span>
-                    </div>
-                  </div>
-                  <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                    Deep space colors with starry gradients
-                  </p>
-                  <button
-                    disabled={(userProfile?.stats?.total_points || 0) < 250}
-                    className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
-                      (userProfile?.stats?.total_points || 0) >= 250
-                        ? 'bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white shadow-lg'
-                        : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
-                    }`}
-                  >
-                    {(userProfile?.stats?.total_points || 0) >= 250 ? 'Redeem' : `Need ${250 - (userProfile?.stats?.total_points || 0)} more points`}
-                  </button>
-                </div>
-
-                <div className={`border rounded-lg p-3 ${
-                  theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
-                }`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Heart className={`w-4 h-4 ${theme === 'dark' ? 'text-pink-400' : 'text-pink-600'}`} />
-                      <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                        Cherry Blossom Theme
-                      </span>
-                    </div>
-                    <div className="bg-gradient-to-r from-pink-400/20 to-rose-400/20 border border-pink-400/40 rounded-full px-2 py-1 flex items-center gap-1">
-                      <span className="text-xs text-pink-400 font-bold">
-                        300 pts
-                      </span>
-                    </div>
-                  </div>
-                  <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                    Soft pink and white spring vibes
-                  </p>
-                  <button
-                    disabled={(userProfile?.stats?.total_points || 0) < 300}
-                    className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
-                      (userProfile?.stats?.total_points || 0) >= 300
-                        ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-lg'
-                        : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
-                    }`}
-                  >
-                    {(userProfile?.stats?.total_points || 0) >= 300 ? 'Redeem' : `Need ${300 - (userProfile?.stats?.total_points || 0)} more points`}
-                  </button>
-                </div>
-
-                <div className={`border rounded-lg p-3 ${
-                  theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
-                }`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Award className={`w-4 h-4 ${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'}`} />
-                      <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                        Cyberpunk Theme
-                      </span>
-                    </div>
-                    <div className={`rounded-full px-2 py-1 flex items-center gap-1 whitespace-nowrap ${
-                      theme === 'dark'
-                        ? 'bg-gradient-to-r from-cyan-400/20 to-teal-400/20 border border-cyan-400/40'
-                        : 'bg-slate-200/80 border border-slate-500/80'
-                    }`}>
-                      <span className={`text-xs font-bold ${
-                        theme === 'dark' ? 'text-cyan-400' : 'text-slate-800'
-                      }`}>
-                        400 pts
-                      </span>
-                    </div>
-                  </div>
-                  <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                    Neon cyber colors with electric vibes
-                  </p>
-                  <button
-                    disabled={(userProfile?.stats?.total_points || 0) < 400}
-                    className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
-                      (userProfile?.stats?.total_points || 0) >= 400
-                        ? 'bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white shadow-lg'
-                        : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
-                    }`}
-                  >
-                    {(userProfile?.stats?.total_points || 0) >= 400 ? 'Redeem' : `Need ${400 - (userProfile?.stats?.total_points || 0)} more points`}
-                  </button>
-                </div>
-
-                <div className={`border rounded-lg p-3 ${
-                  theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
-                }`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className={`w-4 h-4 ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`} />
-                      <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                        Particle Effects
-                      </span>
-                    </div>
-                    <div className={`rounded-full px-2 py-1 flex items-center gap-1 whitespace-nowrap ${
-                      theme === 'dark'
-                        ? 'bg-gradient-to-r from-green-400/20 to-emerald-400/20 border border-green-400/40'
-                        : 'bg-emerald-200/80 border border-emerald-600/80'
-                    }`}>
-                      <span className={`text-xs font-bold ${
-                        theme === 'dark' ? 'text-green-400' : 'text-emerald-800'
-                      }`}>
-                        500 pts
-                      </span>
-                    </div>
-                  </div>
-                  <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                    Floating sparkles and particle animations
-                  </p>
-                  <button
-                    disabled={(userProfile?.stats?.total_points || 0) < 500}
-                    className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
-                      (userProfile?.stats?.total_points || 0) >= 500
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg'
-                        : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
-                    }`}
-                  >
-                    {(userProfile?.stats?.total_points || 0) >= 500 ? 'Redeem' : `Need ${500 - (userProfile?.stats?.total_points || 0)} more points`}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'rewards':
-        return (
-          <div className="h-full flex flex-col pb-20">
-            {/* Mobile Header */}
-            <div className={`px-4 py-4 ${
-              theme === 'dark' ? 'backdrop-blur-md bg-white/10' : 'backdrop-blur-md bg-black/10'
-            }`}>
-              <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                Rewards
-              </h2>
-              <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                Track your learning progress
-              </p>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Achievement Stats */}
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                    Rewards
-                  </h3>
-                  <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                    {achievements.filter(a => a.unlocked_at !== null).length} of {achievements.length} completed
+                    {mobileRewardsTab === 'achievements' ? 'Track your learning progress' : 'Redeem your points for rewards'}
                   </p>
                 </div>
                 <div className={`rounded-full px-3 py-1.5 flex items-center gap-2 whitespace-nowrap ${
@@ -2139,6 +1922,48 @@ const AppContent: React.FC = () => {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Tabs */}
+            <div className={`px-4 border-b ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}>
+              <div className="flex space-x-6">
+                <button
+                  onClick={() => setMobileRewardsTab('achievements')}
+                  className={`py-3 px-2 text-sm font-medium transition-all ${
+                    mobileRewardsTab === 'achievements'
+                      ? (theme === 'dark' ? 'text-white border-b-2 border-white' : 'text-black border-b-2 border-black')
+                      : (theme === 'dark' ? 'text-gray-400' : 'text-gray-600')
+                  }`}
+                >
+                  Achievements
+                </button>
+                <button
+                  onClick={() => setMobileRewardsTab('store')}
+                  className={`py-3 px-2 text-sm font-medium transition-all ${
+                    mobileRewardsTab === 'store'
+                      ? (theme === 'dark' ? 'text-white border-b-2 border-white' : 'text-black border-b-2 border-black')
+                      : (theme === 'dark' ? 'text-gray-400' : 'text-gray-600')
+                  }`}
+                >
+                  Store
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {mobileRewardsTab === 'achievements' ? (
+                <>
+                  {/* Achievement Stats */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        Achievements
+                      </h3>
+                      <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                        {achievements.filter(a => a.unlocked_at !== null).length} of {achievements.length} completed
+                      </p>
+                    </div>
+                  </div>
 
               {/* Goals Section */}
               {achievements.filter(a => a.unlocked_at === null).length > 0 && (
@@ -2309,16 +2134,191 @@ const AppContent: React.FC = () => {
                 </div>
               )}
 
-              {/* Empty State */}
-              {achievements.length === 0 && (
-                <div className="text-center py-12">
-                  <Trophy className={`w-12 h-12 mx-auto mb-3 ${theme === 'dark' ? 'text-white/30' : 'text-black/30'}`} />
-                  <p className={`text-sm ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                    No achievements yet
-                  </p>
-                  <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-white/40' : 'text-black/40'}`}>
-                    Start using RAG Scholar to unlock rewards!
-                  </p>
+                  {/* Empty State */}
+                  {achievements.length === 0 && (
+                    <div className="text-center py-12">
+                      <Trophy className={`w-12 h-12 mx-auto mb-3 ${theme === 'dark' ? 'text-white/30' : 'text-black/30'}`} />
+                      <p className={`text-sm ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                        No achievements yet
+                      </p>
+                      <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-white/40' : 'text-black/40'}`}>
+                        Start using RAG Scholar to unlock rewards!
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Store Tab Content */
+                <div className="space-y-3">
+                  {/* Store Items */}
+                  <div className={`border rounded-lg p-3 ${
+                    theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Zap className={`w-4 h-4 ${
+                          theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
+                        }`} />
+                        <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                          Rounded Chat Input
+                        </span>
+                      </div>
+                      <div className="bg-gradient-to-r from-blue-400/20 to-indigo-400/20 border border-blue-400/40 rounded-full px-2 py-1 flex items-center gap-1">
+                        <span className="text-xs text-blue-400 font-bold">
+                          150 pts
+                        </span>
+                      </div>
+                    </div>
+                    <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                      Pill-shaped chat input with smooth corners
+                    </p>
+                    <button
+                      disabled={(userProfile?.stats?.total_points || 0) < 150}
+                      className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
+                        (userProfile?.stats?.total_points || 0) >= 150
+                          ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg'
+                          : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {(userProfile?.stats?.total_points || 0) >= 150 ? 'Redeem' : `Need ${150 - (userProfile?.stats?.total_points || 0)} more points`}
+                    </button>
+                  </div>
+
+                  <div className={`border rounded-lg p-3 ${
+                    theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Star className={`w-4 h-4 ${theme === 'dark' ? 'text-purple-400' : 'text-purple-600'}`} />
+                        <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                          Space Theme
+                        </span>
+                      </div>
+                      <div className="bg-gradient-to-r from-purple-400/20 to-violet-400/20 border border-purple-400/40 rounded-full px-2 py-1 flex items-center gap-1">
+                        <span className="text-xs text-purple-400 font-bold">
+                          250 pts
+                        </span>
+                      </div>
+                    </div>
+                    <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                      Deep space colors with starry gradients
+                    </p>
+                    <button
+                      disabled={(userProfile?.stats?.total_points || 0) < 250}
+                      className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
+                        (userProfile?.stats?.total_points || 0) >= 250
+                          ? 'bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white shadow-lg'
+                          : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {(userProfile?.stats?.total_points || 0) >= 250 ? 'Redeem' : `Need ${250 - (userProfile?.stats?.total_points || 0)} more points`}
+                    </button>
+                  </div>
+
+                  <div className={`border rounded-lg p-3 ${
+                    theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Heart className={`w-4 h-4 ${theme === 'dark' ? 'text-pink-400' : 'text-pink-600'}`} />
+                        <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                          Cherry Blossom Theme
+                        </span>
+                      </div>
+                      <div className="bg-gradient-to-r from-pink-400/20 to-rose-400/20 border border-pink-400/40 rounded-full px-2 py-1 flex items-center gap-1">
+                        <span className="text-xs text-pink-400 font-bold">
+                          300 pts
+                        </span>
+                      </div>
+                    </div>
+                    <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                      Soft pink and white spring vibes
+                    </p>
+                    <button
+                      disabled={(userProfile?.stats?.total_points || 0) < 300}
+                      className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
+                        (userProfile?.stats?.total_points || 0) >= 300
+                          ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-lg'
+                          : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {(userProfile?.stats?.total_points || 0) >= 300 ? 'Redeem' : `Need ${300 - (userProfile?.stats?.total_points || 0)} more points`}
+                    </button>
+                  </div>
+
+                  <div className={`border rounded-lg p-3 ${
+                    theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Award className={`w-4 h-4 ${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'}`} />
+                        <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                          Cyberpunk Theme
+                        </span>
+                      </div>
+                      <div className={`rounded-full px-2 py-1 flex items-center gap-1 whitespace-nowrap ${
+                        theme === 'dark'
+                          ? 'bg-gradient-to-r from-cyan-400/20 to-teal-400/20 border border-cyan-400/40'
+                          : 'bg-slate-200/80 border border-slate-500/80'
+                      }`}>
+                        <span className={`text-xs font-bold ${
+                          theme === 'dark' ? 'text-cyan-400' : 'text-slate-800'
+                        }`}>
+                          400 pts
+                        </span>
+                      </div>
+                    </div>
+                    <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                      Neon cyber colors with electric vibes
+                    </p>
+                    <button
+                      disabled={(userProfile?.stats?.total_points || 0) < 400}
+                      className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
+                        (userProfile?.stats?.total_points || 0) >= 400
+                          ? 'bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white shadow-lg'
+                          : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {(userProfile?.stats?.total_points || 0) >= 400 ? 'Redeem' : `Need ${400 - (userProfile?.stats?.total_points || 0)} more points`}
+                    </button>
+                  </div>
+
+                  <div className={`border rounded-lg p-3 ${
+                    theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className={`w-4 h-4 ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`} />
+                        <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                          Particle Effects
+                        </span>
+                      </div>
+                      <div className={`rounded-full px-2 py-1 flex items-center gap-1 whitespace-nowrap ${
+                        theme === 'dark'
+                          ? 'bg-gradient-to-r from-green-400/20 to-emerald-400/20 border border-green-400/40'
+                          : 'bg-emerald-200/80 border border-emerald-600/80'
+                      }`}>
+                        <span className={`text-xs font-bold ${
+                          theme === 'dark' ? 'text-green-400' : 'text-emerald-800'
+                        }`}>
+                          500 pts
+                        </span>
+                      </div>
+                    </div>
+                    <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                      Floating sparkles and particle animations
+                    </p>
+                    <button
+                      disabled={(userProfile?.stats?.total_points || 0) < 500}
+                      className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
+                        (userProfile?.stats?.total_points || 0) >= 500
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg'
+                          : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {(userProfile?.stats?.total_points || 0) >= 500 ? 'Redeem' : `Need ${500 - (userProfile?.stats?.total_points || 0)} more points`}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -3186,9 +3186,8 @@ const AppContent: React.FC = () => {
               { page: 'home', icon: Home, label: 'Home' },
               { page: 'chat', icon: MessageSquare, label: 'Chat' },
               { page: 'docs', icon: Upload, label: 'Docs' },
-              { page: 'rewards', icon: Settings, label: 'Rewards' },
-              { page: 'store', icon: Gift, label: 'Store' },
-              { page: 'settings', icon: User, label: 'Settings' },
+              { page: 'rewards', icon: Trophy, label: 'Rewards' },
+              { page: 'settings', icon: Settings, label: 'Settings' },
             ].map(({ page, icon: Icon, label }) => {
               const isActive = mobilePage === page;
               return (

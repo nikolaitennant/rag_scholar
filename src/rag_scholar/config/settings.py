@@ -29,10 +29,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # Secure API Keys via Doppler (users provide their own)
+    # Users must provide their own API keys - no backend fallback
     openai_api_key: str | None = Field(
-        default_factory=lambda: doppler_config.get_secret('OPENAI_API_KEY'),
-        description="OpenAI API key (secure via Doppler or user-provided)"
+        default=None,
+        description="Users must provide their own OpenAI API key"
     )
 
     # Application

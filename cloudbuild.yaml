@@ -6,11 +6,12 @@ steps:
       - 'build'
       - '-t'
       - '${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}'
-      - '-t'  
+      - '-t'
       - '${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE_NAME}:latest'
       - '.'
       - '-f'
       - 'Dockerfile'
+    waitFor: ['Build-Frontend']
 
   # Build frontend
   - name: 'node:18'
@@ -54,8 +55,8 @@ steps:
       - '--gpu=1'
       - '--gpu-type=nvidia-l4'
       - '--no-cpu-throttling'
-      - '--set-secrets=OPENAI_API_KEY=OPENAI_API_KEY:latest,JWT_SECRET_KEY=JWT_SECRET_KEY:latest'
-      - '--set-env-vars=ENVIRONMENT=production,DEBUG=false'
+      - '--set-secrets=DOPPLER_TOKEN=DOPPLER_TOKEN:latest'
+      - '--set-env-vars=ENVIRONMENT=production,DEBUG=false,DOPPLER_PROJECT=rag-scholar,DOPPLER_CONFIG=prod'
       - '--labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=${COMMIT_SHA},gcb-build-id=${BUILD_ID}'
       - '--region=${_DEPLOY_REGION}'
       - '--quiet'
@@ -99,9 +100,11 @@ substitutions:
   _SERVICE_NAME: ragscholarai
   _FIREBASE_PROJECT_ID: ragscholarai
 
-# Available secrets (Firebase service account from Secret Manager)
+# Available secrets (Doppler token + Firebase service account from Secret Manager)
 availableSecrets:
   secretManager:
+    - versionName: projects/ragscholarai/secrets/DOPPLER_TOKEN/versions/latest
+      env: 'DOPPLER_TOKEN'
     - versionName: projects/ragscholarai/secrets/firebase-service-account/versions/latest
       env: 'FIREBASE_SERVICE_ACCOUNT'
     - versionName: projects/ragscholarai/secrets/FIREBASE_API_KEY/versions/latest

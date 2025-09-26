@@ -1380,7 +1380,7 @@ const AppContent: React.FC = () => {
                                 setMobileDocumentFilter(null);
                                 setMobileFilterDropdownOpen(false);
                               }}
-                              className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
+                              className={`w-full px-4 py-3 text-base text-left transition-colors ${
                                 !mobileDocumentFilter
                                   ? theme === 'dark' ? 'bg-white/20 text-white font-medium' : 'bg-black/20 text-black font-medium'
                                   : theme === 'dark' ? 'text-white/90 hover:bg-black/20' : 'text-gray-900/90 hover:bg-white/20'
@@ -1395,7 +1395,7 @@ const AppContent: React.FC = () => {
                                   setMobileDocumentFilter(cls.id);
                                   setMobileFilterDropdownOpen(false);
                                 }}
-                                className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
+                                className={`w-full px-4 py-3 text-base text-left transition-colors ${
                                   mobileDocumentFilter === cls.id
                                     ? theme === 'dark' ? 'bg-white/20 text-white font-medium' : 'bg-black/20 text-black font-medium'
                                     : theme === 'dark' ? 'text-white/90 hover:bg-black/20' : 'text-gray-900/90 hover:bg-white/20'

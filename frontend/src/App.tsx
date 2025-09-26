@@ -1529,9 +1529,9 @@ const AppContent: React.FC = () => {
                       {filteredSessions.length === 0 ? (
                         <div className="text-center py-8">
                           <div className={`w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center ${
-                            theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+                            theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
                           }`}>
-                            <MessageSquare className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
+                            <MessageSquare className={`w-6 h-6 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`} />
                           </div>
                           <p className={`font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                             No recent chats

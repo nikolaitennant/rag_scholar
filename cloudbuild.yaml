@@ -99,11 +99,9 @@ substitutions:
   _SERVICE_NAME: ragscholarai
   _FIREBASE_PROJECT_ID: ragscholarai
 
-# Available secrets (Doppler token + Firebase service account from Secret Manager)
+# Available secrets (Firebase service account from Secret Manager)
 availableSecrets:
   secretManager:
-    - versionName: projects/ragscholarai/secrets/DOPPLER_TOKEN/versions/latest
-      env: 'DOPPLER_TOKEN'
     - versionName: projects/ragscholarai/secrets/firebase-service-account/versions/latest
       env: 'FIREBASE_SERVICE_ACCOUNT'
     - versionName: projects/ragscholarai/secrets/FIREBASE_API_KEY/versions/latest

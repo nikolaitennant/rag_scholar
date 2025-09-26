@@ -1336,7 +1336,11 @@ const AppContent: React.FC = () => {
                     </p>
                     <button
                       onClick={() => setShowMobileClassForm(true)}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium text-sm"
+                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                        theme === 'dark'
+                          ? 'bg-white/10 text-white hover:bg-white/20'
+                          : 'bg-black/10 text-black hover:bg-black/20'
+                      }`}
                     >
                       Create Class
                     </button>
@@ -1399,7 +1403,7 @@ const AppContent: React.FC = () => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleEditClass(userClass);
+                                  handleEditClass(userClass.id, userClass.name, userClass.domainType, userClass.description);
                                 }}
                                 className={`p-2 rounded-lg transition-colors ${
                                   theme === 'dark'

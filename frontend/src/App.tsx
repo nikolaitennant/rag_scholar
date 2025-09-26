@@ -1171,7 +1171,7 @@ const AppContent: React.FC = () => {
                     if (hour < 17) return `Good afternoon, ${userName}!`;
                     return `Good evening, ${userName}!`;
                   })()}
-                  <Heart className="w-5 h-5 text-pink-400 animate-pulse inline-block ml-2" style={{ verticalAlign: 'middle', transform: 'translateY(-2px)' }} />
+                  <Heart className="w-5 h-5 text-pink-400 animate-pulse inline-block ml-2" style={{ verticalAlign: 'middle', transform: 'translateY(-1px)' }} />
                 </h1>
                 <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                   Ready to explore your documents?

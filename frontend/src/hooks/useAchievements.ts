@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../services/api';
+import { useUser } from '../contexts/UserContext';
 
 interface Achievement {
   id: string;
@@ -25,11 +26,18 @@ interface UserProfile {
 }
 
 export const useAchievements = () => {
+  const { isAuthenticated, loading } = useUser();
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [newlyUnlocked, setNewlyUnlocked] = useState<Achievement[]>([]);
   const [lastChecked, setLastChecked] = useState<string | null>(null);
 
   const fetchAchievements = useCallback(async (forceRefresh = false) => {
+    // Only fetch if user is authenticated
+    if (!isAuthenticated) {
+      console.log('🔄 Skipping achievements fetch - user not authenticated');
+      return;
+    }
+
     try {
       console.log('🔄 Fetching achievements...', { forceRefresh });
       const profile: UserProfile = await apiService.getUserProfile();
@@ -64,7 +72,7 @@ export const useAchievements = () => {
     } catch (error) {
       console.error('Failed to fetch achievements:', error);
     }
-  }, []);
+  }, [isAuthenticated, achievements, lastChecked]);
 
   const dismissNotification = useCallback((achievementId: string) => {
     setNewlyUnlocked(prev => prev.filter(a => a.id !== achievementId));
@@ -76,13 +84,15 @@ export const useAchievements = () => {
   }, [fetchAchievements]);
 
   useEffect(() => {
-    // Only fetch achievements if we have access to API
-    const timer = setTimeout(() => {
-      fetchAchievements();
-    }, 1000); // Small delay to ensure auth is ready
+    // Only fetch achievements if user is authenticated and not loading
+    if (isAuthenticated && !loading) {
+      const timer = setTimeout(() => {
+        fetchAchievements();
+      }, 1000); // Small delay to ensure auth is ready
 
-    return () => clearTimeout(timer);
-  }, []);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, loading, fetchAchievements]);
 
   return {
     achievements,

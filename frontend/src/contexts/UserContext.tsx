@@ -5,7 +5,8 @@ import {
   signOut,
   onAuthStateChanged,
   User as FirebaseUser,
-  updateProfile
+  updateProfile,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { UserProfile } from '../types';
@@ -20,6 +21,7 @@ interface UserContextType {
   logout: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   updateUserProfile: (data: { bio?: string; research_interests?: string[]; preferred_domains?: string[] }) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -82,6 +84,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     await refreshUserProfile();
   };
 
+  const resetPassword = async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
+  };
+
   const isAuthenticated = !!user;
 
   return (
@@ -94,6 +100,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       logout,
       refreshUserProfile,
       updateUserProfile,
+      resetPassword,
       isAuthenticated
     }}>
       {children}

@@ -1238,7 +1238,7 @@ const AppContent: React.FC = () => {
                 {showMobileClassForm && (
                   <div className={`p-4 rounded-xl mb-4 ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}>
                     <h4 className={`font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                      Create New Class
+                      {editingMobileClass ? 'Edit Class' : 'Create New Class'}
                     </h4>
                     <div className="space-y-4">
                       <input
@@ -1246,10 +1246,10 @@ const AppContent: React.FC = () => {
                         value={mobileClassFormData.name}
                         onChange={(e) => setMobileClassFormData(prev => ({ ...prev, name: e.target.value }))}
                         placeholder="Class name (e.g., History 101)"
-                        className={`w-full px-4 py-3 rounded-lg text-sm ${
+                        className={`w-full px-4 py-3 rounded-lg text-sm border ${
                           theme === 'dark'
-                            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                            : 'bg-gray-50 border-gray-300 text-black placeholder-gray-500'
+                            ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
+                            : 'bg-black/10 border-black/20 text-black placeholder-black/50'
                         }`}
                       />
                       <div>
@@ -1280,34 +1280,107 @@ const AppContent: React.FC = () => {
                           })}
                         </div>
                       </div>
+
+                      {/* Document Assignment - Only show if there are documents */}
+                      {documents.length > 0 && (
+                        <div>
+                          <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Assign Documents (optional)
+                          </label>
+                          <div className="max-h-32 overflow-y-auto space-y-2">
+                            {documents.map((doc) => (
+                              <button
+                                key={doc.id}
+                                type="button"
+                                onClick={() => {
+                                  setMobileEditingClassDocs(prev =>
+                                    prev.includes(doc.id)
+                                      ? prev.filter(id => id !== doc.id)
+                                      : [...prev, doc.id]
+                                  );
+                                }}
+                                className={`w-full text-left p-2 rounded-lg text-xs flex items-center justify-between transition-colors ${
+                                  mobileEditingClassDocs.includes(doc.id)
+                                    ? theme === 'dark'
+                                      ? 'bg-white/15 text-white'
+                                      : 'bg-black/15 text-black'
+                                    : theme === 'dark'
+                                      ? 'bg-white/5 text-white/70 hover:bg-white/10'
+                                      : 'bg-black/5 text-black/70 hover:bg-black/10'
+                                }`}
+                              >
+                                <span className="truncate">{doc.filename}</span>
+                                {mobileEditingClassDocs.includes(doc.id) && (
+                                  <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0 ml-2"></div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex space-x-3">
                         <button
-                          onClick={() => {
-                            if (mobileClassFormData.name.trim()) {
-                              handleCreateClass(
-                                mobileClassFormData.name,
-                                mobileClassFormData.type,
-                                mobileClassFormData.description
-                              );
-                              setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
-                              setShowMobileClassForm(false);
+                          onClick={async () => {
+                            if (mobileClassFormData.name.trim() && !isEditingMobileClass) {
+                              setIsEditingMobileClass(true);
+                              try {
+                                if (editingMobileClass) {
+                                  // Edit existing class
+                                  handleEditClass(
+                                    editingMobileClass.id,
+                                    mobileClassFormData.name,
+                                    mobileClassFormData.type,
+                                    mobileClassFormData.description
+                                  );
+                                  // Wait a bit for state updates
+                                  await new Promise(resolve => setTimeout(resolve, 100));
+                                  // Also handle document assignment
+                                  handleAssignDocuments(editingMobileClass.id, mobileEditingClassDocs);
+                                  // Wait for document assignment to complete
+                                  await new Promise(resolve => setTimeout(resolve, 2000));
+                                  setEditingMobileClass(null);
+                                  setMobileEditingClassDocs([]);
+                                } else {
+                                  // Create new class
+                                  handleCreateClass(
+                                    mobileClassFormData.name,
+                                    mobileClassFormData.type,
+                                    mobileClassFormData.description
+                                  );
+                                }
+                                setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
+                                setShowMobileClassForm(false);
+                              } finally {
+                                setIsEditingMobileClass(false);
+                              }
                             }
                           }}
-                          disabled={!mobileClassFormData.name.trim()}
-                          className={`flex-1 py-3 px-4 rounded-lg font-medium text-sm ${
-                            mobileClassFormData.name.trim()
-                              ? 'bg-blue-500 text-white'
+                          disabled={!mobileClassFormData.name.trim() || isEditingMobileClass}
+                          className={`flex-1 py-3 px-4 rounded-lg font-medium text-sm transition-all ${
+                            mobileClassFormData.name.trim() && !isEditingMobileClass
+                              ? theme === 'dark'
+                                ? 'bg-white/10 text-white hover:bg-white/20'
+                                : 'bg-black/10 text-black hover:bg-black/20'
                               : theme === 'dark'
-                                ? 'bg-gray-700 text-gray-500'
-                                : 'bg-gray-200 text-gray-400'
-                          }`}
+                                ? 'bg-white/5 text-white/50'
+                                : 'bg-black/5 text-black/50'
+                          } flex items-center justify-center gap-2`}
                         >
-                          Create Class
+                          {isEditingMobileClass && (
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+                          )}
+                          {isEditingMobileClass
+                            ? (editingMobileClass ? 'Updating...' : 'Creating...')
+                            : (editingMobileClass ? 'Update Class' : 'Create Class')
+                          }
                         </button>
                         <button
                           onClick={() => {
                             setShowMobileClassForm(false);
                             setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
+                            setEditingMobileClass(null);
+                            setMobileEditingClassDocs([]);
                           }}
                           className={`px-4 py-3 rounded-lg text-sm ${
                             theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
@@ -1403,7 +1476,18 @@ const AppContent: React.FC = () => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleEditClass(userClass.id, userClass.name, userClass.domainType, userClass.description);
+                                  setEditingMobileClass(userClass);
+                                  setMobileClassFormData({
+                                    name: userClass.name,
+                                    type: userClass.domainType,
+                                    description: userClass.description || ''
+                                  });
+                                  setMobileEditingClassDocs(
+                                    documents
+                                      .filter(doc => doc.assigned_classes?.includes(userClass.id))
+                                      .map(doc => doc.id)
+                                  );
+                                  setShowMobileClassForm(true);
                                 }}
                                 className={`p-2 rounded-lg transition-colors ${
                                   theme === 'dark'

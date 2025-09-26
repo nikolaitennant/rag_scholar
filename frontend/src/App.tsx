@@ -246,7 +246,13 @@ const AppContent: React.FC = () => {
       // Load classes from cloud API
       const classes = await apiService.getClasses();
 
-      setUserClasses(classes);
+      // Convert backend format to frontend format
+      const formattedClasses = classes.map(cls => ({
+        ...cls,
+        domainType: cls.domain_type // Convert backend format
+      }));
+
+      setUserClasses(formattedClasses);
       // Only auto-select first class on initial app load, not when user deselects
       // This prevents overriding user's intentional deselection
       console.log('✅ User classes loaded from cloud:', classes.length);
@@ -1116,13 +1122,7 @@ const AppContent: React.FC = () => {
                   <div className="flex flex-col justify-center h-full text-center">
                     <div className={`mb-8 ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
                       <h2 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                        {(() => {
-                          const hour = new Date().getHours();
-                          const userName = user?.displayName || user?.email || 'User';
-                          if (hour < 12) return `Good morning, ${userName}!`;
-                          if (hour < 17) return `Good afternoon, ${userName}!`;
-                          return `Good evening, ${userName}!`;
-                        })()}
+                        Welcome to RAG Scholar!
                       </h2>
                       <p className={`text-sm ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
                         Ask questions about your documents
@@ -1255,7 +1255,7 @@ const AppContent: React.FC = () => {
                   <Heart className="w-5 h-5 text-pink-400 animate-pulse inline-block ml-2" style={{ verticalAlign: 'middle', transform: 'translateY(-1.5px)' }} />
                 </h1>
                 <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Ready to explore your documents and discover new insights?
+                  Ready to explore your documents?
                 </p>
               </div>
             </div>
@@ -1615,7 +1615,14 @@ const AppContent: React.FC = () => {
                             <MessageSquare className={`w-6 h-6 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`} />
                           </div>
                           <p className={`font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                            Welcome to RAG Scholar
+                            {(() => {
+                              const hour = new Date().getHours();
+                              const userName = user?.displayName || user?.email || 'User';
+                              if (hour < 12) return `Good morning, ${userName}`;
+                              if (hour < 17) return `Good afternoon, ${userName}`;
+                              return `Good evening, ${userName}`;
+                            })()}
+                            <Heart className="w-4 h-4 text-pink-400 animate-pulse inline-block ml-2" style={{ verticalAlign: 'middle', transform: 'translateY(-1.5px)' }} />
                           </p>
                           <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                             {activeClass ? `Start a conversation in ${activeClass.name}` : 'Start a new conversation'}
@@ -1655,11 +1662,9 @@ const AppContent: React.FC = () => {
 
       case 'docs':
         return (
-          <div className="h-full flex flex-col pb-20">
+          <div className="h-full overflow-y-auto pb-20">
             {/* Mobile Header */}
-            <div className={`px-4 py-4  ${
-              theme === 'dark' ? 'backdrop-blur-md bg-white/10' : 'backdrop-blur-md bg-black/10'
-            }`}>
+            <div className="px-4 py-4">
               <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                 Documents
               </h2>
@@ -1678,7 +1683,7 @@ const AppContent: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="px-4 space-y-4">
               {/* Class Filter */}
               {userClasses.length > 0 && (
                 <div className={`p-4 rounded-xl backdrop-blur-sm border ${
@@ -1893,11 +1898,9 @@ const AppContent: React.FC = () => {
 
       case 'rewards':
         return (
-          <div className="h-full flex flex-col pb-20">
+          <div className="h-full overflow-y-auto pb-20">
             {/* Mobile Header */}
-            <div className={`px-4 py-4 ${
-              theme === 'dark' ? 'backdrop-blur-md bg-white/10' : 'backdrop-blur-md bg-black/10'
-            }`}>
+            <div className="px-4 py-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
@@ -1950,7 +1953,7 @@ const AppContent: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="px-4 space-y-4">
               {mobileRewardsTab === 'achievements' ? (
                 <>
                   {/* Achievement Stats */}
@@ -2327,11 +2330,9 @@ const AppContent: React.FC = () => {
 
       case 'settings':
         return (
-          <div className="h-full flex flex-col pb-20">
+          <div className="h-full overflow-y-auto pb-20">
             {/* Mobile Header */}
-            <div className={`px-4 py-4  ${
-              theme === 'dark' ? 'backdrop-blur-md bg-white/10' : 'backdrop-blur-md bg-black/10'
-            }`}>
+            <div className="px-4 py-4">
               <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                 Settings
               </h2>
@@ -2376,7 +2377,7 @@ const AppContent: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="px-4 space-y-4">
               {activeSettingsTab === 'general' ? (
                 <>
                   {/* Account Section */}

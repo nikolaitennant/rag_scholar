@@ -3,6 +3,8 @@ import { Send, MessageSquare, Sparkles, User, Bot, Heart, ChevronDown, ChevronUp
 import { Message } from '../types';
 import ReactMarkdown from 'react-markdown';
 import { useTheme } from '../contexts/ThemeContext';
+import { CommandSuggestions } from './CommandSuggestions';
+import { getCommandSuggestions } from '../utils/commandParser';
 
 interface ChatInterfaceProps {
   messages: Message[];
@@ -26,6 +28,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 }) => {
   const { theme } = useTheme();
   const [input, setInput] = useState('');
+  const [showCommandSuggestions, setShowCommandSuggestions] = useState(false);
   const [expandedCitations, setExpandedCitations] = useState<Set<string>>(() => {
     // Load expanded citations from localStorage on mount
     try {
@@ -83,6 +86,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     const message = input;
     setInput('');
+    setShowCommandSuggestions(false);
     await onSendMessage(message);
   };
 
@@ -399,10 +403,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       <div className="p-4 flex-shrink-0">
         <form onSubmit={handleSubmit} className={`mx-auto px-4 ${getResponsiveWidth()}`}>
           <div className="relative">
+            <CommandSuggestions
+              suggestions={getCommandSuggestions(input)}
+              onSelect={(command) => {
+                setInput(command);
+                setShowCommandSuggestions(false);
+              }}
+              visible={showCommandSuggestions}
+            />
             <input
               type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setInput(value);
+                setShowCommandSuggestions(value.startsWith('/'));
+              }}
               placeholder="Ask anything..."
               className={`w-full backdrop-blur-sm border rounded-full px-4 py-2 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 ${
                 theme === 'dark'

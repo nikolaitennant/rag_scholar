@@ -17,7 +17,7 @@ def background_knowledge(question: str) -> str:
         question: The question to answer with general knowledge
     """
     logger.info("Background knowledge requested", question=question[:50])
-    return f"**[UNCITED]** Background mode: This response draws from general knowledge, not your documents.\n\n{question}"
+    return f"**[UNCITED - GENERAL KNOWLEDGE]** Please answer this question using your general knowledge instead of the uploaded documents: {question}"
 
 
 @tool

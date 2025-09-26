@@ -9,8 +9,10 @@ import { LoginPage } from './components/LoginPage';
 import { ThemeToggle } from './components/ThemeToggle';
 import { SettingsModal } from './components/SettingsModal';
 import { AchievementNotification } from './components/AchievementNotification';
+import { CommandSuggestions } from './components/CommandSuggestions';
 import { useAchievements } from './hooks/useAchievements';
 import { apiService } from './services/api';
+import { getCommandSuggestions } from './utils/commandParser';
 import { Message, DomainType, Document, UserClass } from './types';
 import { DOMAIN_TYPE_INFO } from './constants/domains';
 
@@ -47,6 +49,7 @@ const AppContent: React.FC = () => {
   const [mobileClassFormData, setMobileClassFormData] = useState({ name: '', type: DomainType.GENERAL, description: '' });
   const [isEditingMobileClass, setIsEditingMobileClass] = useState(false);
   const [mobileInput, setMobileInput] = useState('');
+  const [showCommandSuggestions, setShowCommandSuggestions] = useState(false);
   const [mobileDocumentFilter, setMobileDocumentFilter] = useState<string | null>(null);
   const [mobileFilterDropdownOpen, setMobileFilterDropdownOpen] = useState(false);
   const [mobileDropdownPosition, setMobileDropdownPosition] = useState<{
@@ -401,7 +404,23 @@ const AppContent: React.FC = () => {
 
   // Handlers
   const handleSendMessage = async (content: string) => {
-    // Check if it's a background command
+    // Parse for special commands
+    const { parseCommand, formatCommandForBackend } = await import('./utils/commandParser');
+    const command = parseCommand(content);
+
+    let messageToSend = content;
+
+    if (command && command.isValid) {
+      // Transform command into optimized prompt
+      messageToSend = formatCommandForBackend(command);
+
+      // Track background commands for existing logic
+      if (command.type === 'background') {
+        setBackgroundCommandCount(prev => prev + 1);
+      }
+    }
+
+    // Check if it's a background command (legacy support)
     if (content.toLowerCase().startsWith('/background')) {
       setBackgroundCommandCount(prev => prev + 1);
     }
@@ -428,7 +447,7 @@ const AppContent: React.FC = () => {
 
     try {
       const response = await apiService.chat({
-        query: content,
+        query: messageToSend,
         session_id: currentSessionId || chatSessionId,
         class_id: activeClass?.id,
         class_name: activeClass?.name, // Send the human-readable class name
@@ -1151,17 +1170,31 @@ const AppContent: React.FC = () => {
 
               {/* Fixed Bottom Input */}
               <div className="p-4 border-t border-gray-200/20">
-                <form onSubmit={(e) => {
+                <div className="relative">
+                  <CommandSuggestions
+                    suggestions={getCommandSuggestions(mobileInput)}
+                    onSelect={(command) => {
+                      setMobileInput(command);
+                      setShowCommandSuggestions(false);
+                    }}
+                    visible={showCommandSuggestions}
+                  />
+                  <form onSubmit={(e) => {
                   e.preventDefault();
                   if (mobileInput.trim() && !isChatLoading) {
                     handleSendMessage(mobileInput.trim());
                     setMobileInput('');
+                    setShowCommandSuggestions(false);
                   }
                 }} className="flex space-x-2">
                   <input
                     type="text"
                     value={mobileInput}
-                    onChange={(e) => setMobileInput(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setMobileInput(value);
+                      setShowCommandSuggestions(value.startsWith('/'));
+                    }}
                     placeholder="Ask anything..."
                     className={`flex-1 backdrop-blur-sm border rounded-full px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 ${
                       theme === 'dark'
@@ -1183,7 +1216,8 @@ const AppContent: React.FC = () => {
                   >
                     <Send className="w-4 h-4" />
                   </button>
-                </form>
+                  </form>
+                </div>
               </div>
             </div>
           </div>
@@ -2903,23 +2937,55 @@ const AppContent: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <code className={`text-xs px-2 py-1 rounded ${
                           theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-                        }`}>remember:</code>
+                        }`}>/background</code>
                         <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
-                          Save permanent facts
+                          General knowledge
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <code className={`text-xs px-2 py-1 rounded ${
                           theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-                        }`}>memo:</code>
+                        }`}>/summarize</code>
                         <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
-                          Add session notes
+                          Summarize documents
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <code className={`text-xs px-2 py-1 rounded ${
                           theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-                        }`}>role:</code>
+                        }`}>/explain</code>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                          Simple explanations
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <code className={`text-xs px-2 py-1 rounded ${
+                          theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                        }`}>/search</code>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                          Search documents
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <code className={`text-xs px-2 py-1 rounded ${
+                          theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                        }`}>/compare</code>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                          Compare concepts
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <code className={`text-xs px-2 py-1 rounded ${
+                          theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                        }`}>/cite</code>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                          Find citations
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <code className={`text-xs px-2 py-1 rounded ${
+                          theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                        }`}>/persona</code>
                         <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
                           Set AI personality
                         </span>
@@ -2927,9 +2993,9 @@ const AppContent: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <code className={`text-xs px-2 py-1 rounded ${
                           theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-                        }`}>background:</code>
+                        }`}>/reset</code>
                         <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
-                          Get topic context
+                          Clear persona
                         </span>
                       </div>
                     </div>

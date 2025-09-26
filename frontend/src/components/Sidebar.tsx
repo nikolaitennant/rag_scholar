@@ -468,23 +468,55 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex items-center gap-2">
                   <code className={`text-xs px-2 py-1 rounded ${
                     theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-                  }`}>remember:</code>
+                  }`}>/background</code>
                   <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
-                    Save permanent facts
+                    General knowledge
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <code className={`text-xs px-2 py-1 rounded ${
                     theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-                  }`}>memo:</code>
+                  }`}>/summarize</code>
                   <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
-                    Add session notes
+                    Summarize documents
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <code className={`text-xs px-2 py-1 rounded ${
                     theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-                  }`}>role:</code>
+                  }`}>/explain</code>
+                  <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                    Simple explanations
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className={`text-xs px-2 py-1 rounded ${
+                    theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                  }`}>/search</code>
+                  <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                    Search documents
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className={`text-xs px-2 py-1 rounded ${
+                    theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                  }`}>/compare</code>
+                  <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                    Compare concepts
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className={`text-xs px-2 py-1 rounded ${
+                    theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                  }`}>/cite</code>
+                  <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                    Find citations
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className={`text-xs px-2 py-1 rounded ${
+                    theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                  }`}>/persona</code>
                   <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
                     Set AI personality
                   </span>
@@ -492,9 +524,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex items-center gap-2">
                   <code className={`text-xs px-2 py-1 rounded ${
                     theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-                  }`}>background:</code>
+                  }`}>/reset</code>
                   <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
-                    Get topic context
+                    Clear persona
                   </span>
                 </div>
               </div>

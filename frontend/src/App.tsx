@@ -1431,7 +1431,7 @@ const AppContent: React.FC = () => {
                           <div className="flex items-center space-x-3">
                             <button
                               onClick={() => handleSelectClass(userClass)}
-                              className="flex items-center space-x-3 flex-1 min-w-0"
+                              className="flex items-center space-x-3 flex-1 min-w-0 text-left"
                             >
                               <div className={`p-2 rounded-lg ${
                                 isActive
@@ -1445,7 +1445,7 @@ const AppContent: React.FC = () => {
                                 }`} />}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h4 className={`font-medium truncate text-sm ${
+                                <h4 className={`font-medium truncate text-sm text-left ${
                                   theme === 'dark' ? 'text-white' : 'text-black'
                                 }`}>
                                   {userClass.name}

@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from rag_scholar.services.langchain_pipeline import LangChainRAGPipeline
 from rag_scholar.services.langchain_ingestion import LangChainIngestionPipeline
+from rag_scholar.services.langchain_citations import extract_citations_from_response, is_meaningful_query
 from rag_scholar.services.user_profile import UserProfileService
 from rag_scholar.config.settings import get_settings
 
@@ -71,6 +72,16 @@ async def chat(
     rag_pipeline = LangChainRAGPipeline(user_settings)
     ingestion_pipeline = LangChainIngestionPipeline(user_settings)
 
+    # Validate query meaningfulness
+    if not is_meaningful_query(request.query):
+        return {
+            "response": "I didn't understand your question. Could you rephrase?",
+            "sources": [],
+            "citations": [],
+            "grouped_sources": [],
+            "session_id": request.session_id or str(uuid.uuid4()),
+        }
+
     # Generate session ID if not provided
     session_id = request.session_id or str(uuid.uuid4())
 
@@ -103,6 +114,19 @@ async def chat(
         class_name=request.class_name,
         domain_type=request.domain_type,
     )
+
+    # Enhanced citation processing
+    if result.get("response") and context_docs:
+        enhanced_result = extract_citations_from_response(
+            text=result["response"],
+            context_docs=context_docs
+        )
+        # Merge enhanced citations with original result
+        result.update({
+            "citations": enhanced_result["citations"],
+            "grouped_sources": enhanced_result["grouped_sources"],
+            "sources": enhanced_result["sources"]
+        })
 
     # Track citations if sources were returned
     sources_count = len(result.get("sources", []))

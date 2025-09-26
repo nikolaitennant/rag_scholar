@@ -202,7 +202,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
                     ref={nameInputRef}
                     type="text"
                     required
-                    autoComplete="name"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     className={`w-full pl-12 pr-4 py-3 rounded-xl border focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors ${
@@ -229,7 +228,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
                 <input
                   type="email"
                   required
-                  autoComplete="email"
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   className={`w-full pl-12 pr-4 py-3 rounded-xl border focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors ${
@@ -256,7 +254,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
-                    autoComplete={isSignUp ? 'new-password' : 'current-password'}
                     value={formData.password}
                     onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                     className={`w-full pl-12 pr-12 py-3 rounded-xl border focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors ${

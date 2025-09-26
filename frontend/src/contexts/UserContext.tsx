@@ -95,8 +95,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const updateDisplayName = async (newDisplayName: string) => {
     if (auth.currentUser) {
       await updateProfile(auth.currentUser, { displayName: newDisplayName });
-      // Create a new user object to trigger React re-render
-      setUser({ ...auth.currentUser, displayName: newDisplayName } as FirebaseUser);
+      // Reload the user to ensure Firebase has the latest data
+      await auth.currentUser.reload();
+      // Manually trigger the auth state change listener
+      setUser(auth.currentUser);
     }
   };
 

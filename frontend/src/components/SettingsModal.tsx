@@ -58,7 +58,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   // Auto-save profile changes
   useEffect(() => {
     const timer = setTimeout(async () => {
-      if (formData.name !== user?.displayName) {
+      if (formData.name !== user?.displayName && formData.name.trim() !== '') {
         try {
           // Update display name if changed
           await updateDisplayName(formData.name);
@@ -69,7 +69,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     }, 1000); // Auto-save after 1 second of no changes
 
     return () => clearTimeout(timer);
-  }, [formData.name, user]);
+  }, [formData.name]);
 
   useEffect(() => {
     localStorage.setItem('api_key', apiSettings.apiKey);

@@ -164,7 +164,7 @@ const AppContent: React.FC = () => {
   // Auto-save profile changes
   useEffect(() => {
     const timer = setTimeout(async () => {
-      if (formData.name !== user?.displayName) {
+      if (formData.name !== user?.displayName && formData.name.trim() !== '') {
         try {
           // Update display name if changed
           await updateDisplayName(formData.name);
@@ -175,7 +175,7 @@ const AppContent: React.FC = () => {
     }, 1000); // Auto-save after 1 second of no changes
 
     return () => clearTimeout(timer);
-  }, [formData.name, user]);
+  }, [formData.name]);
 
   const handleLogout = () => {
     logout();

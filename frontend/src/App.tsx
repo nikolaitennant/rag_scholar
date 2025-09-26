@@ -712,36 +712,44 @@ const AppContent: React.FC = () => {
 
   // Class management
   const handleCreateClass = async (name: string, domainType: DomainType, description?: string, selectedDocuments?: string[]) => {
-    const newClass: UserClass = {
-      id: Math.random().toString(36).substring(2) + Date.now().toString(36),
-      name,
-      domainType,
-      description: description || '',
-      documents: selectedDocuments || [],
-      created_at: new Date().toISOString()
-    };
+    try {
+      // Create class in cloud
+      const newClass = await apiService.createClass({
+        name,
+        domain_type: domainType,
+        description: description || ''
+      });
 
-    const updatedClasses = [...userClasses, newClass];
-    setUserClasses(updatedClasses);
-    localStorage.setItem('userClasses', JSON.stringify(updatedClasses));
+      // Update local state with cloud data
+      const updatedClasses = [...userClasses, {
+        ...newClass,
+        domainType: newClass.domain_type, // Convert backend format
+        documents: selectedDocuments || []
+      }];
+      setUserClasses(updatedClasses);
 
-    // If documents were selected, assign them to the class in the backend
-    if (selectedDocuments && selectedDocuments.length > 0) {
-      try {
-        for (const documentId of selectedDocuments) {
-          const document = documents.find(doc => doc.id === documentId);
-          if (document) {
-            await handleAssignDocumentToClass(documentId, document.filename, newClass.id, 'add');
+      // If documents were selected, assign them to the class in the backend
+      if (selectedDocuments && selectedDocuments.length > 0) {
+        try {
+          for (const documentId of selectedDocuments) {
+            const document = documents.find(doc => doc.id === documentId);
+            if (document) {
+              await handleAssignDocumentToClass(documentId, document.filename, newClass.id, 'add');
+            }
           }
+          console.log(`Successfully assigned ${selectedDocuments.length} documents to class "${name}"`);
+        } catch (error) {
+          console.error('Failed to assign documents to class:', error);
         }
-        console.log(`Successfully assigned ${selectedDocuments.length} documents to class "${name}"`);
-      } catch (error) {
-        console.error('Failed to assign documents to class:', error);
       }
-    }
 
-    // Auto-select the newly created class
-    handleSelectClass(newClass);
+      // Auto-select the newly created class
+      handleSelectClass(newClass);
+    } catch (error) {
+      console.error('Failed to create class in cloud:', error);
+      // Show user-friendly error message
+      alert('Failed to create class. Please try again.');
+    }
   };
 
   const handleSelectClass = (userClass: UserClass) => {
@@ -781,17 +789,29 @@ const AppContent: React.FC = () => {
     }, 100);
   };
 
-  const handleEditClass = (classId: string, name: string, domainType: DomainType, description?: string) => {
-    const updatedClasses = userClasses.map(userClass =>
-      userClass.id === classId
-        ? { ...userClass, name, domainType, description: description || '' }
-        : userClass
-    );
-    setUserClasses(updatedClasses);
-    localStorage.setItem('userClasses', JSON.stringify(updatedClasses));
+  const handleEditClass = async (classId: string, name: string, domainType: DomainType, description?: string) => {
+    try {
+      // Update class in cloud
+      await apiService.updateClass(classId, {
+        name,
+        domain_type: domainType,
+        description: description || ''
+      });
 
-    if (activeClass?.id === classId) {
-      setActiveClass(prev => prev ? { ...prev, name, domainType, description: description || '' } : null);
+      // Update local state
+      const updatedClasses = userClasses.map(userClass =>
+        userClass.id === classId
+          ? { ...userClass, name, domainType, description: description || '' }
+          : userClass
+      );
+      setUserClasses(updatedClasses);
+
+      if (activeClass?.id === classId) {
+        setActiveClass(prev => prev ? { ...prev, name, domainType, description: description || '' } : null);
+      }
+    } catch (error) {
+      console.error('Failed to update class in cloud:', error);
+      alert('Failed to update class. Please try again.');
     }
   };
 
@@ -844,10 +864,13 @@ const AppContent: React.FC = () => {
         }))
       );
 
+      // Delete class from cloud
+      await apiService.deleteClass(classId);
+      console.log('Deleted class from cloud');
+
       // Update local state - remove the class
       const updatedClasses = userClasses.filter(userClass => userClass.id !== classId);
       setUserClasses(updatedClasses);
-      localStorage.setItem('userClasses', JSON.stringify(updatedClasses));
 
       // Update local sessions state - remove deleted sessions
       setSessions(prevSessions =>

@@ -1340,12 +1340,12 @@ const AppContent: React.FC = () => {
                     {mobileFilterDropdownOpen && (
                       <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl border backdrop-blur-2xl shadow-2xl z-50 overflow-hidden ${
                         theme === 'dark'
-                          ? 'bg-black/20 border-white/10'
-                          : 'bg-white/40 border-black/5'
+                          ? 'bg-black/30 border-white/10'
+                          : 'bg-white/60 border-black/5'
                       }`}
                       style={{
-                        backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
-                        WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)'
+                        backdropFilter: 'blur(40px) saturate(180%) brightness(0.8)',
+                        WebkitBackdropFilter: 'blur(40px) saturate(180%) brightness(0.8)'
                       }}>
                         <button
                           onClick={() => {

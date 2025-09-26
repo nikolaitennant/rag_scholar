@@ -3050,7 +3050,13 @@ const AppContent: React.FC = () => {
   // Show main UI immediately, with loading states in sidebar and chat
 
   return (
-    <div className={`h-screen flex ${getBackgroundClass()}`}>
+    <div className={`min-h-screen ${getBackgroundClass()}`}>
+      <div className="h-screen flex" style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)'
+      }}>
       {/* API Error Banner */}
       {apiError && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white p-2 text-center text-sm">
@@ -3211,6 +3217,7 @@ const AppContent: React.FC = () => {
           onClose={() => setSettingsOpen(false)}
         />
       )}
+      </div>
     </div>
   );
 };

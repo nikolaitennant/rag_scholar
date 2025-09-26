@@ -15,7 +15,7 @@ steps:
         # Configure Doppler
         doppler configure set token $$DOPPLER_TOKEN
         doppler configure set project rag-scholar
-        doppler configure set config prod
+        doppler configure set config prd
 
         cd frontend
         doppler run -- npm ci
@@ -67,7 +67,7 @@ steps:
       - '--gpu-type=nvidia-l4'
       - '--no-cpu-throttling'
       - '--set-secrets=DOPPLER_TOKEN=DOPPLER_TOKEN:latest'
-      - '--set-env-vars=ENVIRONMENT=production,DEBUG=false,DOPPLER_PROJECT=rag-scholar,DOPPLER_CONFIG=prod'
+      - '--set-env-vars=ENVIRONMENT=production,DEBUG=false,DOPPLER_PROJECT=rag-scholar,DOPPLER_CONFIG=prd'
       - '--labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=${COMMIT_SHA},gcb-build-id=${BUILD_ID}'
       - '--region=${_DEPLOY_REGION}'
       - '--quiet'
@@ -89,7 +89,7 @@ steps:
         # Configure Doppler
         doppler configure set token $$DOPPLER_TOKEN
         doppler configure set project rag-scholar
-        doppler configure set config prod
+        doppler configure set config prd
 
         cd frontend
         npm install -g firebase-tools

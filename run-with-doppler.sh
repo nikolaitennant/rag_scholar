@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Most secure way to run with Doppler
-# This uses doppler run to inject secrets into the Docker Compose environment
+# Run RAG Scholar with Doppler secrets injection
+# This uses doppler run to securely inject all secrets into Docker Compose
 
 echo "🔐 Starting RAG Scholar with Doppler secrets..."
-doppler run --mount-template='docker-compose.doppler.yml' -- docker-compose -f docker-compose.doppler.yml up "$@"
+doppler run -- docker-compose up "$@"

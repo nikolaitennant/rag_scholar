@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send, ChevronDown } from 'lucide-react';
+import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send, ChevronDown, Gift, Trash2 } from 'lucide-react';
 import { ChatInterface } from './components/ChatInterface';
 import { Sidebar } from './components/Sidebar';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -40,7 +40,7 @@ const AppContent: React.FC = () => {
   const [loadingStatus, setLoadingStatus] = useState('Initializing...');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [backgroundCommandCount, setBackgroundCommandCount] = useState(1);
-  const [mobilePage, setMobilePage] = useState<'chat' | 'home' | 'docs' | 'classes' | 'rewards' | 'settings'>('home');
+  const [mobilePage, setMobilePage] = useState<'chat' | 'home' | 'docs' | 'store' | 'rewards' | 'settings'>('home');
   const [showMobileClassForm, setShowMobileClassForm] = useState(false);
   const [editingMobileClass, setEditingMobileClass] = useState<UserClass | null>(null);
   const [mobileEditingClassDocs, setMobileEditingClassDocs] = useState<string[]>([]);
@@ -134,7 +134,7 @@ const AppContent: React.FC = () => {
   const [timezone, setTimezone] = useState(() => {
     return localStorage.getItem('userTimezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
   });
-  const [activeSettingsTab, setActiveSettingsTab] = useState<'general' | 'advanced'>('general');
+  const [activeSettingsTab, setActiveSettingsTab] = useState<'general' | 'advanced' | 'help'>('general');
   const [isLoading, setIsLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
@@ -1175,45 +1175,14 @@ const AppContent: React.FC = () => {
             </div>
 
             <div className="px-4 pt-6 space-y-6 flex flex-col flex-1 min-h-0">
-              {/* Active Class */}
-              {activeClass && (
-                <div className={`p-4 rounded-xl ${
-                  theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
-                }`}>
-                  <div className="flex items-center space-x-3 mb-3">
-                    {(() => {
-                      const Icon = DOMAIN_TYPE_INFO[activeClass.domainType]?.icon;
-                      return Icon ? <Icon className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-black'}`} /> : null;
-                    })()}
-                    <div>
-                      <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                        {activeClass.name}
-                      </h3>
-                      <p className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
-                        Active Class • {documents.filter(doc => doc.assigned_classes?.includes(activeClass.id)).length} documents
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      handleNewChat();
-                      setMobilePage('chat');
-                    }}
-                    className={`w-full py-2 px-4 rounded-lg font-medium text-sm ${
-                      theme === 'dark' ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-black/10 hover:bg-black/20 text-black'
-                    }`}
-                  >
-                    Start Chatting
-                  </button>
-                </div>
-              )}
 
               {/* Quick Actions */}
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => {
                     if (!activeClass) {
-                      setMobilePage('classes');
+                      // Classes are now in home page, so stay on home
+                      return;
                     } else {
                       handleNewChat();
                       setMobilePage('chat');
@@ -1246,39 +1215,228 @@ const AppContent: React.FC = () => {
                 </button>
               </div>
 
-              {/* Recent Chats */}
-              {sessions.length > 0 && (
-                <div className="flex flex-col flex-1 min-h-0">
-                  <div className="mb-3">
-                    <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                      Recent Chats
-                    </h3>
-                  </div>
-                  <div className="space-y-2 flex-1 overflow-y-auto scrollbar-none">
-                    {sessions.map((session) => (
-                      <button
-                        key={session.id}
-                        onClick={() => {
-                          handleSelectSession(session.id);
-                          setMobilePage('chat');
-                        }}
-                        className={`w-full p-3 rounded-lg text-left transition-all ${
-                          theme === 'dark'
-                            ? 'bg-white/5 hover:bg-white/10'
-                            : 'bg-black/5 hover:bg-black/10'
-                        }`}
-                      >
-                        <p className={`font-medium text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                          {session.name}
-                        </p>
-                        <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                          {formatLocalDate(session.updated_at)}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
+              {/* Classes Section */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    Classes
+                  </h3>
+                  <button
+                    onClick={() => setShowMobileClassForm(!showMobileClassForm)}
+                    className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'}`}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
                 </div>
-              )}
+
+                {/* Create Class Form */}
+                {showMobileClassForm && (
+                  <div className={`p-4 rounded-xl mb-4 ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}>
+                    <h4 className={`font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                      Create New Class
+                    </h4>
+                    <div className="space-y-4">
+                      <input
+                        type="text"
+                        value={mobileClassFormData.name}
+                        onChange={(e) => setMobileClassFormData(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Class name (e.g., History 101)"
+                        className={`w-full px-4 py-3 rounded-lg text-sm ${
+                          theme === 'dark'
+                            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                            : 'bg-gray-50 border-gray-300 text-black placeholder-gray-500'
+                        }`}
+                      />
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Subject Type
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {Object.entries(DOMAIN_TYPE_INFO).map(([type, info]) => {
+                            const Icon = info.icon;
+                            return (
+                              <button
+                                key={type}
+                                onClick={() => setMobileClassFormData(prev => ({ ...prev, type: type as DomainType }))}
+                                className={`p-3 rounded-lg transition-all flex flex-col items-center space-y-1 ${
+                                  mobileClassFormData.type === type
+                                    ? theme === 'dark'
+                                      ? 'bg-white/10 text-white'
+                                      : 'bg-black/10 text-black'
+                                    : theme === 'dark'
+                                      ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                                      : 'bg-black/5 text-gray-600 hover:bg-gray-50'
+                                }`}
+                              >
+                                <Icon className="w-4 h-4" />
+                                <span className="text-xs font-medium">{info.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={() => {
+                            if (mobileClassFormData.name.trim()) {
+                              handleCreateClass(
+                                mobileClassFormData.name,
+                                mobileClassFormData.type,
+                                mobileClassFormData.description
+                              );
+                              setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
+                              setShowMobileClassForm(false);
+                            }
+                          }}
+                          disabled={!mobileClassFormData.name.trim()}
+                          className={`flex-1 py-3 px-4 rounded-lg font-medium text-sm ${
+                            mobileClassFormData.name.trim()
+                              ? 'bg-blue-500 text-white'
+                              : theme === 'dark'
+                                ? 'bg-gray-700 text-gray-500'
+                                : 'bg-gray-200 text-gray-400'
+                          }`}
+                        >
+                          Create Class
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowMobileClassForm(false);
+                            setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
+                          }}
+                          className={`px-4 py-3 rounded-lg text-sm ${
+                            theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Classes List */}
+                {userClasses.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className={`w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center ${
+                      theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+                    }`}>
+                      <BookOpen className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
+                    </div>
+                    <p className={`font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                      No classes yet
+                    </p>
+                    <p className={`text-sm mb-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Create your first class
+                    </p>
+                    <button
+                      onClick={() => setShowMobileClassForm(true)}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium text-sm"
+                    >
+                      Create Class
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {userClasses.map((userClass) => {
+                      const typeInfo = DOMAIN_TYPE_INFO[userClass.domainType];
+                      const Icon = typeInfo?.icon;
+                      const isActive = activeClass?.id === userClass.id;
+                      const docCount = documents.filter(doc => doc.assigned_classes?.includes(userClass.id)).length;
+
+                      return (
+                        <button
+                          key={userClass.id}
+                          onClick={() => handleSelectClass(userClass)}
+                          className={`w-full p-3 rounded-xl text-left transition-all ${
+                            isActive
+                              ? theme === 'dark'
+                                ? 'bg-white/10'
+                                : 'bg-black/10'
+                              : theme === 'dark'
+                                ? 'bg-white/5 hover:bg-white/10'
+                                : 'bg-black/5 hover:bg-black/10'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className={`p-2 rounded-lg ${
+                              isActive
+                                ? theme === 'dark' ? 'bg-white/20' : 'bg-black/20'
+                                : theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
+                            }`}>
+                              {Icon && <Icon className={`w-4 h-4 ${
+                                isActive
+                                  ? theme === 'dark' ? 'text-white' : 'text-black'
+                                  : theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                              }`} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className={`font-medium truncate text-sm ${
+                                theme === 'dark' ? 'text-white' : 'text-black'
+                              }`}>
+                                {userClass.name}
+                              </h4>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                                }`}>
+                                  {typeInfo?.label || userClass.domainType}
+                                </span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                                }`}>
+                                  {docCount} doc{docCount !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Recent Chats - Show based on active class selection */}
+              {(() => {
+                // Filter sessions based on active class (same logic as desktop)
+                const filteredSessions = activeClass
+                  ? sessions.filter(session => session.class_id === activeClass.id)
+                  : sessions.filter(session => !session.class_id || session.class_id === null);
+
+                return filteredSessions.length > 0 && (
+                  <div className="flex flex-col flex-1 min-h-0">
+                    <div className="mb-3">
+                      <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        Recent Chats{activeClass ? ` - ${activeClass.name}` : ''}
+                      </h3>
+                    </div>
+                    <div className="space-y-2 flex-1 overflow-y-auto scrollbar-none">
+                      {filteredSessions.map((session) => (
+                        <button
+                          key={session.id}
+                          onClick={() => {
+                            handleSelectSession(session.id);
+                            setMobilePage('chat');
+                          }}
+                          className={`w-full p-3 rounded-lg text-left transition-all ${
+                            theme === 'dark'
+                              ? 'bg-white/5 hover:bg-white/10'
+                              : 'bg-black/5 hover:bg-black/10'
+                          }`}
+                        >
+                          <p className={`font-medium text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                            {session.name}
+                          </p>
+                          <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {formatLocalDate(session.updated_at)}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
             </div>
           </div>
@@ -1521,331 +1679,189 @@ const AppContent: React.FC = () => {
           </div>
         );
 
-      case 'classes':
+      case 'store':
         return (
           <div className="h-full flex flex-col pb-20">
             {/* Mobile Header */}
-            <div className={`px-4 py-4  ${
+            <div className={`px-4 py-4 ${
               theme === 'dark' ? 'backdrop-blur-md bg-white/10' : 'backdrop-blur-md bg-black/10'
             }`}>
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                    Classes
+                    Store
                   </h2>
                   <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {userClasses.length} class{userClasses.length !== 1 ? 'es' : ''} created
+                    Redeem your points for rewards
                   </p>
                 </div>
-                <button
-                  onClick={() => setShowMobileClassForm(!showMobileClassForm)}
-                  className={`p-2 rounded-lg ${
-                    theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-                  }`}
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
+                <div className="bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40 rounded-full px-3 py-1 flex items-center gap-1">
+                  <Star className="w-4 h-4 text-yellow-400" />
+                  <span className="font-bold text-sm text-yellow-400">
+                    {userProfile?.stats?.total_points || 0} pts
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Create Class Form */}
-              {showMobileClassForm && (
-                <div className={`p-4 rounded-xl  ${
-                  theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
+            <div className="p-3 space-y-4">
+              <div className="space-y-3">
+                {/* Store Items - Exact copy from desktop */}
+                <div className={`border rounded-lg p-3 ${
+                  theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
                 }`}>
-                  <h3 className={`font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                    Create New Class
-                  </h3>
-
-                  <div className="space-y-4">
-                    <input
-                      type="text"
-                      value={mobileClassFormData.name}
-                      onChange={(e) => setMobileClassFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Class name (e.g., History 101)"
-                      className={`w-full px-4 py-3 rounded-lg  text-sm ${
-                        theme === 'dark'
-                          ? 'bg-gray-700 -gray-600 text-white placeholder-gray-400'
-                          : 'bg-gray-50 -gray-300 text-black placeholder-gray-500'
-                      }`}
-                    />
-
-                    <div>
-                      <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                        Subject Type
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {Object.entries(DOMAIN_TYPE_INFO).map(([type, info]) => {
-                          const Icon = info.icon;
-                          return (
-                            <button
-                              key={type}
-                              onClick={() => setMobileClassFormData(prev => ({ ...prev, type: type as DomainType }))}
-                              className={`p-3 rounded-lg transition-all flex flex-col items-center space-y-1 ${
-                                mobileClassFormData.type === type
-                                  ? theme === 'dark'
-                                    ? 'bg-white/10 text-white'
-                                    : 'bg-black/10 lue-300 text-black'
-                                  : theme === 'dark'
-                                    ? 'bg-gray-700 -gray-600 text-gray-300 hover:bg-gray-600'
-                                    : 'bg-black/5 text-gray-600 hover:bg-gray-50'
-                              } `}
-                            >
-                              <Icon className="w-4 h-4" />
-                              <span className="text-xs font-medium">{info.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Zap className={`w-4 h-4 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-600'}`} />
+                      <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        Rounded Chat Input
+                      </span>
                     </div>
-
-                    <div className="flex space-x-3">
-                      <button
-                        onClick={() => {
-                          if (mobileClassFormData.name.trim()) {
-                            handleCreateClass(
-                              mobileClassFormData.name,
-                              mobileClassFormData.type,
-                              mobileClassFormData.description
-                            );
-                            setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
-                            setShowMobileClassForm(false);
-                          }
-                        }}
-                        disabled={!mobileClassFormData.name.trim()}
-                        className={`flex-1 py-3 px-4 rounded-lg font-medium text-sm ${
-                          mobileClassFormData.name.trim()
-                            ? 'bg-white text-white'
-                            : theme === 'dark'
-                              ? 'bg-gray-700 text-gray-500'
-                              : 'bg-gray-200 text-gray-400'
-                        }`}
-                      >
-                        Create Class
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowMobileClassForm(false);
-                          setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
-                        }}
-                        className={`px-4 py-3 rounded-lg text-sm ${
-                          theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
-                        }`}
-                      >
-                        Cancel
-                      </button>
+                    <div className="bg-gradient-to-r from-blue-400/20 to-indigo-400/20 border border-blue-400/40 rounded-full px-2 py-1 flex items-center gap-1">
+                      <span className="text-xs text-blue-400 font-bold">
+                        150 pts
+                      </span>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* Classes List */}
-              {userClasses.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
-                    theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
-                  }`}>
-                    <BookOpen className={`w-8 h-8 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
-                  </div>
-                  <p className={`font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                    No classes yet
-                  </p>
-                  <p className={`text-sm mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Create your first class to organize documents
+                  <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                    Pill-shaped chat input with smooth corners
                   </p>
                   <button
-                    onClick={() => setShowMobileClassForm(true)}
-                    className="px-6 py-2 bg-white text-white rounded-lg font-medium text-sm"
+                    disabled={(userProfile?.stats?.total_points || 0) < 150}
+                    className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
+                      (userProfile?.stats?.total_points || 0) >= 150
+                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg'
+                        : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
+                    }`}
                   >
-                    Create Class
+                    {(userProfile?.stats?.total_points || 0) >= 150 ? 'Redeem' : `Need ${150 - (userProfile?.stats?.total_points || 0)} more points`}
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {userClasses.map((userClass) => {
-                    const typeInfo = DOMAIN_TYPE_INFO[userClass.domainType];
-                    const Icon = typeInfo?.icon;
-                    const isActive = activeClass?.id === userClass.id;
-                    const docCount = documents.filter(doc => doc.assigned_classes?.includes(userClass.id)).length;
 
-                    return (
-                      <div key={userClass.id} className="relative">
-                        <button
-                          onClick={() => handleSelectClass(userClass)}
-                          className={`w-full p-4 rounded-xl text-left transition-all ${
-                            isActive
-                              ? theme === 'dark'
-                                ? 'bg-white/10'
-                                : 'bg-black/10'
-                              : theme === 'dark'
-                                ? 'bg-white/5 hover:bg-white/10'
-                                : 'bg-black/5 hover:bg-black/10'
-                          }`}
-                        >
-                        <div className="flex items-start space-x-3">
-                          <div className={`p-2 rounded-lg ${
-                            isActive
-                              ? theme === 'dark' ? 'bg-white/20' : 'bg-black/20'
-                              : theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
-                          }`}>
-                            {Icon && <Icon className={`w-5 h-5 ${
-                              isActive
-                                ? theme === 'dark' ? 'text-white' : 'text-black'
-                                : theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                            }`} />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className={`font-medium truncate ${
-                              theme === 'dark' ? 'text-white' : 'text-black'
-                            }`}>
-                              {userClass.name}
-                            </h3>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-                              }`}>
-                                {typeInfo?.label || userClass.domainType}
-                              </span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-                              }`}>
-                                {docCount} doc{docCount !== 1 ? 's' : ''}
-                              </span>
-                            </div>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingMobileClass(userClass);
-                              setMobileEditingClassDocs(documents.filter(doc => doc.assigned_classes?.includes(userClass.id)).map(doc => doc.id));
-                            }}
-                            className={`p-2 rounded-lg transition-colors ${
-                              theme === 'dark' ? 'hover:bg-white/10 text-white/60' : 'hover:bg-black/10 text-black/60'
-                            }`}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                        </div>
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Edit Class Modal */}
-              {editingMobileClass && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
-                  <div className={`w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl ${
-                    theme === 'dark' ? 'bg-gray-900' : 'bg-white'
-                  }`}>
-                    <div className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                          Edit Class
-                        </h3>
-                        <button
-                          onClick={() => {
-                            setEditingMobileClass(null);
-                            setMobileEditingClassDocs([]);
-                          }}
-                          className={`p-1 rounded-lg ${
-                            theme === 'dark' ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-600'
-                          }`}
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div>
-                          <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Class Name
-                          </label>
-                          <input
-                            type="text"
-                            value={editingMobileClass.name}
-                            onChange={(e) => setEditingMobileClass(prev => prev ? { ...prev, name: e.target.value } : null)}
-                            className={`w-full px-3 py-2 rounded-lg text-sm ${
-                              theme === 'dark'
-                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                                : 'bg-gray-50 border-gray-300 text-black placeholder-gray-500'
-                            }`}
-                          />
-                        </div>
-
-                        <div>
-                          <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Assigned Documents ({mobileEditingClassDocs.length})
-                          </label>
-                          <div className="space-y-2 max-h-40 overflow-y-auto">
-                            {documents.map((doc) => (
-                              <label key={doc.id} className="flex items-center space-x-3">
-                                <input
-                                  type="checkbox"
-                                  checked={mobileEditingClassDocs.includes(doc.id)}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setMobileEditingClassDocs(prev => [...prev, doc.id]);
-                                    } else {
-                                      setMobileEditingClassDocs(prev => prev.filter(id => id !== doc.id));
-                                    }
-                                  }}
-                                  className="rounded"
-                                />
-                                <span className={`text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                                  {doc.filename}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="flex space-x-3 pt-4">
-                          <button
-                            onClick={async () => {
-                              if (editingMobileClass && !isEditingMobileClass) {
-                                setIsEditingMobileClass(true);
-                                try {
-                                  // Update class using the same logic as desktop
-                                  handleEditClass(editingMobileClass.id, editingMobileClass.name, editingMobileClass.domainType);
-                                  // Wait a bit longer to ensure React state updates complete
-                                  await new Promise(resolve => setTimeout(resolve, 100));
-                                  await handleAssignDocuments(editingMobileClass.id, mobileEditingClassDocs);
-                                  // Clear edit state after all operations complete
-                                  setEditingMobileClass(null);
-                                  setMobileEditingClassDocs([]);
-                                } finally {
-                                  setIsEditingMobileClass(false);
-                                }
-                              }
-                            }}
-                            disabled={!editingMobileClass || isEditingMobileClass}
-                            className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-3 rounded-lg transition-all duration-200 disabled:opacity-50 text-sm flex items-center justify-center gap-2"
-                          >
-                            {isEditingMobileClass && (
-                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                            )}
-                            {isEditingMobileClass ? 'Updating...' : 'Update Class'}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditingMobileClass(null);
-                              setMobileEditingClassDocs([]);
-                            }}
-                            className={`px-4 py-3 rounded-lg text-sm ${
-                              theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
-                            }`}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
+                <div className={`border rounded-lg p-3 ${
+                  theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Star className={`w-4 h-4 ${theme === 'dark' ? 'text-purple-400' : 'text-purple-600'}`} />
+                      <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        Space Theme
+                      </span>
+                    </div>
+                    <div className="bg-gradient-to-r from-purple-400/20 to-violet-400/20 border border-purple-400/40 rounded-full px-2 py-1 flex items-center gap-1">
+                      <span className="text-xs text-purple-400 font-bold">
+                        250 pts
+                      </span>
                     </div>
                   </div>
+                  <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                    Deep space colors with starry gradients
+                  </p>
+                  <button
+                    disabled={(userProfile?.stats?.total_points || 0) < 250}
+                    className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
+                      (userProfile?.stats?.total_points || 0) >= 250
+                        ? 'bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white shadow-lg'
+                        : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {(userProfile?.stats?.total_points || 0) >= 250 ? 'Redeem' : `Need ${250 - (userProfile?.stats?.total_points || 0)} more points`}
+                  </button>
                 </div>
-              )}
+
+                <div className={`border rounded-lg p-3 ${
+                  theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Heart className={`w-4 h-4 ${theme === 'dark' ? 'text-pink-400' : 'text-pink-600'}`} />
+                      <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        Cherry Blossom Theme
+                      </span>
+                    </div>
+                    <div className="bg-gradient-to-r from-pink-400/20 to-rose-400/20 border border-pink-400/40 rounded-full px-2 py-1 flex items-center gap-1">
+                      <span className="text-xs text-pink-400 font-bold">
+                        300 pts
+                      </span>
+                    </div>
+                  </div>
+                  <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                    Soft pink and white spring vibes
+                  </p>
+                  <button
+                    disabled={(userProfile?.stats?.total_points || 0) < 300}
+                    className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
+                      (userProfile?.stats?.total_points || 0) >= 300
+                        ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-lg'
+                        : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {(userProfile?.stats?.total_points || 0) >= 300 ? 'Redeem' : `Need ${300 - (userProfile?.stats?.total_points || 0)} more points`}
+                  </button>
+                </div>
+
+                <div className={`border rounded-lg p-3 ${
+                  theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Award className={`w-4 h-4 ${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'}`} />
+                      <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        Cyberpunk Theme
+                      </span>
+                    </div>
+                    <div className="bg-gradient-to-r from-cyan-400/20 to-teal-400/20 border border-cyan-400/40 rounded-full px-2 py-1 flex items-center gap-1">
+                      <span className="text-xs text-cyan-400 font-bold">
+                        400 pts
+                      </span>
+                    </div>
+                  </div>
+                  <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                    Neon cyber colors with electric vibes
+                  </p>
+                  <button
+                    disabled={(userProfile?.stats?.total_points || 0) < 400}
+                    className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
+                      (userProfile?.stats?.total_points || 0) >= 400
+                        ? 'bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white shadow-lg'
+                        : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {(userProfile?.stats?.total_points || 0) >= 400 ? 'Redeem' : `Need ${400 - (userProfile?.stats?.total_points || 0)} more points`}
+                  </button>
+                </div>
+
+                <div className={`border rounded-lg p-3 ${
+                  theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className={`w-4 h-4 ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`} />
+                      <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        Particle Effects
+                      </span>
+                    </div>
+                    <div className="bg-gradient-to-r from-green-400/20 to-emerald-400/20 border border-green-400/40 rounded-full px-2 py-1 flex items-center gap-1">
+                      <span className="text-xs text-green-400 font-bold">
+                        500 pts
+                      </span>
+                    </div>
+                  </div>
+                  <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                    Floating sparkles and particle animations
+                  </p>
+                  <button
+                    disabled={(userProfile?.stats?.total_points || 0) < 500}
+                    className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
+                      (userProfile?.stats?.total_points || 0) >= 500
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg'
+                        : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {(userProfile?.stats?.total_points || 0) >= 500 ? 'Redeem' : `Need ${500 - (userProfile?.stats?.total_points || 0)} more points`}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -2090,6 +2106,16 @@ const AppContent: React.FC = () => {
                   }`}
                 >
                   Advanced
+                </button>
+                <button
+                  onClick={() => setActiveSettingsTab('help')}
+                  className={`py-3 px-2 text-sm font-medium transition-all ${
+                    activeSettingsTab === 'help'
+                      ? (theme === 'dark' ? 'text-white border-b-2 border-white' : 'text-black border-b-2 border-black')
+                      : (theme === 'dark' ? 'text-gray-400' : 'text-gray-600')
+                  }`}
+                >
+                  Help
                 </button>
               </div>
             </div>
@@ -2444,7 +2470,7 @@ const AppContent: React.FC = () => {
                     </div>
                   </div>
                 </>
-              ) : (
+              ) : activeSettingsTab === 'advanced' ? (
                 /* Advanced Tab */
                 <div className={`p-4 rounded-xl ${
                   theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
@@ -2572,6 +2598,155 @@ const AppContent: React.FC = () => {
                       </div>
                     </div>
                   )}
+                </div>
+              ) : (
+                /* Help Tab - Exact copy from desktop */
+                <div className="p-4 space-y-6">
+                  {/* Quick Actions */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        handleNewChat();
+                        setMobilePage('chat');
+                      }}
+                      className={`flex-1 text-sm py-2.5 px-3 rounded-lg transition-colors ${
+                        theme === 'dark'
+                          ? 'bg-white/5 hover:bg-white/10 text-white/80'
+                          : 'bg-black/5 hover:bg-black/10 text-black/80'
+                      }`}
+                    >
+                      Clear Chat
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleNewChat();
+                        setMobilePage('chat');
+                      }}
+                      className={`flex-1 text-sm py-2.5 px-3 rounded-lg transition-colors ${
+                        theme === 'dark'
+                          ? 'bg-white/5 hover:bg-white/10 text-white/80'
+                          : 'bg-black/5 hover:bg-black/10 text-black/80'
+                      }`}
+                    >
+                      New Session
+                    </button>
+                  </div>
+
+                  {/* Getting Started */}
+                  <div className={`p-4 rounded-xl ${
+                    theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
+                  }`}>
+                    <h4 className={`text-sm font-medium mb-3 ${
+                      theme === 'dark' ? 'text-white' : 'text-black'
+                    }`}>Getting Started</h4>
+
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-blue-500 text-xs font-semibold">1</span>
+                        </div>
+                        <div>
+                          <div className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                            Upload documents
+                          </div>
+                          <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                            Add PDFs and text files in the Documents tab
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-green-500 text-xs font-semibold">2</span>
+                        </div>
+                        <div>
+                          <div className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                            Create classes
+                          </div>
+                          <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                            Organize documents by subject or project
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-purple-500 text-xs font-semibold">3</span>
+                        </div>
+                        <div>
+                          <div className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                            Ask questions
+                          </div>
+                          <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
+                            Chat about your content with citations
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Commands */}
+                  <div>
+                    <h4 className={`text-sm font-medium mb-3 ${
+                      theme === 'dark' ? 'text-white' : 'text-black'
+                    }`}>Special Commands</h4>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <code className={`text-xs px-2 py-1 rounded ${
+                          theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                        }`}>remember:</code>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                          Save permanent facts
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <code className={`text-xs px-2 py-1 rounded ${
+                          theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                        }`}>memo:</code>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                          Add session notes
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <code className={`text-xs px-2 py-1 rounded ${
+                          theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                        }`}>role:</code>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                          Set AI personality
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <code className={`text-xs px-2 py-1 rounded ${
+                          theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                        }`}>background:</code>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                          Get topic context
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact */}
+                  <div className={`p-4 rounded-xl border ${
+                    theme === 'dark' ? 'bg-blue-500/5 border-blue-500/20' : 'bg-blue-50 border-blue-200'
+                  }`}>
+                    <h4 className={`text-sm font-medium mb-2 ${
+                      theme === 'dark' ? 'text-blue-300' : 'text-blue-700'
+                    }`}>Need Help?</h4>
+                    <p className={`text-xs mb-3 ${
+                      theme === 'dark' ? 'text-blue-200/80' : 'text-blue-600/80'
+                    }`}>
+                      Found a bug or have a suggestion?
+                    </p>
+                    <button className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
+                      theme === 'dark'
+                        ? 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-300'
+                        : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-700'
+                    }`}>
+                      Send Feedback
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -2717,8 +2892,8 @@ const AppContent: React.FC = () => {
               { page: 'home', icon: Home, label: 'Home' },
               { page: 'chat', icon: MessageSquare, label: 'Chat' },
               { page: 'docs', icon: Upload, label: 'Docs' },
-              { page: 'classes', icon: BookOpen, label: 'Classes' },
               { page: 'rewards', icon: Settings, label: 'Rewards' },
+              { page: 'store', icon: Gift, label: 'Store' },
               { page: 'settings', icon: User, label: 'Settings' },
             ].map(({ page, icon: Icon, label }) => {
               const isActive = mobilePage === page;

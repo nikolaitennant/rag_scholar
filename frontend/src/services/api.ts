@@ -185,12 +185,6 @@ export const apiService = {
     return response.data;
   },
 
-  // Classes
-  updateClass: async (classId: string, data: { name: string; domainType: string }): Promise<any> => {
-    const response = await api.put(`/classes/${classId}`, data);
-    return response.data;
-  },
-
   // Classes - Full CRUD
   getClasses: async (): Promise<any[]> => {
     const response = await api.get('/classes/');

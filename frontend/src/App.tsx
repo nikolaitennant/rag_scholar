@@ -1339,15 +1339,27 @@ const AppContent: React.FC = () => {
                     </button>
 
                     {mobileFilterDropdownOpen && (
-                      <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl border backdrop-blur-2xl shadow-2xl z-[9999] overflow-hidden ${
-                        theme === 'dark'
-                          ? 'bg-black/30 border-white/10'
-                          : 'bg-white/60 border-black/5'
-                      }`}
-                      style={{
-                        backdropFilter: 'blur(40px) saturate(180%) brightness(0.8)',
-                        WebkitBackdropFilter: 'blur(40px) saturate(180%) brightness(0.8)'
-                      }}>
+                      <>
+                        {/* Full-screen backdrop for blur effect */}
+                        <div
+                          className="fixed inset-0 z-[9998]"
+                          style={{
+                            backdropFilter: 'blur(20px) saturate(150%) brightness(0.9)',
+                            WebkitBackdropFilter: 'blur(20px) saturate(150%) brightness(0.9)'
+                          }}
+                          onClick={() => setMobileFilterDropdownOpen(false)}
+                        />
+
+                        {/* Dropdown content */}
+                        <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl border shadow-2xl z-[9999] overflow-hidden ${
+                          theme === 'dark'
+                            ? 'bg-black/40 border-white/10'
+                            : 'bg-white/70 border-black/5'
+                        }`}
+                        style={{
+                          backdropFilter: 'blur(40px) saturate(180%) brightness(0.8)',
+                          WebkitBackdropFilter: 'blur(40px) saturate(180%) brightness(0.8)'
+                        }}>
                         <button
                           onClick={() => {
                             setMobileDocumentFilter(null);
@@ -1378,6 +1390,7 @@ const AppContent: React.FC = () => {
                           </button>
                         ))}
                       </div>
+                      </>
                     )}
                   </div>
                 </div>

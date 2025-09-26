@@ -161,6 +161,12 @@ const AppContent: React.FC = () => {
     localStorage.setItem('max_tokens', apiSettings.maxTokens.toString());
   }, [apiSettings]);
 
+  // Update iOS status bar style to always be transparent
+  useEffect(() => {
+    const statusBarMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (statusBarMeta) statusBarMeta.setAttribute('content', 'black-translucent');
+  }, []);
+
   // Auto-save profile changes
   useEffect(() => {
     const timer = setTimeout(async () => {

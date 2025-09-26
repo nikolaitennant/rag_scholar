@@ -3,7 +3,7 @@ export interface Message {
   content: string;
   citations?: Citation[];
   timestamp?: string;
-  domainId?: string; // Which domain this message belongs to
+  classId?: string; // Which class this message belongs to
 }
 
 export interface Citation {
@@ -20,6 +20,7 @@ export interface ChatResponse {
   response: string;
   session_id: string;
   sources: string[];
+  chat_name?: string; // ChatGPT-style generated name
 }
 
 export interface Document {
@@ -34,22 +35,25 @@ export interface Document {
   status?: string; // Processing status (optional for backward compatibility)
 }
 
-// User-created class/domain
-export interface UserDomain {
+// User-created class (instances like "Law 101", "Biology Research")
+export interface UserClass {
   id: string;
-  name: string; // e.g., "History of Law Class", "Biology Research"
-  type: DomainType; // The domain type (law, science, etc.)
-  documents: string[]; // Document IDs assigned to this domain
+  name: string; // e.g., "Law 101", "Biology Research"
+  domainType: DomainType; // The domain type (law, science, etc.)
+  documents: string[]; // Document IDs assigned to this class
   created_at: string;
   description?: string;
 }
+
+// Keep old name for backwards compatibility during migration
+export interface UserDomain extends UserClass {}
 
 // User profile for personalization
 export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  domains: UserDomain[];
+  classes: UserClass[];
   preferences?: {
     theme: 'light' | 'dark';
     defaultDomain?: string;
@@ -63,8 +67,10 @@ export enum DomainType {
   SCIENCE = 'science',
   MEDICINE = 'medicine',
   BUSINESS = 'business',
-  HUMANITIES = 'humanities',
+  HISTORY = 'history',
   COMPUTER_SCIENCE = 'computer_science',
+  ENGINEERING = 'engineering',
+  LITERATURE = 'literature',
 }
 
 export interface DomainConfig {

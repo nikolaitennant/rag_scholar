@@ -25,10 +25,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install runtime dependencies
+# Install runtime dependencies including Doppler CLI for secure secret management
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     poppler-utils \
+    curl \
+    gnupg2 \
+    && curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' | gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/doppler-archive-keyring.gpg] https://packages.doppler.com/public/cli/deb/debian any-version main" | tee /etc/apt/sources.list.d/doppler-cli.list \
+    && apt-get update && apt-get install -y doppler \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy from builder
@@ -49,5 +54,5 @@ ENV PYTHONPATH=/app/src
 # Expose port (Cloud Run will set PORT env var)
 EXPOSE 8080
 
-# Default command (can be overridden)
-CMD sh -c "python -m uvicorn rag_scholar.main:app --host 0.0.0.0 --port ${PORT:-8080}"
+# Default command with Doppler for secure secret management
+CMD ["doppler", "run", "--", "python", "-m", "uvicorn", "rag_scholar.main:app", "--host", "0.0.0.0", "--port", "8080"]

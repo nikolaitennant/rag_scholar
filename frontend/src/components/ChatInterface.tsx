@@ -26,7 +26,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 }) => {
   const { theme } = useTheme();
   const [input, setInput] = useState('');
-  const [expandedCitations, setExpandedCitations] = useState<Set<string>>(new Set());
+  const [expandedCitations, setExpandedCitations] = useState<Set<string>>(() => {
+    // Load expanded citations from localStorage on mount
+    try {
+      const saved = localStorage.getItem('expandedCitations');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -42,6 +50,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       } else {
         newSet.add(citationId);
       }
+
+      // Save to localStorage
+      try {
+        localStorage.setItem('expandedCitations', JSON.stringify(Array.from(newSet)));
+      } catch (error) {
+        console.warn('Failed to save expanded citations to localStorage:', error);
+      }
+
       return newSet;
     });
   };
@@ -72,7 +88,29 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden">
-      {messages.length === 0 ? (
+      {isLoading && messages.length === 0 ? (
+        /* Chat loading state - when loading previous session */
+        <div className="flex-1 flex flex-col items-center justify-center p-4">
+          {/* Modern dot circle loader */}
+          <div className="relative w-6 h-6">
+            {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div
+                key={i}
+                className={`absolute w-1.5 h-1.5 rounded-full ${
+                  theme === 'dark' ? 'bg-white/60' : 'bg-gray-600/60'
+                }`}
+                style={{
+                  top: '50%',
+                  left: '50%',
+                  transform: `translate(-50%, -50%) rotate(${i * 45}deg) translateY(-12px)`,
+                  animation: `dotSpinner 1.2s ease-in-out infinite`,
+                  animationDelay: `${i * 0.15}s`
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      ) : messages.length === 0 ? (
         /* ChatGPT-style centered layout for empty state */
         <div className="flex-1 flex flex-col items-center justify-center p-4">
           <div className={`mx-auto ${getResponsiveWidth()}`}>

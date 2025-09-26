@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AlertCircle, MessageSquare, Home, Upload, Settings, X, Book, Beaker, Heart, Briefcase, GraduationCap, Code, HelpCircle } from 'lucide-react';
+import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle } from 'lucide-react';
 import { ChatInterface } from './components/ChatInterface';
 import { Sidebar } from './components/Sidebar';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -10,28 +10,19 @@ import { SettingsModal } from './components/SettingsModal';
 import { AchievementNotification } from './components/AchievementNotification';
 import { useAchievements } from './hooks/useAchievements';
 import { apiService } from './services/api';
-import { Message, DomainType, Document, UserDomain } from './types';
-
-const DOMAIN_TYPE_INFO = {
-  [DomainType.GENERAL]: { icon: Home, label: 'General', color: 'blue' },
-  [DomainType.LAW]: { icon: Book, label: 'Law', color: 'amber' },
-  [DomainType.SCIENCE]: { icon: Beaker, label: 'Science', color: 'green' },
-  [DomainType.MEDICINE]: { icon: Heart, label: 'Medicine', color: 'red' },
-  [DomainType.BUSINESS]: { icon: Briefcase, label: 'Business', color: 'purple' },
-  [DomainType.HUMANITIES]: { icon: GraduationCap, label: 'Humanities', color: 'pink' },
-  [DomainType.COMPUTER_SCIENCE]: { icon: Code, label: 'Computer Science', color: 'cyan' },
-};
+import { Message, DomainType, Document, UserClass } from './types';
+import { DOMAIN_TYPE_INFO } from './constants/domains';
 
 const AppContent: React.FC = () => {
   const { theme, themeMode, toggleTheme, getBackgroundClass } = useTheme();
-  const { user, userProfile, login, signUp, refreshUserProfile, isAuthenticated, loading } = useUser();
+  const { user, userProfile, login, signUp, resetPassword, refreshUserProfile, isAuthenticated, loading } = useUser();
   const { newlyUnlocked, dismissNotification, checkForNewAchievements } = useAchievements();
 
   // Core state
   const [messages, setMessages] = useState<Message[]>([]);
-  const [userDomains, setUserDomains] = useState<UserDomain[]>([]);
-  const [activeDomain, setActiveDomain] = useState<UserDomain | null>(null);
-  const [domainChatHistory, setDomainChatHistory] = useState<Record<string, Message[]>>({});
+  const [userClasses, setUserClasses] = useState<UserClass[]>([]);
+  const [activeClass, setActiveClass] = useState<UserClass | null>(null);
+  const [sessionChatHistory, setSessionChatHistory] = useState<Record<string, Message[]>>({});
   const [documents, setDocuments] = useState<Document[]>([]);
   const [chatSessionId] = useState<string>(() =>
     Math.random().toString(36).substring(2) + Date.now().toString(36)
@@ -42,11 +33,15 @@ const AppContent: React.FC = () => {
   const [isDocumentLoading, setIsDocumentLoading] = useState(false);
   const [loadingDocuments, setLoadingDocuments] = useState<Set<string>>(new Set());
   const [apiError, setApiError] = useState<string | null>(null);
+
+  // Comprehensive app loading state (ChatGPT style)
+  const [appLoading, setAppLoading] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState('Initializing...');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [backgroundCommandCount, setBackgroundCommandCount] = useState(1);
   const [mobilePage, setMobilePage] = useState<'chat' | 'home' | 'docs' | 'achievements' | 'settings' | 'help'>('home');
   const [showMobileClassForm, setShowMobileClassForm] = useState(false);
-  const [editingMobileDomain, setEditingMobileDomain] = useState<UserDomain | null>(null);
+  const [editingMobileClass, setEditingMobileClass] = useState<UserClass | null>(null);
   const [mobileClassFormData, setMobileClassFormData] = useState({ name: '', type: DomainType.GENERAL, description: '' });
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -56,22 +51,16 @@ const AppContent: React.FC = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [loadingSessions, setLoadingSessions] = useState(false);
 
-  // Load documents and sessions when authenticated
-  useEffect(() => {
-    console.log('🔍 AUTH: isAuthenticated:', isAuthenticated, 'loading:', loading);
-    if (isAuthenticated && !loading) {
-      console.log('🔍 AUTH: Loading data...');
-      loadDocuments();
-      loadSessions();
-    }
-  }, [isAuthenticated, loading]);
+
+  // NOTE: Document and session loading now handled by initializeApp coordinator
 
   // Load initial data
   const loadDocuments = useCallback(async () => {
     try {
+      setLoadingStatus('Loading your documents...');
       console.log('Loading documents...');
       const docs = await apiService.getDocuments();
-      console.log('Loaded documents:', docs);
+      console.log('✅ Documents loaded:', docs.length);
       setDocuments(docs);
     } catch (error) {
       console.error('Failed to load documents:', error);
@@ -81,21 +70,25 @@ const AppContent: React.FC = () => {
 
   const loadSessions = useCallback(async () => {
     try {
+      setLoadingStatus('Loading your chat history...');
       setLoadingSessions(true);
-      console.log('Loading sessions...');
-
-      // Debug Firestore structure first
-      try {
-        const debugData = await apiService.debugFirestore();
-        console.log('DEBUG: Firestore structure:', debugData);
-      } catch (debugError: any) {
-        console.log('DEBUG: Failed to debug Firestore:', debugError);
-      }
 
       const sessionsData = await apiService.getSessions();
-      console.log('Loaded sessions:', sessionsData);
-      console.log('Number of sessions loaded:', sessionsData.length);
-      setSessions(sessionsData);
+      console.log('✅ Sessions loaded:', sessionsData.length);
+
+      // Merge with any existing optimistic sessions, but clean up old ones
+      setSessions(prev => {
+        const optimisticSessions = prev.filter(s => s.isOptimistic);
+        const realSessions = sessionsData;
+
+        // Remove optimistic sessions older than 5 minutes to prevent accumulation
+        const recentOptimisticSessions = optimisticSessions.filter(session => {
+          const sessionAge = Date.now() - new Date(session.updated_at).getTime();
+          return sessionAge < 5 * 60 * 1000; // 5 minutes
+        });
+
+        return [...recentOptimisticSessions, ...realSessions];
+      });
     } catch (error: any) {
       console.error('Failed to load sessions:', error);
       console.error('Error details:', error.response?.data || error.message);
@@ -105,31 +98,94 @@ const AppContent: React.FC = () => {
     }
   }, [isAuthenticated, user]);
 
-  const loadUserDomains = useCallback(async () => {
-    // Load domains from localStorage or start with empty array
-    const savedDomains = localStorage.getItem('userDomains');
-    const domains: UserDomain[] = savedDomains ? JSON.parse(savedDomains) : [];
+  const loadUserClasses = useCallback(async () => {
+    try {
+      setLoadingStatus('Loading your classes...');
+      // Load classes from localStorage or start with empty array
+      const savedClasses = localStorage.getItem('userClasses');
+      const classes: UserClass[] = savedClasses ? JSON.parse(savedClasses) : [];
 
-    setUserDomains(domains);
-    if (!activeDomain && domains.length > 0) {
-      setActiveDomain(domains[0]);
+      setUserClasses(classes);
+      // Only auto-select first class on initial app load, not when user deselects
+      // This prevents overriding user's intentional deselection
+      console.log('✅ User classes loaded:', classes.length);
+    } catch (error) {
+      console.error('Failed to load user classes:', error);
     }
-  }, [activeDomain]);
+  }, []); // Remove activeClass dependency to prevent re-triggering on deselection
 
   const checkApiHealth = useCallback(async () => {
     try {
+      setLoadingStatus('Checking API connection...');
       await apiService.health();
       setApiError(null);
+      console.log('✅ API health check passed');
     } catch (error) {
       console.error('API health check failed:', error);
       setApiError('Cannot connect to API. Please check if the backend is running.');
     }
   }, []);
 
+  // Comprehensive loading coordinator - ChatGPT style
+  const initializeApp = useCallback(async () => {
+    try {
+      setAppLoading(true);
+
+      // Step 1: Check API health (doesn't require auth)
+      await checkApiHealth();
+
+      // Step 2: Load user classes (local storage)
+      await loadUserClasses();
+
+      // Step 3: If authenticated, load data from backend
+      if (isAuthenticated && !loading) {
+        await Promise.all([
+          loadDocuments(),
+          loadSessions()
+        ]);
+      }
+
+      // Final step: Wait for sessions to be available in state
+      setLoadingStatus('Finalizing...');
+      console.log('🎯 Data loading complete, waiting for UI to update...');
+
+    } catch (error) {
+      console.error('App initialization failed:', error);
+      setLoadingStatus('Failed to load. Retrying...');
+      // Retry after 2 seconds
+      setTimeout(initializeApp, 2000);
+    }
+  }, [isAuthenticated, loading, checkApiHealth, loadUserClasses, loadDocuments, loadSessions]);
+
   useEffect(() => {
-    checkApiHealth(); // Health check doesn't require auth
-    loadUserDomains(); // User domains are stored locally
-  }, [checkApiHealth, loadUserDomains]);
+    initializeApp();
+  }, [initializeApp]);
+
+  // Watch for when data is actually loaded and finish app loading
+  useEffect(() => {
+    if (appLoading && !loadingSessions && !isDocumentLoading) {
+      // Only finish loading if we have sessions OR if we've waited long enough for empty state
+      const hasActualSessions = sessions.length > 0;
+
+      console.log('🎯 Data loading finished. Sessions:', sessions.length, 'Classes:', userClasses.length, 'Documents:', documents.length);
+
+      if (hasActualSessions) {
+        // We have sessions, wait a bit longer to ensure they're rendered
+        console.log('✅ Sessions found, finishing loading soon...');
+        setTimeout(() => {
+          setAppLoading(false);
+          console.log('🎉 App fully loaded with sessions - UI ready!');
+        }, 2000);
+      } else {
+        // No sessions, wait much longer to be sure
+        console.log('⏳ No sessions found, waiting longer...');
+        setTimeout(() => {
+          setAppLoading(false);
+          console.log('🎉 App loaded (no sessions) - UI ready!');
+        }, 8000);
+      }
+    }
+  }, [appLoading, loadingSessions, isDocumentLoading, sessions.length, userClasses.length, documents.length]);
 
   // Auto-hide theme toggle after 2 seconds only on initial load
   useEffect(() => {
@@ -197,11 +253,11 @@ const AppContent: React.FC = () => {
     const userMessage: Message = { role: 'user', content };
     setMessages(prev => {
       const newMessages = [...prev, userMessage];
-      // Update domain-specific history
-      if (activeDomain) {
-        setDomainChatHistory(prevHistory => ({
+      // Cache messages for this session
+      if (currentSessionId) {
+        setSessionChatHistory(prevHistory => ({
           ...prevHistory,
-          [activeDomain.id]: newMessages
+          [currentSessionId]: newMessages
         }));
       }
       return newMessages;
@@ -213,14 +269,50 @@ const AppContent: React.FC = () => {
       const response = await apiService.chat({
         query: content,
         session_id: currentSessionId || chatSessionId,
-        class_id: activeDomain?.id,
-        domain_type: activeDomain?.type, // Send the actual domain type (law, science, etc.)
+        class_id: activeClass?.id,
+        class_name: activeClass?.name, // Send the human-readable class name
+        domain_type: activeClass?.domainType, // Send the actual domain type (law, science, etc.)
         k: 5,
       });
 
       // Update current session ID if this was a new session
       if (response.session_id && response.session_id !== currentSessionId) {
         setCurrentSessionId(response.session_id);
+      }
+
+      // Update sessions list (ChatGPT-style)
+      const sessionId = currentSessionId || chatSessionId;
+      const existingSession = sessions.find(s => s.id === sessionId);
+
+      if (!existingSession || isNewChatSession) {
+        // Create new session in UI when AI responds (for new chats)
+        const newSession = {
+          id: sessionId,
+          name: response.chat_name || content.slice(0, 50) + (content.length > 50 ? '...' : ''), // Use backend-generated name
+          message_count: 1,
+          updated_at: new Date().toISOString(),
+          class_id: activeClass?.id || null,
+          class_name: activeClass?.name || null,
+          domain: activeClass?.domainType || null,
+          preview: content.slice(0, 100) + (content.length > 100 ? '...' : '')
+        };
+
+        // Add the new session to the top of the list instantly
+        setSessions(prev => [newSession, ...prev.filter(s => s.id !== sessionId)]);
+        setIsNewChatSession(false);
+      } else {
+        // Update existing session and move to top (for continuing old chats)
+        setSessions(prev => {
+          const otherSessions = prev.filter(s => s.id !== sessionId);
+          const updatedSession = {
+            ...existingSession,
+            message_count: (existingSession.message_count || 0) + 1,
+            updated_at: new Date().toISOString(),
+            preview: content.slice(0, 100) + (content.length > 100 ? '...' : '') // Update preview to latest message
+          };
+          // Move updated session to top of list
+          return [updatedSession, ...otherSessions];
+        });
       }
 
       const assistantMessage: Message = {
@@ -236,11 +328,11 @@ const AppContent: React.FC = () => {
 
       setMessages(prev => {
         const newMessages = [...prev, assistantMessage];
-        // Update domain-specific history
-        if (activeDomain) {
-          setDomainChatHistory(prevHistory => ({
+        // Cache messages for this session
+        if (currentSessionId) {
+          setSessionChatHistory(prevHistory => ({
             ...prevHistory,
-            [activeDomain.id]: newMessages
+            [currentSessionId]: newMessages
           }));
         }
         return newMessages;
@@ -252,23 +344,25 @@ const AppContent: React.FC = () => {
         await refreshUserProfile();
       }, 1000);
 
-      // Refresh sessions to get updated session data (with small delay to ensure backend update completes)
-      setTimeout(() => {
-        loadSessions();
-      }, 1000);
+      // No need to refresh sessions - we update them instantly above
 
     } catch (error) {
+      // If this was an optimistic session that failed, remove it from the UI
+      setSessions(prev => prev.filter(session =>
+        !(session.id === currentSessionId && session.isOptimistic)
+      ));
+
       const errorMessage: Message = {
         role: 'assistant',
         content: 'Sorry, I encountered an error processing your request. Please try again.',
       };
       setMessages(prev => {
         const newMessages = [...prev, errorMessage];
-        // Update domain-specific history
-        if (activeDomain) {
-          setDomainChatHistory(prevHistory => ({
+        // Cache error messages for this session too
+        if (currentSessionId) {
+          setSessionChatHistory(prevHistory => ({
             ...prevHistory,
-            [activeDomain.id]: newMessages
+            [currentSessionId]: newMessages
           }));
         }
         return newMessages;
@@ -278,61 +372,80 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // Create new chat session (simple approach - let LangChain handle the storage)
+  // Create new chat session (ChatGPT style - just clear current chat)
   const handleNewChat = () => {
-    console.log('Creating new chat session...');
-    // Generate new session ID (LangChain will create the session when first message is sent)
+    console.log('Starting new chat session...');
+    // Generate new session ID but don't create session in UI yet
     const newSessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
-    console.log('New session ID:', newSessionId);
 
     setCurrentSessionId(newSessionId);
     setMessages([]);
     setIsNewChatSession(true);
 
-    // Clear domain chat history for current domain only
-    if (activeDomain) {
-      setDomainChatHistory(prev => ({
-        ...prev,
-        [activeDomain.id]: []
-      }));
-    }
+    // Note: We're starting a new chat session, so no need to clear anything
+    // The new session ID will have its own cache entry
+
+    console.log('✅ Ready for new chat - session will appear when AI responds');
   };
 
   const handleClearChat = () => {
     handleNewChat();
   };
 
-  const handleSelectSession = async (sessionId: string) => {
-    try {
-      console.log('Selecting session:', sessionId);
-      setCurrentSessionId(sessionId);
+  const handleSelectSession = (sessionId: string) => {
+    console.log('ChatGPT-style session switching:', sessionId);
 
-      // Mark session as no longer new when selected
-      setSessions(prev => prev.map(session =>
-        session.id === sessionId
-          ? { ...session, isNew: false }
-          : session
-      ));
-
-      // Load messages for this session from Firestore
-      setIsChatLoading(true);
-      const sessionData = await apiService.getSessionMessages(sessionId);
-      console.log('Loaded session messages:', sessionData);
-      setMessages(sessionData.messages || []);
-
-      // Update domain chat history
-      if (activeDomain) {
-        setDomainChatHistory(prev => ({
-          ...prev,
-          [activeDomain.id]: sessionData.messages || []
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to load session messages:', error);
-      setMessages([]);
-    } finally {
-      setIsChatLoading(false);
+    // Prevent double-clicks by checking if already loading this session
+    if (currentSessionId === sessionId && !isNewChatSession) {
+      console.log('Session already selected, ignoring duplicate click');
+      return;
     }
+
+    // Save current messages to cache before switching
+    if (currentSessionId && messages.length > 0) {
+      setSessionChatHistory(prev => ({
+        ...prev,
+        [currentSessionId]: messages
+      }));
+    }
+
+    // Instantly switch UI to new session
+    setCurrentSessionId(sessionId);
+    setIsNewChatSession(false);
+
+    // Check if we have cached messages (instant display like ChatGPT)
+    const cachedMessages = sessionChatHistory[sessionId] || [];
+
+    if (cachedMessages.length > 0) {
+      // Show cached messages instantly (ChatGPT behavior)
+      setMessages(cachedMessages);
+      console.log('✅ Instant load from cache');
+    } else {
+      // No cache - show empty state and load from Firestore (LangChain)
+      setMessages([]);
+      setIsChatLoading(true);
+
+      // Use LangChain's FirestoreChatMessageHistory via our API
+      apiService.getSessionMessages(sessionId)
+        .then(sessionData => {
+          // Remove the race condition check - always update if we get data
+          console.log('Loaded messages for session:', sessionId, sessionData.messages?.length || 0);
+          const freshMessages = sessionData.messages || [];
+          setMessages(freshMessages);
+          // Cache for next time
+          setSessionChatHistory(prev => ({
+            ...prev,
+            [sessionId]: freshMessages
+          }));
+        })
+        .catch(error => console.error('Failed to load session:', error))
+        .finally(() => setIsChatLoading(false));
+    }
+
+    // Note: activeClass is a user class, not a domain type
+    // The caching by sessionId is what matters for fast switching
+
+    console.log('✅ Session switch complete (ChatGPT-style)');
   };
 
   const handleRenameSession = async (sessionId: string, newName: string) => {
@@ -379,11 +492,11 @@ const AppContent: React.FC = () => {
         await refreshUserProfile();
       }, 1000);
 
-      // Auto-assign the uploaded document to the current active domain
-      if (activeDomain && uploadResponse.id) {
-        console.log(`🔗 Auto-assigning uploaded document to active class: ${activeDomain.name}`);
+      // Auto-assign the uploaded document to the current active class
+      if (activeClass && uploadResponse.id) {
+        console.log(`🔗 Auto-assigning uploaded document to active class: ${activeClass.name}`);
         try {
-          await handleAssignDocumentToClass(uploadResponse.id, uploadResponse.filename || file.name, activeDomain.id, 'add');
+          await handleAssignDocumentToClass(uploadResponse.id, uploadResponse.filename || file.name, activeClass.id, 'add');
           console.log('✅ Document auto-assigned to class successfully');
         } catch (error) {
           console.error('❌ Failed to auto-assign document to class:', error);
@@ -409,17 +522,17 @@ const AppContent: React.FC = () => {
       await loadDocuments();
       console.log('Documents refreshed after delete');
 
-      // Remove from all domains
-      const updatedDomains = userDomains.map(domain => ({
-        ...domain,
-        documents: domain.documents.filter(id => id !== documentId)
+      // Remove from all classes
+      const updatedClasses = userClasses.map(userClass => ({
+        ...userClass,
+        documents: userClass.documents.filter(id => id !== documentId)
       }));
-      setUserDomains(updatedDomains);
-      localStorage.setItem('userDomains', JSON.stringify(updatedDomains));
+      setUserClasses(updatedClasses);
+      localStorage.setItem('userClasses', JSON.stringify(updatedClasses));
 
-      // Update active domain if needed
-      if (activeDomain?.documents.includes(documentId)) {
-        setActiveDomain(prev => prev ? {
+      // Update active class if needed
+      if (activeClass?.documents.includes(documentId)) {
+        setActiveClass(prev => prev ? {
           ...prev,
           documents: prev.documents.filter(id => id !== documentId)
         } : null);
@@ -442,20 +555,20 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // Domain management
-  const handleCreateDomain = async (name: string, type: DomainType, description?: string, selectedDocuments?: string[]) => {
-    const newDomain: UserDomain = {
+  // Class management
+  const handleCreateClass = async (name: string, domainType: DomainType, description?: string, selectedDocuments?: string[]) => {
+    const newClass: UserClass = {
       id: Math.random().toString(36).substring(2) + Date.now().toString(36),
       name,
-      type,
+      domainType,
       description: description || '',
       documents: selectedDocuments || [],
       created_at: new Date().toISOString()
     };
 
-    const updatedDomains = [...userDomains, newDomain];
-    setUserDomains(updatedDomains);
-    localStorage.setItem('userDomains', JSON.stringify(updatedDomains));
+    const updatedClasses = [...userClasses, newClass];
+    setUserClasses(updatedClasses);
+    localStorage.setItem('userClasses', JSON.stringify(updatedClasses));
 
     // If documents were selected, assign them to the class in the backend
     if (selectedDocuments && selectedDocuments.length > 0) {
@@ -463,7 +576,7 @@ const AppContent: React.FC = () => {
         for (const documentId of selectedDocuments) {
           const document = documents.find(doc => doc.id === documentId);
           if (document) {
-            await handleAssignDocumentToClass(documentId, document.filename, newDomain.id, 'add');
+            await handleAssignDocumentToClass(documentId, document.filename, newClass.id, 'add');
           }
         }
         console.log(`Successfully assigned ${selectedDocuments.length} documents to class "${name}"`);
@@ -472,83 +585,164 @@ const AppContent: React.FC = () => {
       }
     }
 
-    // Auto-select the newly created domain
-    handleSelectDomain(newDomain);
+    // Auto-select the newly created class
+    handleSelectClass(newClass);
   };
 
-  const handleSelectDomain = (domain: UserDomain) => {
-    // Save current domain's messages
-    if (activeDomain) {
-      setDomainChatHistory(prev => ({
-        ...prev,
-        [activeDomain.id]: messages
-      }));
+  const handleSelectClass = (userClass: UserClass) => {
+    console.log('🔥 handleSelectClass called with:', {
+      clickedClass: { name: userClass.name, id: userClass.id },
+      currentActiveClass: activeClass ? { name: activeClass.name, id: activeClass.id } : null,
+      timestamp: Date.now()
+    });
+
+    // Check if we should deselect (same class clicked)
+    const shouldDeselect = activeClass && activeClass.id === userClass.id;
+
+    console.log('🧭 Decision logic:', {
+      shouldDeselect,
+      activeClassId: activeClass?.id,
+      clickedClassId: userClass.id,
+      idsMatch: activeClass?.id === userClass.id
+    });
+
+    if (shouldDeselect) {
+      console.log('❌ DESELECTING class - setting activeClass to null');
+      setActiveClass(null);
+      setMessages([]);
+      setCurrentSessionId(null);
+      setIsNewChatSession(false);
+    } else {
+      console.log('✅ SELECTING new class:', userClass.name);
+      setActiveClass(userClass);
+      setMessages([]);
+      setCurrentSessionId(null);
+      setIsNewChatSession(false);
     }
 
-    // Load new domain's messages
-    const domainMessages = domainChatHistory[domain.id] || [];
-    setMessages(domainMessages);
-    setActiveDomain(domain);
+    // Add a small delay and verify the state change
+    setTimeout(() => {
+      console.log('🔍 After state change - activeClass should be:', shouldDeselect ? null : userClass.name);
+    }, 100);
   };
 
-  const handleEditDomain = (domainId: string, name: string, type: DomainType, description?: string) => {
-    const updatedDomains = userDomains.map(domain =>
-      domain.id === domainId
-        ? { ...domain, name, type, description: description || '' }
-        : domain
+  const handleEditClass = (classId: string, name: string, domainType: DomainType, description?: string) => {
+    const updatedClasses = userClasses.map(userClass =>
+      userClass.id === classId
+        ? { ...userClass, name, domainType, description: description || '' }
+        : userClass
     );
-    setUserDomains(updatedDomains);
-    localStorage.setItem('userDomains', JSON.stringify(updatedDomains));
+    setUserClasses(updatedClasses);
+    localStorage.setItem('userClasses', JSON.stringify(updatedClasses));
 
-    if (activeDomain?.id === domainId) {
-      setActiveDomain(prev => prev ? { ...prev, name, type, description: description || '' } : null);
+    if (activeClass?.id === classId) {
+      setActiveClass(prev => prev ? { ...prev, name, domainType, description: description || '' } : null);
     }
   };
 
-  const handleDeleteDomain = (domainId: string) => {
-    const domain = userDomains.find(d => d.id === domainId);
-    if (!window.confirm(`Delete "${domain?.name}" class? This will not delete the documents, but will remove the class organization.`)) {
+  const handleDeleteClass = async (classId: string) => {
+    const userClass = userClasses.find(c => c.id === classId);
+    if (!window.confirm(`Delete "${userClass?.name}" class? This will also delete all related chat sessions and remove class tags from documents.`)) {
       return;
     }
 
-    const updatedDomains = userDomains.filter(domain => domain.id !== domainId);
-    setUserDomains(updatedDomains);
-    localStorage.setItem('userDomains', JSON.stringify(updatedDomains));
+    try {
+      console.log('Starting cascading delete for class:', classId);
 
-    // If deleting active domain, switch to first available or clear
-    if (activeDomain?.id === domainId) {
-      if (updatedDomains.length > 0) {
-        handleSelectDomain(updatedDomains[0]);
-      } else {
-        setActiveDomain(null);
-        setMessages([]);
+      // Find all sessions related to this class
+      const sessionsToDelete = sessions.filter(session => session.class_id === classId);
+      console.log('Found sessions to delete:', sessionsToDelete.length);
+
+      // Delete all related sessions from database
+      const sessionDeletionPromises = sessionsToDelete.map(session =>
+        apiService.deleteSession(session.id).catch(error => {
+          console.error(`Failed to delete session ${session.id}:`, error);
+          return null; // Don't fail the whole operation for one session
+        })
+      );
+
+      await Promise.all(sessionDeletionPromises);
+      console.log('Deleted all related sessions');
+
+      // Find all documents that have this class assigned
+      const documentsWithClass = documents.filter(doc =>
+        doc.assigned_classes && doc.assigned_classes.includes(classId)
+      );
+      console.log('Found documents with class tags to remove:', documentsWithClass.length);
+
+      // Remove class tags from all documents
+      const documentUpdatePromises = documentsWithClass.map(doc =>
+        apiService.assignDocumentToClass(doc.id, doc.filename, classId, 'remove').catch(error => {
+          console.error(`Failed to remove class from document ${doc.id}:`, error);
+          return null; // Don't fail the whole operation for one document
+        })
+      );
+
+      await Promise.all(documentUpdatePromises);
+      console.log('Removed class tags from all documents');
+
+      // Update local documents state - remove the deleted class ID from assigned_classes
+      setDocuments(prevDocs =>
+        prevDocs.map(doc => ({
+          ...doc,
+          assigned_classes: doc.assigned_classes?.filter(id => id !== classId) || []
+        }))
+      );
+
+      // Update local state - remove the class
+      const updatedClasses = userClasses.filter(userClass => userClass.id !== classId);
+      setUserClasses(updatedClasses);
+      localStorage.setItem('userClasses', JSON.stringify(updatedClasses));
+
+      // Update local sessions state - remove deleted sessions
+      setSessions(prevSessions =>
+        prevSessions.filter(session => session.class_id !== classId)
+      );
+
+      // Clear session cache for deleted sessions
+      setSessionChatHistory(prevHistory => {
+        const newHistory = { ...prevHistory };
+        sessionsToDelete.forEach(session => {
+          delete newHistory[session.id];
+        });
+        return newHistory;
+      });
+
+      // If deleting active class, switch to first available or clear
+      if (activeClass?.id === classId) {
+        if (updatedClasses.length > 0) {
+          handleSelectClass(updatedClasses[0]);
+        } else {
+          setActiveClass(null);
+          setMessages([]);
+          setCurrentSessionId(null);
+        }
       }
-    }
 
-    // Remove from domain chat history
-    setDomainChatHistory(prev => {
-      const { [domainId]: deleted, ...rest } = prev;
-      return rest;
-    });
+      console.log('✅ Cascading delete completed successfully');
+    } catch (error) {
+      console.error('Failed to delete class and related data:', error);
+      alert('Failed to delete class and related data. Please try again.');
+    }
   };
 
-  const handleAssignDocuments = async (domainId: string, documentIds: string[]) => {
-    const updatedDomains = userDomains.map(domain =>
-      domain.id === domainId
-        ? { ...domain, documents: documentIds }
-        : domain
+  const handleAssignDocuments = async (classId: string, documentIds: string[]) => {
+    const updatedClasses = userClasses.map(userClass =>
+      userClass.id === classId
+        ? { ...userClass, documents: documentIds }
+        : userClass
     );
-    setUserDomains(updatedDomains);
-    localStorage.setItem('userDomains', JSON.stringify(updatedDomains));
+    setUserClasses(updatedClasses);
+    localStorage.setItem('userClasses', JSON.stringify(updatedClasses));
 
-    if (activeDomain?.id === domainId) {
-      setActiveDomain(prev => prev ? { ...prev, documents: documentIds } : null);
+    if (activeClass?.id === classId) {
+      setActiveClass(prev => prev ? { ...prev, documents: documentIds } : null);
     }
 
     // Sync document assignments with backend
     try {
-      const domain = userDomains.find(d => d.id === domainId);
-      const oldDocumentIds = domain?.documents || [];
+      const userClass = userClasses.find(c => c.id === classId);
+      const oldDocumentIds = userClass?.documents || [];
 
       // Find documents to add (in new list but not in old list)
       const documentsToAdd = documentIds.filter(id => !oldDocumentIds.includes(id));
@@ -560,7 +754,7 @@ const AppContent: React.FC = () => {
       for (const documentId of documentsToAdd) {
         const document = documents.find(doc => doc.id === documentId);
         if (document) {
-          await handleAssignDocumentToClass(documentId, document.filename, domainId, 'add');
+          await handleAssignDocumentToClass(documentId, document.filename, classId, 'add');
         }
       }
 
@@ -571,7 +765,7 @@ const AppContent: React.FC = () => {
         if (document) {
           console.log(`Removing document: ${document.filename} (${documentId})`);
           try {
-            await handleAssignDocumentToClass(documentId, document.filename, domainId, 'remove');
+            await handleAssignDocumentToClass(documentId, document.filename, classId, 'remove');
             console.log(`Successfully removed: ${document.filename}`);
           } catch (error) {
             console.error(`Failed to remove document ${document.filename}:`, error);
@@ -579,7 +773,7 @@ const AppContent: React.FC = () => {
         }
       }
 
-      console.log(`Successfully updated document assignments for class "${domain?.name}"`);
+      console.log(`Successfully updated document assignments for class "${userClass?.name}"`);
     } catch (error) {
       console.error('Failed to sync document assignments with backend:', error);
     }
@@ -610,40 +804,40 @@ const AppContent: React.FC = () => {
         })
       );
 
-      // Update userDomains state (for document counts and edit form highlighting)
-      setUserDomains(prevDomains =>
-        prevDomains.map(domain => {
-          if (domain.id === classId) {
-            const currentDocuments = domain.documents || [];
+      // Update userClasses state (for document counts and edit form highlighting)
+      setUserClasses(prevClasses =>
+        prevClasses.map(userClass => {
+          if (userClass.id === classId) {
+            const currentDocuments = userClass.documents || [];
             const updatedDocuments = operation === 'add'
               ? currentDocuments.includes(documentId)
                 ? currentDocuments // Already included
                 : [...currentDocuments, documentId]
               : currentDocuments.filter(id => id !== documentId);
-            return { ...domain, documents: updatedDocuments };
+            return { ...userClass, documents: updatedDocuments };
           }
-          return domain;
+          return userClass;
         })
       );
 
       // Update localStorage
-      const updatedDomains = userDomains.map(domain => {
-        if (domain.id === classId) {
-          const currentDocuments = domain.documents || [];
+      const updatedClasses = userClasses.map(userClass => {
+        if (userClass.id === classId) {
+          const currentDocuments = userClass.documents || [];
           const updatedDocuments = operation === 'add'
             ? currentDocuments.includes(documentId)
               ? currentDocuments
               : [...currentDocuments, documentId]
             : currentDocuments.filter(id => id !== documentId);
-          return { ...domain, documents: updatedDocuments };
+          return { ...userClass, documents: updatedDocuments };
         }
-        return domain;
+        return userClass;
       });
-      localStorage.setItem('userDomains', JSON.stringify(updatedDomains));
+      localStorage.setItem('userClasses', JSON.stringify(updatedClasses));
 
-      // Update active domain if it's the one being modified
-      if (activeDomain?.id === classId) {
-        setActiveDomain(prev => {
+      // Update active class if it's the one being modified
+      if (activeClass?.id === classId) {
+        setActiveClass(prev => {
           if (!prev) return null;
           const currentDocuments = prev.documents || [];
           const updatedDocuments = operation === 'add'
@@ -681,7 +875,7 @@ const AppContent: React.FC = () => {
             messages={messages}
             onSendMessage={handleSendMessage}
             isLoading={isChatLoading}
-            currentDomain={activeDomain?.type || DomainType.GENERAL}
+            currentDomain={activeClass?.domainType || DomainType.GENERAL}
             activeCollection="default"
             userName={user?.displayName || user?.email || 'User'}
             sidebarOpen={sidebarOpen}
@@ -752,7 +946,7 @@ const AppContent: React.FC = () => {
                   </div>
                   <div>
                     <div className={`text-2xl font-bold ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>
-                      {userDomains.length}
+                      {userClasses.length}
                     </div>
                     <div className={`text-xs ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
                       Classes
@@ -957,8 +1151,10 @@ const AppContent: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage onLogin={login} onSignUp={signUp} />;
+    return <LoginPage onLogin={login} onSignUp={signUp} onResetPassword={resetPassword} />;
   }
+
+  // Show main UI immediately, with loading states in sidebar and chat
 
   return (
     <div className={`h-screen flex ${getBackgroundClass()}`}>
@@ -971,7 +1167,7 @@ const AppContent: React.FC = () => {
       )}
 
       {/* Achievement Notifications */}
-      {newlyUnlocked.map((achievement, index) => (
+      {newlyUnlocked.map((achievement) => (
         <AchievementNotification
           key={`${achievement.id}-${achievement.unlocked_at}`}
           achievement={{
@@ -1006,12 +1202,12 @@ const AppContent: React.FC = () => {
       <div className="hidden md:flex w-full">
         {/* Sidebar */}
         <Sidebar
-          domains={userDomains}
-          activeDomain={activeDomain}
-          onCreateDomain={handleCreateDomain}
-          onEditDomain={handleEditDomain}
-          onSelectDomain={handleSelectDomain}
-          onDeleteDomain={handleDeleteDomain}
+          classes={userClasses}
+          activeClass={activeClass}
+          onCreateClass={handleCreateClass}
+          onEditClass={handleEditClass}
+          onSelectClass={handleSelectClass}
+          onDeleteClass={handleDeleteClass}
           availableDocuments={documents.map(doc => ({ id: doc.id, filename: doc.filename }))}
           onAssignDocuments={handleAssignDocuments}
           sessionId={currentSessionId || chatSessionId}
@@ -1021,10 +1217,7 @@ const AppContent: React.FC = () => {
           onSelectSession={handleSelectSession}
           onRenameSession={handleRenameSession}
           onDeleteSession={handleDeleteSession}
-          sessions={(() => {
-            console.log('🔍 APP: Passing sessions to Sidebar:', sessions.length, sessions);
-            return sessions;
-          })()}
+          sessions={sessions}
           currentBackendSessionId={currentSessionId}
           isCollapsed={!sidebarOpen}
           documents={documents}
@@ -1038,6 +1231,9 @@ const AppContent: React.FC = () => {
           onCloseSidebar={() => setSidebarOpen(false)}
           backgroundCommandCount={backgroundCommandCount}
           onOpenSettings={() => setSettingsOpen(true)}
+          // Pass loading state to sidebar
+          appLoading={appLoading}
+          loadingStatus={loadingStatus}
         />
 
         <div className="flex-1 min-h-0 flex flex-col">
@@ -1047,7 +1243,7 @@ const AppContent: React.FC = () => {
               messages={messages}
               onSendMessage={handleSendMessage}
               isLoading={isChatLoading}
-              currentDomain={activeDomain?.type || DomainType.GENERAL}
+              currentDomain={activeClass?.domainType || DomainType.GENERAL}
               activeCollection="default"
               userName={user?.displayName || user?.email || 'User'}
               sidebarOpen={sidebarOpen}

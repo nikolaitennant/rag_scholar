@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, File, Trash2, Info, RotateCcw, BarChart3, FileText, Archive, Plus, X, ChevronRight } from 'lucide-react';
-import { Document, UserDomain } from '../types';
+import { Document, UserClass } from '../types';
 
 interface DocumentManagerProps {
   documents: Document[];
   activeCollection: string;
-  userDomains: UserDomain[];
+  userClasses: UserClass[];
   onUpload: (file: File) => Promise<void>;
   onDelete: (documentId: string) => Promise<void>;
   onReindex: () => Promise<void>;
@@ -16,7 +16,7 @@ interface DocumentManagerProps {
 export const DocumentManager: React.FC<DocumentManagerProps> = ({
   documents,
   activeCollection,
-  userDomains,
+  userClasses,
   onUpload,
   onDelete,
   onReindex,
@@ -230,12 +230,12 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
                                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
                               }}>
                                 <div className="py-1 max-h-48 overflow-y-auto relative z-10">
-                                  {userDomains.map(domain => (
+                                  {userClasses.map(userClass => (
                                     <button
-                                      key={domain.id}
+                                      key={userClass.id}
                                       onClick={async () => {
-                                        if (!doc.assigned_classes.includes(domain.id)) {
-                                          await onAssignToClass(doc.id, doc.filename, domain.id, 'add');
+                                        if (!doc.assigned_classes.includes(userClass.id)) {
+                                          await onAssignToClass(doc.id, doc.filename, userClass.id, 'add');
                                         }
                                         setOpenDropdowns(prev => ({
                                           ...prev,
@@ -243,16 +243,16 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
                                         }));
                                       }}
                                       className={`w-full px-4 py-2.5 text-sm text-left transition-all duration-200 flex items-center space-x-3 ${
-                                        doc.assigned_classes.includes(domain.id)
+                                        doc.assigned_classes.includes(userClass.id)
                                           ? 'bg-blue-500/30 backdrop-blur-sm text-white border-l-2 border-blue-400/50'
                                           : 'text-white/90 hover:bg-white/10 hover:backdrop-blur-sm'
                                       }`}
-                                      disabled={doc.assigned_classes.includes(domain.id)}
+                                      disabled={doc.assigned_classes.includes(userClass.id)}
                                     >
                                       <div className={`w-2 h-2 rounded-full ${
-                                        doc.assigned_classes.includes(domain.id) ? 'bg-white' : 'bg-transparent'
+                                        doc.assigned_classes.includes(userClass.id) ? 'bg-white' : 'bg-transparent'
                                       }`} />
-                                      <span className="font-medium">{domain.name}</span>
+                                      <span className="font-medium">{userClass.name}</span>
                                     </button>
                                   ))}
                                 </div>
@@ -265,13 +265,13 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
                         {doc.assigned_classes.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {doc.assigned_classes.map(classId => {
-                              const domain = userDomains.find(d => d.id === classId);
+                              const userClass = userClasses.find(d => d.id === classId);
                               return (
                                 <span
                                   key={classId}
                                   className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs"
                                 >
-                                  {domain?.name || classId}
+                                  {userClass?.name || classId}
                                   <button
                                     onClick={async () => {
                                       await onAssignToClass(doc.id, doc.filename, classId, 'remove');

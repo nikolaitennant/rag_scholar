@@ -1,10 +1,11 @@
-"""Clean configuration for LangChain-based RAG Scholar."""
+"""Clean configuration for LangChain-based RAG Scholar with Doppler integration."""
 
 import os
 from enum import Enum
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from .doppler_config import doppler_config
 
 
 class DomainType(str, Enum):
@@ -28,8 +29,11 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # Required API Keys
-    openai_api_key: str = Field(..., description="OpenAI API key")
+    # Secure API Keys via Doppler (users provide their own)
+    openai_api_key: str | None = Field(
+        default_factory=lambda: doppler_config.get_secret('OPENAI_API_KEY'),
+        description="OpenAI API key (secure via Doppler or user-provided)"
+    )
 
     # Application
     app_name: str = Field(default="RAG Scholar", description="Application name")
@@ -58,6 +62,28 @@ class Settings(BaseSettings):
     chat_temperature: float = Field(
         default=0.0, description="LLM temperature", ge=0.0, le=2.0
     )
+    max_tokens: int = Field(
+        default=2000, description="Maximum tokens for model responses", ge=100, le=4000
+    )
+
+    # Chat Naming Configuration (ChatGPT-style)
+    naming_model: str = Field(
+        default="gpt-3.5-turbo", description="Fast model for generating chat names (cost optimization)"
+    )
+    naming_max_tokens: int = Field(
+        default=20, description="Max tokens for chat name generation", ge=5, le=50
+    )
+    naming_temperature: float = Field(
+        default=0.3, description="Temperature for chat naming (slight creativity)", ge=0.0, le=1.0
+    )
+
+    # Memory Management Configuration
+    memory_max_token_limit: int = Field(
+        default=2000, description="Token limit before summarizing conversation history", ge=500, le=8000
+    )
+    memory_summary_model: str = Field(
+        default="gpt-3.5-turbo", description="Model for conversation summarization (cost optimization)"
+    )
 
     # LangChain Document Processing
     chunk_size: int = Field(
@@ -69,7 +95,8 @@ class Settings(BaseSettings):
 
     # Google Cloud (for Firebase Auth and Firestore Vector Store)
     google_cloud_project: str = Field(
-        default="ragscholarai", description="Google Cloud Project ID"
+        default_factory=lambda: doppler_config.get_secret('GOOGLE_CLOUD_PROJECT', 'ragscholarai'),
+        description="Google Cloud Project ID"
     )
 
     # FastAPI Configuration
@@ -81,10 +108,10 @@ class Settings(BaseSettings):
     api_prefix: str = Field(default="/api/v1", description="API prefix")
     cors_origins: list[str] = Field(default=["*"], description="CORS allowed origins")
 
-    # Authentication
+    # Authentication (Secure via Doppler)
     jwt_secret_key: str = Field(
-        default="your-super-secret-jwt-key-change-in-production",
-        description="JWT secret key for token signing"
+        default_factory=lambda: doppler_config.get_secret('JWT_SECRET_KEY', 'your-super-secret-jwt-key-change-in-production'),
+        description="JWT secret key for token signing (secure via Doppler)"
     )
     jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
     jwt_access_token_expire_minutes: int = Field(

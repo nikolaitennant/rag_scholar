@@ -17,6 +17,8 @@ class SessionResponse(BaseModel):
     message_count: int = 0
     preview: Optional[str] = None
     class_id: Optional[str] = None
+    class_name: Optional[str] = None  # Human-readable class name
+    domain: Optional[str] = None      # Domain type like "law", "science", "history", etc.
 
 @router.get("/sessions", response_model=List[SessionResponse])
 async def get_user_sessions(current_user: dict = Depends(get_current_user)):
@@ -92,7 +94,9 @@ async def get_user_sessions(current_user: dict = Depends(get_current_user)):
                 updated_at=updated_at,
                 message_count=len(messages),
                 preview=preview,
-                class_id=session_data.get("class_id")
+                class_id=session_data.get("class_id"),
+                class_name=session_data.get("class_name"),
+                domain=session_data.get("domain")
             ))
 
         # Sort by updated_at descending (most recent first)

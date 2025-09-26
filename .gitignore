@@ -104,3 +104,14 @@ node_modules/
 # Build artifacts
 build/
 dist/
+
+# Security & Secrets (Doppler manages these)
+.env.local
+.env.*.local
+*.pem
+*.key
+api-keys/
+secrets/
+
+# Doppler CLI
+.doppler/

@@ -1,0 +1,9 @@
+setup:
+  project: rag-scholar
+  config: dev
+
+environments:
+  dev:
+    description: "Development environment"
+  prod:
+    description: "Production environment"

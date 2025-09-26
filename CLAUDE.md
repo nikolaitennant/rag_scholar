@@ -2,3 +2,4 @@
 - Class = Specific class like "Medicine 101" - unique
 - Always use existing production-ready packages and built-in methods. Never create custom implementations when standard libraries already provide the functionality. Before implementing anything, first check what existing tools/methods are available. Always prefer battle-tested, production-ready solutions over custom code.
 - always use docker or docker-compose
+- no emojis

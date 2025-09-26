@@ -6,6 +6,7 @@ from typing import Dict, Any, List
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langchain.memory import ConversationSummaryBufferMemory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_google_firestore import FirestoreChatMessageHistory
 from langchain_openai import ChatOpenAI
@@ -22,12 +23,19 @@ class LangChainRAGPipeline:
     def __init__(self, settings):
         self.settings = settings
 
-        # Initialize LLM
-        self.llm = ChatOpenAI(
-            api_key=settings.openai_api_key,
-            model=settings.chat_model,
-            temperature=settings.chat_temperature,
-        )
+        # Initialize LLM with GPT-5 compatibility
+        llm_kwargs = {
+            "api_key": settings.openai_api_key,
+            "model": settings.chat_model,
+            "temperature": settings.chat_temperature,
+        }
+
+        # GPT-5 and newer models use max_completion_tokens instead of max_tokens
+        use_completion_cap = settings.chat_model.startswith(("gpt-5", "o1", "o3", "o4"))
+        param = "max_completion_tokens" if use_completion_cap else "max_tokens"
+        llm_kwargs[param] = settings.max_tokens
+
+        self.llm = ChatOpenAI(**llm_kwargs)
 
         # Create agent with tools (standard LangChain approach)
         self.agent_executor = self._create_agent()
@@ -107,32 +115,48 @@ Context: {context}"""
         session_id: str,
         user_id: str,
         class_id: str = None,
+        class_name: str = None,
+        domain_type: str = None,
     ) -> dict:
         """Chat using built-in LangChain agent with tools."""
 
         try:
-            # Get chat history using user-scoped collection
-            history = FirestoreChatMessageHistory(
-                session_id=session_id,
-                collection=f"users/{user_id}/chat_sessions"
+            # Create smart memory with summarization (ChatGPT-style)
+            # Use cheaper model for summarization to reduce costs
+            summary_llm = ChatOpenAI(
+                api_key=self.settings.openai_api_key,
+                model=self.settings.memory_summary_model,
+                temperature=0.0,  # Deterministic summaries
+            )
+
+            memory = ConversationSummaryBufferMemory(
+                llm=summary_llm,  # Use cost-optimized model for summaries
+                chat_memory=FirestoreChatMessageHistory(
+                    session_id=session_id,
+                    collection=f"users/{user_id}/chat_sessions"
+                ),
+                max_token_limit=self.settings.memory_max_token_limit,  # Configurable
+                return_messages=True,   # Compatible with agent
+                ai_prefix="Assistant",
+                human_prefix="User"
             )
 
             # Check if we have any documents - if not, return strict message
             if not context_docs:
                 no_docs_message = "No relevant documents found. Please upload documents first or use '/background [your question]' for general knowledge."
 
-                # Add to history
-                history.add_user_message(question)
-                history.add_ai_message(no_docs_message)
+                # Add to memory (will auto-summarize if needed)
+                memory.save_context({"input": question}, {"output": no_docs_message})
 
-                # Store session metadata even when no docs found
-                await self._store_session_metadata(user_id, session_id, class_id, question)
+                # Store session metadata even when no docs found and get generated name
+                generated_name = await self._store_session_metadata(user_id, session_id, class_id, question, no_docs_message, class_name, domain_type)
 
                 return {
                     "response": no_docs_message,
                     "session_id": session_id,
                     "sources": [],
-                    "context_count": 0
+                    "context_count": 0,
+                    "chat_name": generated_name  # Include generated ChatGPT-style name
                 }
 
             # Format context documents for the agent
@@ -146,7 +170,7 @@ Context: {context}"""
             # Prepare input for the agent
             agent_input = {
                 "input": f"{question}{context_text}",
-                "chat_history": history.messages,
+                "chat_history": memory.chat_memory.messages,
             }
 
             # Run the agent
@@ -155,12 +179,11 @@ Context: {context}"""
             # Extract response content
             response_content = response.get("output", "")
 
-            # Add to history
-            history.add_user_message(question)
-            history.add_ai_message(response_content)
+            # Add to memory (will auto-summarize if needed)
+            memory.save_context({"input": question}, {"output": response_content})
 
-            # Store session metadata with class_id for filtering
-            await self._store_session_metadata(user_id, session_id, class_id, question)
+            # Store session metadata with class_id for filtering and get generated name
+            generated_name = await self._store_session_metadata(user_id, session_id, class_id, question, response_content, class_name, domain_type)
 
             # Extract sources
             sources = [doc.get("source", "Unknown") for doc in context_docs]
@@ -174,7 +197,8 @@ Context: {context}"""
                 "response": response_content,
                 "session_id": session_id,
                 "sources": sources,
-                "context_count": len(context_docs)
+                "context_count": len(context_docs),
+                "chat_name": generated_name  # Include generated ChatGPT-style name
             }
 
         except Exception as e:
@@ -216,32 +240,39 @@ Context: {context}"""
             logger.error("Simple chat failed", error=str(e))
             return "I'm sorry, I encountered an error processing your message."
 
-    async def _generate_chat_name(self, question: str) -> str:
-        """Generate a concise, descriptive name for the chat based on the user's question."""
+    async def _generate_chat_name(self, question: str, response: str = None) -> str:
+        """Generate a concise, descriptive name for the chat based on the user's question and AI response."""
         try:
             from langchain_openai import ChatOpenAI
             from langchain.schema import HumanMessage, SystemMessage
 
-            # Use a fast, cheap model for naming
+            # Use configurable fast, cheap model for naming (ChatGPT-style)
             llm = ChatOpenAI(
-                model="gpt-3.5-turbo",
-                temperature=0.3,
-                max_tokens=20,
-                openai_api_key=self.settings.openai_api_key
+                model=self.settings.naming_model,
+                temperature=self.settings.naming_temperature,
+                max_tokens=self.settings.naming_max_tokens,
+                openai_api_key=self.settings.openai_api_key,
             )
 
-            system_prompt = """Create a concise, descriptive title (3-6 words) for a chat session based on the user's first message.
+            system_prompt = """Create a concise, descriptive title (3-6 words) for a chat session based on the user's message and AI response.
 The title should capture the main topic or question. Do not use quotation marks.
 
 Examples:
-"What is photosynthesis?" → "Photosynthesis Basics"
-"How do I calculate derivatives in calculus?" → "Calculus Derivatives Help"
-"Explain the causes of World War I" → "World War I Causes"
-"What are the symptoms of depression?" → "Depression Symptoms Guide"""
+User: "What is photosynthesis?" AI: "Photosynthesis is the process by which plants..." → "Photosynthesis Process"
+User: "How do I calculate derivatives?" AI: "To calculate derivatives in calculus..." → "Calculus Derivatives Guide"
+User: "Explain World War I causes" AI: "The main causes of World War I were..." → "World War I Causes"
+User: "Python error help" AI: "This error occurs when..." → "Python Error Fix"""
+
+            # Build context from both user question and AI response (if available)
+            context = f"User's message: {question}"
+            if response:
+                # Truncate response to first 200 chars for naming context
+                truncated_response = response[:200] + "..." if len(response) > 200 else response
+                context += f"\nAI response: {truncated_response}"
 
             messages = [
                 SystemMessage(content=system_prompt),
-                HumanMessage(content=f"User's message: {question}")
+                HumanMessage(content=context)
             ]
 
             response = await llm.ainvoke(messages)
@@ -258,8 +289,8 @@ Examples:
             # Fallback to simple truncation
             return question[:40] + "..." if len(question) > 40 else question
 
-    async def _store_session_metadata(self, user_id: str, session_id: str, class_id: str, question: str):
-        """Store session metadata for filtering and organization."""
+    async def _store_session_metadata(self, user_id: str, session_id: str, class_id: str, question: str, response: str = None, class_name: str = None, domain_type: str = None) -> str:
+        """Store session metadata for filtering and organization. Returns the chat name."""
         try:
             from google.cloud import firestore
             from datetime import datetime, timezone
@@ -270,23 +301,33 @@ Examples:
             # Check if session document exists, if not create it
             session_doc = session_ref.get()
             if not session_doc.exists:
-                # Generate a better name using LLM
-                chat_name = await self._generate_chat_name(question)
+                # Generate a better name using LLM (ChatGPT-style)
+                chat_name = await self._generate_chat_name(question, response)
 
                 # Create new session with metadata
                 session_data = {
                     "created_at": datetime.now(timezone.utc).isoformat(),
                     "updated_at": datetime.now(timezone.utc).isoformat(),
                     "class_id": class_id,
+                    "class_name": class_name,
+                    "domain": domain_type,
                     "name": chat_name,
                 }
                 session_ref.set(session_data)
+                return chat_name
             else:
                 # Update existing session - always update timestamp when new message added
                 session_ref.update({
                     "updated_at": datetime.now(timezone.utc).isoformat(),
                     "class_id": class_id,  # Update class_id in case it changed
+                    "class_name": class_name,  # Update class_name in case it changed
+                    "domain": domain_type,  # Update domain in case it changed
                 })
+                # Return existing name from database
+                existing_data = session_doc.to_dict()
+                return existing_data.get("name", "Chat")
 
         except Exception as e:
             logger.error("Failed to store session metadata", error=str(e), session_id=session_id)
+            # Fallback: return a simple name based on the question
+            return question[:40] + "..." if len(question) > 40 else question

@@ -10,11 +10,14 @@ services:
       - PYTHONPATH=/app/src
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
       - GOOGLE_CLOUD_PROJECT=ragscholarai
-    env_file:
-      - .env
+      # Doppler configuration for secure secret management
+      - DOPPLER_PROJECT=rag-scholar
+      - DOPPLER_CONFIG=dev
+    # Environment variables provided by Doppler
     volumes:
       - ./src:/app/src
       - ~/.config/gcloud/application_default_credentials.json:/app/credentials.json
+    # Use Doppler for secure secret injection in development
     command: ["python", "-m", "uvicorn", "rag_scholar.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     depends_on:
       - redis

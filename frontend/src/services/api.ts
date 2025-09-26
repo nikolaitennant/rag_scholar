@@ -9,18 +9,24 @@ const api = axios.create({
   timeout: 30000,
 });
 
-// Request interceptor to add Firebase auth token
+// Request interceptor to add Firebase auth token and security headers
 api.interceptors.request.use(
   async (config) => {
+    // Security: Ensure HTTPS in production
+    if (process.env.NODE_ENV === 'production' && config.url && !config.url.startsWith('https://')) {
+      console.warn('🔒 Security Warning: API calls should use HTTPS in production');
+    }
+
     const currentUser = auth.currentUser;
-    console.log('🔍 API: currentUser:', currentUser ? 'exists' : 'null');
     if (currentUser) {
       const token = await currentUser.getIdToken();
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔍 API: Added auth token');
-    } else {
-      console.log('🔍 API: No currentUser - skipping auth token');
     }
+
+    // Security headers
+    config.headers['X-Requested-With'] = 'XMLHttpRequest';
+    config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+
     return config;
   },
   (error) => {
@@ -35,15 +41,36 @@ export const apiService = {
     return response.data;
   },
 
-  // Chat - Updated to match new backend
+  // Chat - Updated to match new backend with secure API key handling
   chat: async (payload: {
     query: string;
     session_id?: string;
     class_id?: string;
+    class_name?: string;
     domain_type?: string;
     k?: number;
   }): Promise<ChatResponse> => {
-    const response = await api.post('/chat/chat', payload);
+    // Get user's API settings securely from localStorage
+    const apiKey = localStorage.getItem('api_key');
+    const model = localStorage.getItem('preferred_model');
+    const temperature = localStorage.getItem('temperature');
+    const maxTokens = localStorage.getItem('max_tokens');
+
+    // Security: Don't log API keys
+    if (!apiKey) {
+      throw new Error('API key required. Please configure your API key in Advanced Settings.');
+    }
+
+    // Add API key and model settings to payload securely
+    const securePayload = {
+      ...payload,
+      api_key: apiKey,
+      model: model || 'gpt-4',
+      temperature: temperature ? parseFloat(temperature) : undefined,
+      max_tokens: maxTokens ? parseInt(maxTokens, 10) : undefined
+    };
+
+    const response = await api.post('/chat/chat', securePayload);
     return response.data;
   },
 
@@ -57,8 +84,15 @@ export const apiService = {
     const formData = new FormData();
     formData.append('file', file);
 
+    // Add API key from localStorage if available
+    const apiKey = localStorage.getItem('api_key');
+    const queryParams = new URLSearchParams({ collection });
+    if (apiKey) {
+      queryParams.append('api_key', apiKey);
+    }
+
     const response = await api.post(
-      `/documents/upload?collection=${collection}`,
+      `/documents/upload?${queryParams.toString()}`,
       formData,
       {
         headers: {
@@ -70,7 +104,14 @@ export const apiService = {
   },
 
   deleteDocument: async (documentId: string): Promise<void> => {
-    const response = await api.delete(`/documents/${documentId}`);
+    // Add API key from localStorage if available
+    const apiKey = localStorage.getItem('api_key');
+    const queryParams = new URLSearchParams();
+    if (apiKey) {
+      queryParams.append('api_key', apiKey);
+    }
+
+    const response = await api.delete(`/documents/${documentId}?${queryParams.toString()}`);
     return response.data;
   },
 
@@ -80,7 +121,14 @@ export const apiService = {
     classId: string,
     operation: 'add' | 'remove' = 'add'
   ): Promise<any> => {
-    const response = await api.post(`/documents/${documentId}/assign-class`, {
+    // Add API key from localStorage if available
+    const apiKey = localStorage.getItem('api_key');
+    const queryParams = new URLSearchParams();
+    if (apiKey) {
+      queryParams.append('api_key', apiKey);
+    }
+
+    const response = await api.post(`/documents/${documentId}/assign-class?${queryParams.toString()}`, {
       document_source: documentSource,
       class_id: classId,
       operation

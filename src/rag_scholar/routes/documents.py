@@ -28,6 +28,7 @@ class UploadResponse(BaseModel):
 async def upload_document(
     file: UploadFile = File(...),
     collection: str = "database",
+    api_key: str = None,  # User's API key
     current_user: dict = Depends(get_current_user),
 ):
     """Upload and process document using LangChain ingestion."""
@@ -43,9 +44,22 @@ async def upload_document(
         )
 
     try:
-        # Initialize ingestion pipeline
+        # Initialize ingestion pipeline with user's API key
         settings = get_settings()
-        ingestion_pipeline = LangChainIngestionPipeline(settings)
+
+        # Use user's API key if provided, otherwise fall back to environment
+        user_api_key = api_key or settings.openai_api_key
+        if not user_api_key:
+            raise HTTPException(
+                status_code=400,
+                detail="API key required. Please configure your API key in Advanced Settings."
+            )
+
+        # Create custom settings with user's API key
+        user_settings = settings.model_copy()
+        user_settings.openai_api_key = user_api_key
+
+        ingestion_pipeline = LangChainIngestionPipeline(user_settings)
 
         # Read file content
         file_content = await file.read()
@@ -84,14 +98,28 @@ async def upload_document(
 @router.delete("/{document_id}")
 async def delete_document(
     document_id: str,
+    api_key: str = None,  # User's API key
     current_user: dict = Depends(get_current_user),
 ):
     """Delete document using LangChain built-in delete."""
 
     try:
-        # Initialize ingestion pipeline
+        # Initialize ingestion pipeline with user's API key
         settings = get_settings()
-        ingestion_pipeline = LangChainIngestionPipeline(settings)
+
+        # Use user's API key if provided, otherwise fall back to environment
+        user_api_key = api_key or settings.openai_api_key
+        if not user_api_key:
+            raise HTTPException(
+                status_code=400,
+                detail="API key required. Please configure your API key in Advanced Settings."
+            )
+
+        # Create custom settings with user's API key
+        user_settings = settings.model_copy()
+        user_settings.openai_api_key = user_api_key
+
+        ingestion_pipeline = LangChainIngestionPipeline(user_settings)
 
         # Use LangChain's built-in delete method
         success = await ingestion_pipeline.delete_document(
@@ -128,13 +156,27 @@ class DocumentClassAssignmentRequest(BaseModel):
 async def assign_document_to_class(
     document_id: str,
     request: DocumentClassAssignmentRequest,
+    api_key: str = None,  # User's API key
     current_user: dict = Depends(get_current_user),
 ):
     """Assign or remove document from a class."""
     try:
-        # Initialize ingestion pipeline
+        # Initialize ingestion pipeline with user's API key
         settings = get_settings()
-        ingestion_pipeline = LangChainIngestionPipeline(settings)
+
+        # Use user's API key if provided, otherwise fall back to environment
+        user_api_key = api_key or settings.openai_api_key
+        if not user_api_key:
+            raise HTTPException(
+                status_code=400,
+                detail="API key required. Please configure your API key in Advanced Settings."
+            )
+
+        # Create custom settings with user's API key
+        user_settings = settings.model_copy()
+        user_settings.openai_api_key = user_api_key
+
+        ingestion_pipeline = LangChainIngestionPipeline(user_settings)
 
         # Use the existing update_document_class method
         success = await ingestion_pipeline.update_document_class(
@@ -164,20 +206,20 @@ async def get_documents(
     current_user: dict = Depends(get_current_user),
 ):
     """Get documents in a collection."""
-    try:
-        # Initialize ingestion pipeline
-        settings = get_settings()
-        ingestion_pipeline = LangChainIngestionPipeline(settings)
+    user_id = current_user["id"]
+    logger.info("Getting documents for user", user_id=user_id, collection=collection)
 
-        # Get documents from user's documents subcollection
+    try:
+        # Get documents from user's documents subcollection (no API key needed for reading)
+        settings = get_settings()
         from google.cloud import firestore
 
         db = firestore.Client(project=settings.google_cloud_project)
-        user_id = current_user["id"]
 
         try:
             docs_ref = db.collection(f"users/{user_id}/documents")
             docs = docs_ref.get()
+            logger.info("Found documents in Firestore", user_id=user_id, count=len(docs))
 
             documents = []
             for doc in docs:
@@ -204,11 +246,12 @@ async def get_documents(
                     "assigned_classes": assigned_classes
                 })
 
+            logger.info("Returning documents", user_id=user_id, count=len(documents))
             return documents
         except Exception as e:
             logger.error("Failed to get documents", user_id=user_id, error=str(e))
             return []
 
     except Exception as e:
-        # Return empty list if there's an error (e.g., no documents yet)
+        logger.error("Get documents endpoint failed", user_id=user_id, error=str(e))
         return []

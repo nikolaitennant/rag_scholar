@@ -95,13 +95,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const updateDisplayName = async (newDisplayName: string) => {
     if (auth.currentUser) {
       await updateProfile(auth.currentUser, { displayName: newDisplayName });
-      // Force immediate state update by setting user to null then back to current user
-      const currentUser = auth.currentUser;
-      setUser(null);
-      // Use requestAnimationFrame to ensure the null state is rendered first
-      requestAnimationFrame(() => {
-        setUser(currentUser);
-      });
+      // Create a new user object to trigger React re-render
+      setUser({ ...auth.currentUser, displayName: newDisplayName } as FirebaseUser);
     }
   };
 

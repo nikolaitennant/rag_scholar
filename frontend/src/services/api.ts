@@ -191,6 +191,38 @@ export const apiService = {
     return response.data;
   },
 
+  // Classes - Full CRUD
+  getClasses: async (): Promise<any[]> => {
+    const response = await api.get('/classes/');
+    return response.data;
+  },
+
+  createClass: async (classData: { name: string; domain_type: string; description?: string }): Promise<any> => {
+    const response = await api.post('/classes/', classData);
+    return response.data;
+  },
+
+  updateClass: async (classId: string, classData: { name: string; domain_type: string; description?: string }): Promise<any> => {
+    const response = await api.put(`/classes/${classId}`, classData);
+    return response.data;
+  },
+
+  deleteClass: async (classId: string): Promise<any> => {
+    const response = await api.delete(`/classes/${classId}`);
+    return response.data;
+  },
+
+  // API Settings
+  getAPISettings: async (): Promise<any> => {
+    const response = await api.get('/api-settings');
+    return response.data;
+  },
+
+  updateAPISettings: async (settings: any): Promise<any> => {
+    const response = await api.post('/api-settings', settings);
+    return response.data;
+  },
+
   // Debug
   debugFirestore: async (): Promise<any> => {
     // Mock debug response since we removed the debug endpoint

@@ -380,3 +380,50 @@ class UserProfileService:
     async def add_points(self, user_id: str, points: int) -> bool:
         """Add points to user total."""
         return await self._add_points_to_stats(user_id, points)
+
+    async def get_user_api_settings(self, user_id: str) -> Dict:
+        """Get user's API settings from profile."""
+        try:
+            # Get API settings from profile document
+            profile_ref = self.db.collection(f"users/{user_id}/profile").document("main")
+            profile_doc = profile_ref.get()
+
+            if profile_doc.exists:
+                profile_data = profile_doc.to_dict() or {}
+                return profile_data.get("api_settings", {})
+            else:
+                # Return empty dict if no profile exists
+                return {}
+
+        except Exception as e:
+            logger.error("Failed to get user API settings", user_id=user_id, error=str(e))
+            return {}
+
+    async def update_user_api_settings(self, user_id: str, api_settings: Dict) -> bool:
+        """Update user's API settings in profile."""
+        try:
+            # Update API settings in profile document
+            profile_ref = self.db.collection(f"users/{user_id}/profile").document("main")
+
+            # Get existing profile or create new one
+            profile_doc = profile_ref.get()
+            if profile_doc.exists:
+                profile_data = profile_doc.to_dict() or {}
+            else:
+                profile_data = {
+                    "created_at": datetime.utcnow().isoformat(),
+                }
+
+            # Update API settings
+            profile_data["api_settings"] = api_settings
+            profile_data["updated_at"] = datetime.utcnow().isoformat()
+
+            # Save to Firestore
+            profile_ref.set(profile_data)
+
+            logger.info("Updated user API settings", user_id=user_id)
+            return True
+
+        except Exception as e:
+            logger.error("Failed to update user API settings", user_id=user_id, error=str(e))
+            return False

@@ -2,6 +2,8 @@
 
 import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException
+from pydantic import BaseModel
+from typing import Optional
 
 from ..services.firebase_auth import verify_firebase_token
 from ..services.user_profile import UserProfileService
@@ -9,6 +11,15 @@ from ..config.settings import get_settings
 
 logger = structlog.get_logger()
 router = APIRouter(tags=["authentication"])
+
+
+class UserAPISettings(BaseModel):
+    """User API settings model."""
+    api_key: Optional[str] = None
+    preferred_model: str = "gpt-4o-mini"
+    temperature: float = 0.7
+    max_tokens: int = 2000
+    timezone: str = "UTC"
 
 
 async def get_current_user(authorization: str | None = Header(None)) -> dict:
@@ -70,5 +81,62 @@ async def grant_early_adopter(current_user: dict = Depends(get_current_user)):
         return {"message": "Early adopter status granted!", "user_id": current_user["id"]}
     else:
         return {"error": "Failed to grant early adopter status"}
+
+
+@router.get("/api-settings", response_model=UserAPISettings)
+async def get_api_settings(current_user: dict = Depends(get_current_user)):
+    """Get user's API settings."""
+    try:
+        settings = get_settings()
+        user_service = UserProfileService(settings)
+
+        # Get API settings from user profile
+        api_settings = await user_service.get_user_api_settings(current_user["id"])
+
+        return UserAPISettings(
+            api_key=api_settings.get("api_key"),
+            preferred_model=api_settings.get("preferred_model", "gpt-4o-mini"),
+            temperature=api_settings.get("temperature", 0.7),
+            max_tokens=api_settings.get("max_tokens", 2000),
+            timezone=api_settings.get("timezone", "UTC")
+        )
+    except Exception as e:
+        logger.error("Failed to get API settings", error=str(e), user_id=current_user["id"])
+        # Return defaults on error
+        return UserAPISettings()
+
+
+@router.post("/api-settings")
+async def update_api_settings(
+    api_settings: UserAPISettings,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update user's API settings."""
+    try:
+        settings = get_settings()
+        user_service = UserProfileService(settings)
+
+        # Update API settings in user profile
+        success = await user_service.update_user_api_settings(
+            current_user["id"],
+            {
+                "api_key": api_settings.api_key,
+                "preferred_model": api_settings.preferred_model,
+                "temperature": api_settings.temperature,
+                "max_tokens": api_settings.max_tokens,
+                "timezone": api_settings.timezone
+            }
+        )
+
+        if success:
+            return {"message": "API settings updated successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update API settings")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to update API settings", error=str(e), user_id=current_user["id"])
+        raise HTTPException(status_code=500, detail="Failed to update API settings")
 
 

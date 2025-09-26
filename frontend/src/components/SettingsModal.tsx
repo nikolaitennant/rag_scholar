@@ -11,7 +11,7 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { theme, themeMode, toggleTheme, background, setBackground } = useTheme();
-  const { user, userProfile, logout, updateUserProfile, resetPassword } = useUser();
+  const { user, userProfile, logout, updateUserProfile, resetPassword, refreshUser } = useUser();
   const [formData, setFormData] = useState({
     name: user?.displayName || '',
   });
@@ -63,6 +63,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           // Update display name if changed
           if (user) {
             await (user as any).updateProfile({ displayName: formData.name });
+            await refreshUser(); // Refresh user state to trigger re-render
           }
         } catch (error) {
           console.error('Auto-save failed:', error);

@@ -15,7 +15,7 @@ import { DOMAIN_TYPE_INFO } from './constants/domains';
 
 const AppContent: React.FC = () => {
   const { theme, themeMode, background, toggleTheme, setBackground, getBackgroundClass } = useTheme();
-  const { user, userProfile, login, signUp, logout, resetPassword, refreshUserProfile, isAuthenticated, loading } = useUser();
+  const { user, userProfile, login, signUp, logout, resetPassword, refreshUserProfile, refreshUser, isAuthenticated, loading } = useUser();
   const { achievements, newlyUnlocked, dismissNotification, checkForNewAchievements } = useAchievements();
 
   // Core state
@@ -162,6 +162,7 @@ const AppContent: React.FC = () => {
           // Update display name if changed
           if (user) {
             await (user as any).updateProfile({ displayName: formData.name });
+            await refreshUser(); // Refresh user state to trigger re-render
           }
         } catch (error) {
           console.error('Auto-save failed:', error);
@@ -1338,7 +1339,7 @@ const AppContent: React.FC = () => {
                     </button>
 
                     {mobileFilterDropdownOpen && (
-                      <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl border backdrop-blur-2xl shadow-2xl z-50 overflow-hidden ${
+                      <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl border backdrop-blur-2xl shadow-2xl z-[9999] overflow-hidden ${
                         theme === 'dark'
                           ? 'bg-black/30 border-white/10'
                           : 'bg-white/60 border-black/5'
@@ -1675,12 +1676,12 @@ const AppContent: React.FC = () => {
                             </h3>
                             <div className="flex items-center space-x-2 mt-1">
                               <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                                theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
                               }`}>
                                 {typeInfo?.label || userClass.domainType}
                               </span>
                               <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                                theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
                               }`}>
                                 {docCount} doc{docCount !== 1 ? 's' : ''}
                               </span>

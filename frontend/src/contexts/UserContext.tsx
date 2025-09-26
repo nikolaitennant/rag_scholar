@@ -20,6 +20,7 @@ interface UserContextType {
   signUp: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   updateUserProfile: (data: { bio?: string; research_interests?: string[]; preferred_domains?: string[] }) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   isAuthenticated: boolean;
@@ -80,6 +81,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
+  const refreshUser = async () => {
+    if (auth.currentUser) {
+      await auth.currentUser.reload();
+      setUser({ ...auth.currentUser });
+    }
+  };
+
   const updateUserProfile = async (data: { bio?: string; research_interests?: string[]; preferred_domains?: string[] }) => {
     await refreshUserProfile();
   };
@@ -99,6 +107,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       signUp,
       logout,
       refreshUserProfile,
+      refreshUser,
       updateUserProfile,
       resetPassword,
       isAuthenticated

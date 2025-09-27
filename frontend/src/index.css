@@ -395,7 +395,7 @@
     /* Override system input background on iOS */
     input[type="text"]:focus {
       background-color: rgba(255, 255, 255, 0.08) !important;
-      caret-color: #007AFF;
+      caret-color: #A855F7;
 
       /* Prevent white keyboard background */
       -webkit-user-modify: read-write-plaintext-only;
@@ -434,7 +434,7 @@
 
     /* Hide white input accessory bar above keyboard */
     input:focus {
-      caret-color: #007AFF !important;
+      caret-color: #A855F7 !important;
       background-color: rgba(255, 255, 255, 0.08) !important;
       -webkit-user-modify: read-write-plaintext-only;
       -webkit-user-select: text;

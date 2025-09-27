@@ -83,6 +83,8 @@ const AppContent: React.FC = () => {
   } | null>(null);
   const [themeToggleVisible, setThemeToggleVisible] = useState(true);
   const [isNewChatSession, setIsNewChatSession] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingSessionName, setEditingSessionName] = useState('');
   const isMobile = window.innerWidth < 768;
 
   // Provider detection helper
@@ -469,6 +471,34 @@ const AppContent: React.FC = () => {
       console.error('Failed to delete session:', error);
       alert('Failed to delete chat. Please try again.');
     }
+  };
+
+  const handleEditMobileSession = async (sessionId: string, newName: string) => {
+    try {
+      await apiService.updateSession(sessionId, { name: newName });
+      setSessions(prev =>
+        prev.map(session =>
+          session.id === sessionId
+            ? { ...session, name: newName }
+            : session
+        )
+      );
+      setEditingSessionId(null);
+      setEditingSessionName('');
+    } catch (error) {
+      console.error('Failed to update session name:', error);
+      alert('Failed to update chat name. Please try again.');
+    }
+  };
+
+  const handleStartEditingMobileSession = (sessionId: string, currentName: string) => {
+    setEditingSessionId(sessionId);
+    setEditingSessionName(currentName);
+  };
+
+  const handleCancelEditingMobileSession = () => {
+    setEditingSessionId(null);
+    setEditingSessionName('');
   };
 
   const handleThemeToggleClick = () => {
@@ -1267,7 +1297,7 @@ const AppContent: React.FC = () => {
       case 'home':
         return (
           <div className="h-full overflow-y-scroll pb-20" style={{
-            paddingTop: `calc(env(safe-area-inset-top) - 10px)`,
+            paddingTop: `calc(env(safe-area-inset-top) - 20px)`,
             WebkitOverflowScrolling: 'touch'
           }}>
             {/* iOS-Native Header */}
@@ -1374,7 +1404,7 @@ const AppContent: React.FC = () => {
                   </h2>
                   <button
                     onClick={() => setShowMobileClassForm(!showMobileClassForm)}
-                    className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center transition-all duration-200 active:scale-95 ring-1 ring-purple-500/30"
+                    className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center transition-all duration-200 active:scale-95"
                     style={{
                       WebkitTapHighlightColor: 'transparent',
                       backdropFilter: 'blur(10px)'
@@ -1424,7 +1454,7 @@ const AppContent: React.FC = () => {
                                   <button
                                     key={type}
                                     onClick={() => setMobileClassFormData(prev => ({ ...prev, type: type as DomainType }))}
-                                    className={`aspect-square p-2 rounded-3xl transition-all duration-200 flex flex-col items-center justify-center gap-1 active:scale-95 hover:bg-white/5 ${
+                                    className={`aspect-square p-1.5 rounded-3xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 active:scale-95 hover:bg-white/5 ${
                                       mobileClassFormData.type === type
                                         ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 shadow-lg text-white'
                                         : 'bg-[#2C2C2E]/50 border border-white/10 text-white/60 backdrop-blur-sm'
@@ -1636,7 +1666,7 @@ const AppContent: React.FC = () => {
 
                 {/* Classes List */}
                 {userClasses.length === 0 && !showMobileClassForm ? (
-                  <div className="text-center py-6 space-y-3 animate-fade-in">
+                  <div className="text-center py-2 space-y-3 animate-fade-in">
                     <div className="w-10 h-10 mx-auto rounded-full bg-white/10 flex items-center justify-center">
                       <BookOpen className="w-5 h-5 text-white/60" />
                     </div>
@@ -1709,14 +1739,14 @@ const AppContent: React.FC = () => {
                                   <span className={`ios-caption px-2 py-1 rounded-full ${
                                     isActive
                                       ? 'bg-purple-500/20 text-purple-300'
-                                      : 'bg-transparent text-white/70'
+                                      : 'bg-white/5 text-white/70'
                                   }`}>
                                     {typeInfo?.label || userClass.domainType}
                                   </span>
                                   <span className={`ios-caption px-2 py-1 rounded-full ${
                                     isActive
                                       ? 'bg-purple-500/20 text-purple-300'
-                                      : 'bg-transparent text-white/70'
+                                      : 'bg-white/5 text-white/70'
                                   }`}>
                                     {docCount} doc{docCount !== 1 ? 's' : ''}
                                   </span>
@@ -1740,7 +1770,7 @@ const AppContent: React.FC = () => {
                                   );
                                   setShowMobileClassForm(true);
                                 }}
-                                className="w-8 h-8 rounded-full bg-transparent flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95"
+                                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95"
                                 style={{
                                   WebkitTapHighlightColor: 'transparent'
                                 }}
@@ -1752,7 +1782,7 @@ const AppContent: React.FC = () => {
                                   e.stopPropagation();
                                   handleDeleteClass(userClass.id);
                                 }}
-                                className="w-8 h-8 rounded-full bg-transparent flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/15 transition-all duration-200 active:scale-95"
+                                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/15 transition-all duration-200 active:scale-95"
                                 style={{
                                   WebkitTapHighlightColor: 'transparent'
                                 }}
@@ -1809,57 +1839,79 @@ const AppContent: React.FC = () => {
                           </p>
                         </div>
                       ) : (
-                        <SwipeableList
-                          style={{
-                            backgroundColor: 'transparent',
-                            overflow: 'visible'
-                          }}
-                        >
-                            {filteredSessions.map((session) => {
-                              const trailingActions = () => (
-                                <TrailingActions>
-                                  <SwipeAction
-                                    onClick={() => handleDeleteSession(session.id)}
-                                    destructive={true}
-                                    Tag="div"
-                                  >
-                                    <div
-                                      className="flex items-center justify-center h-full w-16 text-white font-medium text-xs"
-                                      style={{
-                                        backgroundColor: '#FF3B30',
-                                        borderRadius: '0 10px 10px 0',
-                                        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
-                                        transition: 'all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)'
+                        <div className="space-y-3">
+                          {filteredSessions.map((session) => (
+                            <div
+                              key={session.id}
+                              className="p-4 transition-all duration-200 active:scale-[0.98] rounded-2xl bg-white/5"
+                              style={{
+                                WebkitTapHighlightColor: 'transparent'
+                              }}
+                            >
+                              <div className="flex items-center justify-between">
+                                {editingSessionId === session.id ? (
+                                  <div className="flex-1 flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      value={editingSessionName}
+                                      onChange={(e) => setEditingSessionName(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleEditMobileSession(session.id, editingSessionName);
+                                        } else if (e.key === 'Escape') {
+                                          handleCancelEditingMobileSession();
+                                        }
                                       }}
+                                      onBlur={(e) => {
+                                        // Only cancel if we're not clicking on action buttons
+                                        const relatedTarget = e.relatedTarget as HTMLElement;
+                                        if (!relatedTarget || !relatedTarget.closest('[data-edit-action]')) {
+                                          handleCancelEditingMobileSession();
+                                        }
+                                      }}
+                                      className="flex-1 bg-white/8 text-white px-4 py-2.5 rounded-full text-sm outline-none ring-2 ring-violet-500/50 caret-violet-500 transition-all duration-300 placeholder-white/50"
+                                      style={{
+                                        WebkitTapHighlightColor: 'transparent',
+                                        fontSize: '16px', // Prevent iOS zoom
+                                        caretColor: '#A855F7',
+                                        '--tw-ring-color': 'rgba(139, 92, 246, 0.5)',
+                                        boxShadow: '0 0 0 2px rgba(139, 92, 246, 0.5)',
+                                        outline: 'none',
+                                        border: 'none',
+                                        WebkitAppearance: 'none',
+                                        MozAppearance: 'none'
+                                      } as React.CSSProperties}
+                                      placeholder="Chat name..."
+                                      autoFocus
+                                    />
+                                    <button
+                                      onClick={() => handleEditMobileSession(session.id, editingSessionName)}
+                                      className="w-8 h-8 rounded-full bg-green-500/15 flex items-center justify-center text-green-400 hover:bg-green-500/25 transition-all duration-200 active:scale-95"
+                                      style={{ WebkitTapHighlightColor: 'transparent' }}
+                                      data-edit-action="save"
                                     >
-                                      Delete
-                                    </div>
-                                  </SwipeAction>
-                                </TrailingActions>
-                              );
-
-                              return (
-                                <SwipeableListItem
-                                  key={session.id}
-                                  trailingActions={trailingActions()}
-                                  threshold={0.15}
-                                  swipeStartThreshold={5}
-                                  maxSwipe={0.5}
-                                  className="mb-2"
-                                >
-                                  <div
-                                    className="ios-card-elevated w-full p-4 text-left transition-all duration-200 active:scale-[0.98]"
-                                    style={{
-                                      willChange: 'transform',
-                                      touchAction: 'pan-y',
-                                      WebkitTapHighlightColor: 'transparent'
-                                    }}
-                                    onClick={() => {
-                                      handleSelectSession(session.id);
-                                      setMobilePage('chat');
-                                    }}
-                                  >
-                                    <div className="flex items-center justify-between">
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onClick={handleCancelEditingMobileSession}
+                                      className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:bg-white/10 transition-all duration-200 active:scale-95"
+                                      style={{ WebkitTapHighlightColor: 'transparent' }}
+                                      data-edit-action="cancel"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        handleSelectSession(session.id);
+                                        setMobilePage('chat');
+                                      }}
+                                      className="flex-1 text-left min-w-0 flex items-center"
+                                    >
                                       <div className="flex-1 min-w-0">
                                         <h4 className="ios-title text-white truncate">
                                           {session.name}
@@ -1869,12 +1921,37 @@ const AppContent: React.FC = () => {
                                         </p>
                                       </div>
                                       <ChevronRight className="w-4 h-4 text-white/40 ml-3 flex-shrink-0" />
-                                    </div>
-                                  </div>
-                                </SwipeableListItem>
-                              );
-                            })}
-                          </SwipeableList>
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleStartEditingMobileSession(session.id, session.name);
+                                      }}
+                                      className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/70 hover:text-violet-400 hover:bg-violet-500/15 transition-all duration-200 active:scale-95 ml-2"
+                                      style={{
+                                        WebkitTapHighlightColor: 'transparent'
+                                      }}
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteSession(session.id);
+                                      }}
+                                      className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/15 transition-all duration-200 active:scale-95 ml-2"
+                                      style={{
+                                        WebkitTapHighlightColor: 'transparent'
+                                      }}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>

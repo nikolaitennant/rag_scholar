@@ -3677,23 +3677,30 @@ const AppContent: React.FC = () => {
       <div className="md:hidden w-full">
         {renderMobilePage()}
 
-        {/* iOS-Native Bottom Navigation with Translucent Blur */}
+        {/* Real WhatsApp-style Bottom Navigation Dock */}
         <div
-          className="fixed bottom-0 left-0 right-0 transition-all duration-300 ease-in-out"
+          className="fixed left-0 right-0 z-50"
           style={{
-            background: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(30px) saturate(120%)',
-            WebkitBackdropFilter: 'blur(30px) saturate(120%)',
-            paddingBottom: `max(env(safe-area-inset-bottom), 12px)`,
-            paddingLeft: 'env(safe-area-inset-left)',
-            paddingRight: 'env(safe-area-inset-right)',
-            borderTop: '0.5px solid rgba(128, 128, 128, 0.3)',
+            display: isMobile ? 'block' : 'none',
+            bottom: '-10px',
+            background: 'rgba(28, 28, 30, 0.6)',
+            backdropFilter: 'blur(22px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(22px) saturate(160%)',
+            borderTop: '0.5px solid rgba(255, 255, 255, 0.1)',
             transform: isKeyboardOpen ? 'translateY(100%)' : 'translateY(0)',
-            opacity: mobilePage === 'chat' ? 0.8 : 1,
+            transition: 'transform 0.3s ease-out',
             pointerEvents: isKeyboardOpen ? 'none' : 'auto'
           }}
         >
-          <div className="flex justify-around px-1 pt-2">
+          <div
+            className="flex justify-around items-end"
+            style={{
+              paddingTop: '4px',
+              paddingBottom: 'calc(4px + env(safe-area-inset-bottom))',
+              paddingLeft: 'env(safe-area-inset-left)',
+              paddingRight: 'env(safe-area-inset-right)',
+            }}
+          >
             {[
               { page: 'home', icon: Home, label: 'Home' },
               { page: 'chat', icon: MessageSquare, label: 'Chat' },
@@ -3719,40 +3726,31 @@ const AppContent: React.FC = () => {
                     }
                     setMobilePage(page as any);
                   }}
-                  className={`flex flex-col items-center py-3 px-4 transition-all duration-150 ease-out active:scale-90 ${
-                    isActive
-                      ? 'text-white'
-                      : 'text-gray-400'
-                  }`}
+                  className="flex flex-col items-center justify-end min-w-0 flex-1 pb-1 transition-opacity duration-200 active:opacity-60"
                   style={{
-                    minWidth: '60px',
-                    WebkitTapHighlightColor: 'transparent'
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   <Icon
-                    className={`w-6 h-6 transition-all duration-100 ease-out ${
-                      isActive ? 'brightness-110' : 'brightness-75'
-                    }`}
+                    className="w-7 h-7 mb-1 mt-1 transition-colors duration-200"
                     style={{
+                      color: isActive ? '#FFFFFF' : '#8E8E93',
                       fill: 'none',
                       stroke: 'currentColor',
-                      strokeWidth: isActive ? '2.2' : '1.8'
+                      strokeWidth: isActive ? '1.8' : '1.5',
                     }}
                   />
-                  {/* Show label for all tabs */}
-                  {(
-                    <span
-                      className={`text-[9px] mt-1 font-medium transition-all duration-200 leading-tight ${
-                        isActive ? 'opacity-100' : 'opacity-70'
-                      }`}
-                      style={{
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
-                        letterSpacing: '-0.01em'
-                      }}
-                    >
-                      {label}
-                    </span>
-                  )}
+                  <span
+                    className="text-xs leading-tight transition-colors duration-200"
+                    style={{
+                      color: isActive ? '#FFFFFF' : '#8E8E93',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                      fontWeight: isActive ? '500' : '400',
+                      fontSize: '10px',
+                    }}
+                  >
+                    {label}
+                  </span>
                 </button>
               );
             })}

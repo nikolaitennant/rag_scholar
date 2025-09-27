@@ -115,6 +115,18 @@ export const apiService = {
     return response.data;
   },
 
+  updateDocument: async (documentId: string, updateData: { filename: string }): Promise<Document> => {
+    // Add API key from localStorage if available
+    const apiKey = localStorage.getItem('api_key');
+    const queryParams = new URLSearchParams();
+    if (apiKey) {
+      queryParams.append('api_key', apiKey);
+    }
+
+    const response = await api.put(`/documents/${documentId}?${queryParams.toString()}`, updateData);
+    return response.data;
+  },
+
   assignDocumentToClass: async (
     documentId: string,
     documentSource: string,

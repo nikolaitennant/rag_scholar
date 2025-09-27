@@ -85,6 +85,8 @@ const AppContent: React.FC = () => {
   const [isNewChatSession, setIsNewChatSession] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingSessionName, setEditingSessionName] = useState('');
+  const [editingDocumentId, setEditingDocumentId] = useState<string | null>(null);
+  const [editingDocumentName, setEditingDocumentName] = useState('');
   const isMobile = window.innerWidth < 768;
 
   // Provider detection helper
@@ -499,6 +501,34 @@ const AppContent: React.FC = () => {
   const handleCancelEditingMobileSession = () => {
     setEditingSessionId(null);
     setEditingSessionName('');
+  };
+
+  const handleEditDocument = async (documentId: string, newName: string) => {
+    try {
+      await apiService.updateDocument(documentId, { filename: newName });
+      setDocuments(prev =>
+        prev.map(doc =>
+          doc.id === documentId
+            ? { ...doc, filename: newName }
+            : doc
+        )
+      );
+      setEditingDocumentId(null);
+      setEditingDocumentName('');
+    } catch (error) {
+      console.error('Failed to update document name:', error);
+      alert('Failed to update document name. Please try again.');
+    }
+  };
+
+  const handleStartEditingDocument = (documentId: string, currentName: string) => {
+    setEditingDocumentId(documentId);
+    setEditingDocumentName(currentName);
+  };
+
+  const handleCancelEditingDocument = () => {
+    setEditingDocumentId(null);
+    setEditingDocumentName('');
   };
 
   const handleThemeToggleClick = () => {
@@ -1322,7 +1352,7 @@ const AppContent: React.FC = () => {
             <div className="space-y-4 px-5 animate-fade-in-down delay-[100ms]">
               {/* Learning Progress Card */}
               <button
-                className="w-full px-4 py-3 animate-slide-in-bottom bg-[#1C1C1E]/40 backdrop-blur-md border border-white/5 rounded-2xl text-left transition-all duration-200 active:scale-[0.98] shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
+                className="w-full px-4 py-3 animate-slide-in-bottom bg-[#1C1C1E]/50 backdrop-blur-xl border border-white/10 rounded-2xl text-left transition-all duration-200 active:scale-[0.98] shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
                 style={{
                   animationDelay: '0.1s',
                   animationFillMode: 'both',
@@ -1331,7 +1361,7 @@ const AppContent: React.FC = () => {
                 onClick={() => setMobilePage('rewards')}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">
+                  <h3 className="text-lg font-semibold text-white/80">
                     Learning Progress
                   </h3>
                   <div className="flex items-center space-x-2">
@@ -1395,12 +1425,19 @@ const AppContent: React.FC = () => {
                 }}
               >
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-white">
+                  <h2 className="text-lg font-semibold text-white/80">
                     Classes
                   </h2>
                   <button
-                    onClick={() => setShowMobileClassForm(!showMobileClassForm)}
-                    className="w-10 h-10 rounded-full bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/20 flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95"
+                    onClick={() => {
+                      // Reset form state when creating new class
+                      setMobileClassFormData({ name: '', type: null, description: '' });
+                      setEditingMobileClass(null);
+                      setMobileEditingClassDocs([]);
+                      setMobileFormStep('class');
+                      setShowMobileClassForm(!showMobileClassForm);
+                    }}
+                    className="w-10 h-10 rounded-full bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/30 flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95"
                     style={{
                       WebkitTapHighlightColor: 'transparent',
                       backdropFilter: 'blur(10px)'
@@ -1417,7 +1454,17 @@ const AppContent: React.FC = () => {
                     <div className="fixed inset-0 bg-black/40 backdrop-blur-md animate-fade-in" style={{ zIndex: 999 }} />
 
                     {/* Form container - centered */}
-                    <div className="fixed inset-0 flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+8px)] pb-6" style={{ zIndex: 1000 }}>
+                    <div
+                      className="fixed inset-0 flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+8px)] pb-6"
+                      style={{
+                        zIndex: 1000,
+                        height: '100vh',
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0
+                      }}>
                       <div
                         className="w-full max-w-sm rounded-[20px] border border-white/10 animate-slide-in-bottom duration-500 ease-out"
                         style={{
@@ -1432,7 +1479,7 @@ const AppContent: React.FC = () => {
                         {mobileFormStep === 'class' ? (
                           <div className="space-y-4">
                             <div className="text-center pb-2">
-                              <h3 className="text-lg font-medium text-white mb-1">Create New Class</h3>
+                              <h3 className="text-lg font-medium text-white mb-1">{editingMobileClass ? 'Edit Class' : 'Create New Class'}</h3>
                               <p className="text-gray-400 text-sm">Choose a name and subject type</p>
                             </div>
                             <input
@@ -1449,8 +1496,11 @@ const AppContent: React.FC = () => {
                                 return (
                                   <button
                                     key={type}
-                                    onClick={() => setMobileClassFormData(prev => ({ ...prev, type: type as DomainType }))}
-                                    className={`aspect-square p-1.5 rounded-3xl transition-all duration-300 ease-out flex flex-col items-center justify-center gap-0.5 active:scale-95 focus:outline-none ${
+                                    onClick={() => {
+                                      // Use immediate state update for better responsiveness
+                                      setMobileClassFormData(prev => ({ ...prev, type: type as DomainType }));
+                                    }}
+                                    className={`aspect-square p-1.5 rounded-3xl transition-[background-color,transform,box-shadow] duration-100 ease-out flex flex-col items-center justify-center gap-0.5 active:scale-95 focus:outline-none ${
                                       mobileClassFormData.type === type
                                         ? 'bg-gradient-to-r from-purple-500/20 to-violet-500/20 shadow-lg text-white'
                                         : 'bg-[#2C2C2E]/20 text-white/60 backdrop-blur-sm'
@@ -1666,7 +1716,14 @@ const AppContent: React.FC = () => {
                       <p className="font-medium text-white mb-1">No classes yet</p>
                       <p className="text-gray-400 text-sm mb-3">Create your first class to get started</p>
                       <button
-                        onClick={() => setShowMobileClassForm(true)}
+                        onClick={() => {
+                          // Reset form state when creating new class
+                          setMobileClassFormData({ name: '', type: null, description: '' });
+                          setEditingMobileClass(null);
+                          setMobileEditingClassDocs([]);
+                          setMobileFormStep('class');
+                          setShowMobileClassForm(true);
+                        }}
                         className="px-5 py-2.5 rounded-full text-white font-medium transition-all duration-200 active:scale-95 inline-flex items-center gap-2 text-sm"
                         style={{
                           background: 'linear-gradient(135deg, #007AFF 0%, #AF52DE 100%)',
@@ -1692,10 +1749,10 @@ const AppContent: React.FC = () => {
                         const docCount = documents.filter(doc => doc.assigned_classes?.includes(userClass.id)).length;
 
                       return (
-                        <div key={userClass.id} className={`p-4 transition-all duration-300 active:scale-[0.98] rounded-2xl relative border border-white/5 ${
+                        <div key={userClass.id} className={`p-4 transition-all duration-300 active:scale-[0.98] rounded-2xl relative border ${
                           isActive
-                            ? 'bg-gradient-to-r from-purple-500/20 to-violet-500/20 shadow-[0_4px_12px_rgba(0,0,0,0.25)]'
-                            : 'bg-[#1C1C1E]/40 backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.25)]'
+                            ? 'bg-gradient-to-r from-purple-500/25 to-violet-500/25 border-purple-400/20 shadow-[0_6px_20px_rgba(109,95,253,0.3)]'
+                            : 'bg-[#1C1C1E]/60 backdrop-blur-md border-white/10 shadow-[0_6px_16px_rgba(0,0,0,0.3)]'
                         }`}
                         style={{
                           WebkitTapHighlightColor: 'transparent',
@@ -1794,13 +1851,17 @@ const AppContent: React.FC = () => {
                   : sessions.filter(session => !session.class_id || session.class_id === null);
 
                 return (
-                  <div className="flex flex-col flex-1 min-h-0">
+                  <div className="flex flex-col flex-1 min-h-0 space-y-4 animate-slide-in-bottom"
+                    style={{
+                      animationDelay: '0.15s',
+                      animationFillMode: 'both'
+                    }}>
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="ios-title text-white">
+                      <h3 className="ios-title text-white/80">
                         Recent Chats{activeClass ? ` - ${activeClass.name}` : ''}
                       </h3>
                       <button
-                        className="w-10 h-10 rounded-full bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/20 flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95"
+                        className="w-10 h-10 rounded-full bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/30 flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95"
                         style={{
                           WebkitTapHighlightColor: 'transparent',
                           backdropFilter: 'blur(10px)'
@@ -1816,7 +1877,7 @@ const AppContent: React.FC = () => {
                     </div>
                     <div className="space-y-3 flex-1 overflow-y-auto scrollbar-none animate-fade-in-down delay-[300ms]">
                       {filteredSessions.length === 0 ? (
-                        <div className="text-center py-8">
+                        <div className="text-center py-4">
                           <div className={`w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center ${
                             theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
                           }`}>
@@ -1831,10 +1892,10 @@ const AppContent: React.FC = () => {
                           {filteredSessions.map((session) => (
                             <div
                               key={session.id}
-                              className="px-4 py-2.5 transition-all duration-300 active:scale-[0.98] active:bg-white/5 hover:bg-white/8 rounded-2xl bg-[#1C1C1E]/40 backdrop-blur-md"
+                              className="px-4 py-2.5 transition-all duration-300 active:scale-[0.98] active:bg-white/5 hover:bg-white/8 rounded-2xl bg-[#1C1C1E]/30 backdrop-blur-md"
                               style={{
                                 WebkitTapHighlightColor: 'transparent',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
                               }}
                             >
                               <div className="flex items-center justify-between">
@@ -1953,11 +2014,18 @@ const AppContent: React.FC = () => {
 
       case 'docs':
         return (
-          <div className="h-full overflow-y-auto pb-20" style={{
-            paddingTop: 'env(safe-area-inset-top)'
-          }}>
-            {/* iOS-Style Mobile Header */}
-            <div className="px-4 flex items-center justify-between" style={{ paddingTop: '72px', paddingBottom: '24px' }}>
+          <div className="h-full overflow-y-auto pb-20">
+            {/* iOS-Style Mobile Header - In Safe Area */}
+            <div
+              className="px-5 flex items-center justify-between"
+              style={{
+                paddingTop: 'calc(env(safe-area-inset-top) - 20px)',
+                paddingBottom: '16px',
+                background: 'transparent',
+                position: 'sticky',
+                top: 0,
+                zIndex: 10
+              }}>
               <div>
                 <h2 className="ios-large-title text-white">
                   Documents
@@ -1978,8 +2046,11 @@ const AppContent: React.FC = () => {
               </div>
 
               {/* iOS-Style Upload Button */}
-              <label className="w-12 h-12 rounded-full bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/20 flex items-center justify-center cursor-pointer transition-all duration-150 hover:scale-105 active:scale-95"
-                style={{ WebkitTapHighlightColor: 'transparent' }}>
+              <label className="w-12 h-12 rounded-full bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/30 flex items-center justify-center cursor-pointer transition-all duration-150 hover:scale-105 active:scale-[0.92] hover:shadow-purple-500/40"
+                style={{
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation'
+                }}>
                 <Plus className="w-6 h-6 text-white" />
                 <input
                   type="file"
@@ -1996,7 +2067,7 @@ const AppContent: React.FC = () => {
               </label>
             </div>
 
-            <div className="px-6 space-y-6">
+            <div className="space-y-4 px-5">
               {/* Class Filter - Clean */}
               {userClasses.length > 0 && (
                 <div className="relative" ref={mobileFilterRef}>
@@ -2013,14 +2084,11 @@ const AppContent: React.FC = () => {
                         }
                         setMobileFilterDropdownOpen(!mobileFilterDropdownOpen);
                       }}
-                      className={`w-full px-4 py-3 rounded-full text-sm backdrop-blur-sm border focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 flex items-center justify-between ${
-                        theme === 'dark'
-                          ? 'bg-white/10 border-white/20 text-white'
-                          : 'bg-black/10 border-black/20 text-black'
-                      }`}
+                      className="w-full px-5 py-3.5 rounded-full text-sm bg-[#1C1C1E]/30 backdrop-blur-md border border-white/10 text-white focus:outline-none focus:bg-[#1C1C1E]/40 transition-all duration-150 flex items-center justify-between active:scale-[0.97] hover:bg-[#1C1C1E]/35 ios-body"
                       style={{
-                        backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
-                        WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)'
+                        WebkitTapHighlightColor: 'transparent',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                        touchAction: 'manipulation'
                       }}
                     >
                       <span>
@@ -2040,17 +2108,15 @@ const AppContent: React.FC = () => {
                           className="fixed inset-0 z-[9998]"
                           onClick={() => setMobileFilterDropdownOpen(false)}
                         />
-                        <div className={`dropdown-container fixed rounded-2xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl ${
-                          theme === 'dark'
-                            ? 'bg-black/30 border-white/20'
-                            : 'bg-white/10 border-black/20'
-                        }`} style={{
+                        <div className="dropdown-container fixed rounded-3xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl bg-[#1C1C1E]/40 border border-white/10 animate-slide-in-bottom" style={{
                           top: mobileDropdownPosition.top + 2,
                           left: mobileDropdownPosition.left,
                           width: mobileDropdownPosition.width,
-                          backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
-                          WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
-                          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                          backdropFilter: 'blur(20px)',
+                          WebkitBackdropFilter: 'blur(20px)',
+                          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2)',
+                          animationDuration: '0.2s',
+                          animationFillMode: 'both'
                         }}>
                           <div className="relative z-10">
                             <button
@@ -2058,11 +2124,15 @@ const AppContent: React.FC = () => {
                                 setMobileDocumentFilter(null);
                                 setMobileFilterDropdownOpen(false);
                               }}
-                              className={`w-full px-4 py-3 text-base text-left transition-colors ${
+                              className={`w-full px-5 py-3.5 text-base text-left transition-all duration-150 active:scale-[0.97] ios-body ${
                                 !mobileDocumentFilter
-                                  ? theme === 'dark' ? 'bg-white/20 text-white font-medium' : 'bg-black/20 text-black font-medium'
-                                  : theme === 'dark' ? 'text-white/90 hover:bg-black/20' : 'text-gray-900/90 hover:bg-white/20'
+                                  ? 'bg-gradient-to-r from-purple-500/15 to-violet-500/15 text-white font-medium'
+                                  : 'text-white/90 hover:bg-white/8 hover:text-white'
                               }`}
+                              style={{
+                                WebkitTapHighlightColor: 'transparent',
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif'
+                              }}
                             >
                               All Documents
                             </button>
@@ -2073,11 +2143,15 @@ const AppContent: React.FC = () => {
                                   setMobileDocumentFilter(cls.id);
                                   setMobileFilterDropdownOpen(false);
                                 }}
-                                className={`w-full px-4 py-3 text-base text-left transition-colors ${
+                                className={`w-full px-5 py-3.5 text-base text-left transition-all duration-150 active:scale-[0.97] ios-body ${
                                   mobileDocumentFilter === cls.id
-                                    ? theme === 'dark' ? 'bg-white/20 text-white font-medium' : 'bg-black/20 text-black font-medium'
-                                    : theme === 'dark' ? 'text-white/90 hover:bg-black/20' : 'text-gray-900/90 hover:bg-white/20'
+                                    ? 'bg-gradient-to-r from-purple-500/15 to-violet-500/15 text-white font-medium'
+                                    : 'text-white/90 hover:bg-white/8 hover:text-white'
                                 }`}
+                                style={{
+                                  WebkitTapHighlightColor: 'transparent',
+                                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif'
+                                }}
                               >
                                 {cls.name}
                               </button>
@@ -2115,58 +2189,132 @@ const AppContent: React.FC = () => {
 
               {/* Documents List */}
               {documents.filter(doc => !mobileDocumentFilter || doc.assigned_classes?.includes(mobileDocumentFilter)).length === 0 && !isDocumentLoading ? (
-                <div className="text-center py-12">
-                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
-                    theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
-                  }`}>
-                    <Upload className={`w-8 h-8 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
+                <div className="text-center py-1 space-y-2 animate-fade-in">
+                  <div className="w-10 h-10 mx-auto rounded-full bg-white/10 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white/60" />
                   </div>
-                  <p className={`font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                    {mobileDocumentFilter ? 'No documents in this class' : 'No documents yet'}
-                  </p>
-                  <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {mobileDocumentFilter
-                      ? 'Try selecting a different class or upload documents to this class'
-                      : 'Upload your first document to get started'
-                    }
-                  </p>
+                  <div>
+                    <p className="ios-title text-white">
+                      {mobileDocumentFilter ? 'No documents in this class' : 'No documents yet'}
+                    </p>
+                    <p className="ios-subtitle text-white/70 mt-1">
+                      {mobileDocumentFilter
+                        ? 'Upload documents to this class or select a different class'
+                        : 'Upload your first document to get started'
+                      }
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {documents
                     .filter(doc => !mobileDocumentFilter || doc.assigned_classes?.includes(mobileDocumentFilter))
-                    .map((doc) => (
+                    .map((doc, index) => (
                     <div
                       key={doc.id}
-                      className={`p-4 rounded-xl  transition-all ${
-                        theme === 'dark'
-                          ? 'bg-white/5 hover:bg-gray-750'
-                          : 'bg-black/5 hover:bg-gray-50'
-                      }`}
-                    >
+                      className="p-4 rounded-2xl transition-all duration-300 active:scale-[0.98] bg-[#1C1C1E]/40 backdrop-blur-md border border-white/5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] animate-fade-in"
+                      style={{
+                        WebkitTapHighlightColor: 'transparent',
+                        touchAction: 'manipulation',
+                        animationDelay: `${index * 0.1}s`,
+                        animationFillMode: 'both'
+                      }}>
                       <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0 mr-3">
-                          <p className={`font-medium text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                            {doc.filename}
-                          </p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            {doc.assigned_classes && doc.assigned_classes.length > 0 && (
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-                              }`}>
-                                {doc.assigned_classes.length} class{doc.assigned_classes.length !== 1 ? 'es' : ''}
-                              </span>
-                            )}
+                        {editingDocumentId === doc.id ? (
+                          <div className="flex-1 flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={editingDocumentName}
+                              onChange={(e) => setEditingDocumentName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleEditDocument(doc.id, editingDocumentName);
+                                } else if (e.key === 'Escape') {
+                                  handleCancelEditingDocument();
+                                }
+                              }}
+                              onBlur={(e) => {
+                                // Only cancel if we're not clicking on action buttons
+                                const relatedTarget = e.relatedTarget as HTMLElement;
+                                if (!relatedTarget || !relatedTarget.closest('[data-edit-action]')) {
+                                  handleCancelEditingDocument();
+                                }
+                              }}
+                              className="flex-1 bg-white/8 text-white px-4 py-2.5 rounded-full text-sm outline-none ring-2 ring-violet-500/50 caret-violet-500 transition-all duration-300 placeholder-white/50"
+                              style={{
+                                WebkitTapHighlightColor: 'transparent',
+                                fontSize: '16px', // Prevent iOS zoom
+                                caretColor: '#A855F7',
+                                '--tw-ring-color': 'rgba(139, 92, 246, 0.5)',
+                                boxShadow: '0 0 0 2px rgba(139, 92, 246, 0.5)',
+                                outline: 'none',
+                                border: 'none',
+                                WebkitAppearance: 'none',
+                                MozAppearance: 'none'
+                              } as React.CSSProperties}
+                              placeholder="Document name..."
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleEditDocument(doc.id, editingDocumentName)}
+                              className="w-8 h-8 rounded-full bg-green-500/15 flex items-center justify-center text-green-400 hover:bg-green-500/25 transition-all duration-200 active:scale-95"
+                              style={{ WebkitTapHighlightColor: 'transparent' }}
+                              data-edit-action="save"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={handleCancelEditingDocument}
+                              className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:bg-white/10 transition-all duration-200 active:scale-95"
+                              style={{ WebkitTapHighlightColor: 'transparent' }}
+                              data-edit-action="cancel"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-                        </div>
-                        <button
-                          onClick={() => handleDeleteDocument(doc.id)}
-                          className={`p-2 rounded-lg transition-colors ${
-                            theme === 'dark' ? 'hover:bg-red-500/20 text-gray-400 hover:text-red-400' : 'hover:bg-red-50 text-gray-500 hover:text-red-600'
-                          }`}
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        ) : (
+                          <>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="ios-title text-white truncate">
+                                {doc.filename}
+                              </h4>
+                              <div className="flex items-center flex-wrap gap-2 mt-2">
+                                {doc.assigned_classes && doc.assigned_classes.length > 0 && (
+                                  doc.assigned_classes.map(classId => {
+                                    const userClass = userClasses.find(cls => cls.id === classId);
+                                    return userClass ? (
+                                      <span key={classId} className="ios-caption px-2 py-1 rounded-full bg-white/5 text-white/70">
+                                        {userClass.name}
+                                      </span>
+                                    ) : null;
+                                  })
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleStartEditingDocument(doc.id, doc.filename)}
+                                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95"
+                                style={{
+                                  WebkitTapHighlightColor: 'transparent'
+                                }}
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteDocument(doc.id)}
+                                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/15 transition-all duration-200 active:scale-95"
+                                style={{
+                                  WebkitTapHighlightColor: 'transparent'
+                                }}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -2181,7 +2329,9 @@ const AppContent: React.FC = () => {
         return (
           <div className="h-full overflow-y-auto pb-20">
             {/* iOS-Style Mobile Header */}
-            <div className="px-4" style={{ paddingTop: '72px', paddingBottom: '24px' }}>
+            <div className="px-4" style={{ 
+              paddingTop: 'calc(env(safe-area-inset-top) - 20px)',
+              paddingBottom: '24px' }}>
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="ios-large-title text-white">

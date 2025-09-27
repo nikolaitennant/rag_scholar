@@ -52,7 +52,7 @@ const AppContent: React.FC = () => {
   const [mobileFormStep, setMobileFormStep] = useState<'class' | 'docs'>('class');
   const [editingMobileClass, setEditingMobileClass] = useState<UserClass | null>(null);
   const [mobileEditingClassDocs, setMobileEditingClassDocs] = useState<string[]>([]);
-  const [mobileClassFormData, setMobileClassFormData] = useState({ name: '', type: DomainType.GENERAL, description: '' });
+  const [mobileClassFormData, setMobileClassFormData] = useState({ name: '', type: null as DomainType | null, description: '' });
   const [isEditingMobileClass, setIsEditingMobileClass] = useState(false);
   const [mobileInput, setMobileInput] = useState('');
   const [showCommandSuggestions, setShowCommandSuggestions] = useState(false);
@@ -1401,64 +1401,62 @@ const AppContent: React.FC = () => {
                 {showMobileClassForm && createPortal(
                   <>
                     {/* Soft overlay behind form - covers entire screen */}
-                    <div className="fixed inset-0 bg-black/30 backdrop-blur-md animate-fade-in" style={{ zIndex: 999 }} />
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-md animate-fade-in" style={{ zIndex: 999 }} />
 
                     {/* Form container - centered */}
-                    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 1000 }}>
+                    <div className="fixed inset-0 flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+8px)] pb-6" style={{ zIndex: 1000 }}>
                       <div
-                        className="w-full max-w-sm rounded-2xl border border-[#2C2C2E] animate-slide-in-bottom"
+                        className="w-full max-w-sm rounded-[20px] border border-white/10 animate-slide-in-bottom duration-500 ease-out"
                         style={{
-                          background: '#1C1C1E',
-                          boxShadow: '0 0 20px rgba(0, 0, 0, 0.5)',
-                          padding: '16px 20px'
+                          background: 'rgba(28, 28, 30, 0.95)',
+                          backdropFilter: 'blur(20px) saturate(120%)',
+                          WebkitBackdropFilter: 'blur(20px) saturate(120%)',
+                          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                          padding: '20px 24px'
                         }}
                       >
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         {mobileFormStep === 'class' ? (
-                          <div className="space-y-3">
+                          <div className="space-y-4">
+                            <div className="text-center pb-2">
+                              <h3 className="text-lg font-medium text-white mb-1">Create New Class</h3>
+                              <p className="text-gray-400 text-sm">Choose a name and subject type</p>
+                            </div>
                             <input
                               type="text"
                               value={mobileClassFormData.name}
                               onChange={(e) => setMobileClassFormData(prev => ({ ...prev, name: e.target.value }))}
                               placeholder="Class name (e.g., History 101)"
-                              className={`w-full px-3 py-2 rounded-lg text-sm border ${
-                                theme === 'dark'
-                                  ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
-                                  : 'bg-black/10 border-black/20 text-black placeholder-black/50'
-                              }`}
+                              className="w-full px-4 py-3 rounded-2xl text-sm bg-[#2C2C2E]/70 border border-white/10 text-white placeholder-white/50 focus:border-purple-500/60 focus:ring-4 focus:ring-purple-500/20 focus:outline-none backdrop-blur-sm transition-all duration-200"
                             />
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-3 gap-2">
                               {Object.entries(DOMAIN_TYPE_INFO).map(([type, info]) => {
                                 const Icon = info.icon;
                                 return (
                                   <button
                                     key={type}
                                     onClick={() => setMobileClassFormData(prev => ({ ...prev, type: type as DomainType }))}
-                                    className={`aspect-square p-1 rounded-lg transition-all flex flex-col items-center justify-center space-y-0.5 ${
+                                    className={`aspect-square p-3 rounded-2xl transition-all duration-200 flex flex-col items-center justify-center gap-1 active:scale-95 hover:bg-white/5 ${
                                       mobileClassFormData.type === type
-                                        ? theme === 'dark'
-                                          ? 'bg-white/20 text-white'
-                                          : 'bg-black/20 text-black'
-                                        : theme === 'dark'
-                                          ? 'bg-white/5 text-white/70 hover:bg-white/10'
-                                          : 'bg-black/5 text-black/70 hover:bg-black/10'
+                                        ? 'bg-gradient-to-br from-purple-500/30 to-purple-600/30 border-2 border-purple-500/60 text-purple-300 ring-2 ring-purple-500/30'
+                                        : 'bg-[#2C2C2E]/50 border border-white/10 text-white/60 backdrop-blur-sm'
                                     }`}
                                   >
-                                    <Icon className="w-3 h-3" />
-                                    <span className="text-[10px] font-medium leading-tight">{info.label}</span>
+                                    <Icon className="w-[20px] h-[20px]" />
+                                    <span className="text-[13px] font-medium text-center leading-tight">{info.label}</span>
                                   </button>
                                 );
                               })}
                             </div>
                           </div>
                         ) : (
-                          <div className="space-y-3">
-                            <div className="text-center py-2">
-                              <h4 className="text-white font-medium mb-1">Add Documents</h4>
-                              <p className="text-gray-400 text-sm">Select documents for your class</p>
+                          <div className="space-y-4">
+                            <div className="text-center pb-2">
+                              <h4 className="text-lg font-medium text-white mb-1">Add Documents</h4>
+                              <p className="text-gray-400 text-sm">Upload or select documents for your class</p>
                             </div>
 
-                            {/* Upload new document button */}
+                            {/* Upload new document button - simplified */}
                             <button
                               onClick={() => {
                                 // Trigger file input (we'll need to add a hidden input)
@@ -1475,20 +1473,13 @@ const AppContent: React.FC = () => {
                                 };
                                 fileInput.click();
                               }}
-                              className="w-full p-4 rounded-2xl text-white transition-all duration-200 active:scale-95"
+                              className="w-full py-3 rounded-2xl transition-all duration-200 active:scale-[0.98] bg-purple-500/10 border border-purple-500/30 backdrop-blur-sm flex items-center justify-center gap-2"
                               style={{
-                                background: 'rgba(0, 122, 255, 0.1)',
-                                border: '2px dashed rgba(0, 122, 255, 0.3)',
                                 WebkitTapHighlightColor: 'transparent'
                               }}
                             >
-                              <div className="flex flex-col items-center space-y-2">
-                                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                                  <Plus className="w-5 h-5 text-blue-400" />
-                                </div>
-                                <span className="text-sm font-medium text-blue-400">Upload New Document</span>
-                                <span className="text-xs text-gray-400">PDF, TXT, MD, DOC</span>
-                              </div>
+                              <Plus className="w-5 h-5 text-purple-400" />
+                              <span className="text-sm font-medium text-purple-400">Upload Document</span>
                             </button>
 
                             {/* Existing documents */}
@@ -1509,7 +1500,7 @@ const AppContent: React.FC = () => {
                                       }}
                                       className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all duration-200 active:scale-95 ${
                                         mobileEditingClassDocs.includes(doc.id)
-                                          ? 'bg-blue-500/20 text-white border-2 border-blue-500/40'
+                                          ? 'bg-gradient-to-br from-purple-500/20 to-purple-600/20 text-white border-2 border-purple-500/60 ring-1 ring-purple-500/30'
                                           : 'bg-white/8 text-white/90 hover:bg-white/12'
                                       }`}
                                       style={{
@@ -1519,12 +1510,12 @@ const AppContent: React.FC = () => {
                                       <div className="flex items-center space-x-3 min-w-0">
                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                                           mobileEditingClassDocs.includes(doc.id)
-                                            ? 'bg-blue-500/30'
+                                            ? 'bg-purple-500/30'
                                             : 'bg-gray-600/50'
                                         }`}>
                                           <FileText className={`w-5 h-5 ${
                                             mobileEditingClassDocs.includes(doc.id)
-                                              ? 'text-blue-400'
+                                              ? 'text-purple-400'
                                               : 'text-gray-400'
                                           }`} />
                                         </div>
@@ -1534,7 +1525,7 @@ const AppContent: React.FC = () => {
                                         </div>
                                       </div>
                                       {mobileEditingClassDocs.includes(doc.id) && (
-                                        <div className="w-3 h-3 rounded-full bg-blue-400 flex-shrink-0"></div>
+                                        <div className="w-3 h-3 rounded-full bg-purple-400 flex-shrink-0"></div>
                                       )}
                                     </button>
                                   ))}
@@ -1549,21 +1540,25 @@ const AppContent: React.FC = () => {
                           </div>
                         )}
 
-                        <div className="flex space-x-2">
+                        <div className="flex space-x-3 pt-2">
                           {mobileFormStep === 'class' ? (
                             <>
                               <button
                                 onClick={() => {
-                                  if (mobileClassFormData.name.trim()) {
+                                  if (mobileClassFormData.name.trim() && mobileClassFormData.type) {
                                     setMobileFormStep('docs');
                                   }
                                 }}
-                                disabled={!mobileClassFormData.name.trim()}
-                                className={`flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-all ${
-                                  mobileClassFormData.name.trim()
-                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
-                                    : 'bg-gradient-to-r from-gray-400 to-gray-500 text-gray-300 cursor-not-allowed opacity-50'
-                                } flex items-center justify-center gap-1`}
+                                disabled={!mobileClassFormData.name.trim() || !mobileClassFormData.type}
+                                className="flex-1 py-3 px-4 rounded-full font-medium text-sm transition-all duration-200 active:scale-95 text-white"
+                                style={{
+                                  background: (mobileClassFormData.name.trim() && mobileClassFormData.type)
+                                    ? 'linear-gradient(135deg, #007AFF 0%, #AF52DE 100%)'
+                                    : 'rgba(147, 51, 234, 0.3)',
+                                  boxShadow: (mobileClassFormData.name.trim() && mobileClassFormData.type)
+                                    ? '0 4px 12px rgba(0, 122, 255, 0.3)'
+                                    : 'none'
+                                }}
                               >
                                 Next
                               </button>
@@ -1571,13 +1566,11 @@ const AppContent: React.FC = () => {
                                 onClick={() => {
                                   setShowMobileClassForm(false);
                                   setMobileFormStep('class');
-                                  setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
+                                  setMobileClassFormData({ name: '', type: null, description: '' });
                                   setEditingMobileClass(null);
                                   setMobileEditingClassDocs([]);
                                 }}
-                                className={`px-3 py-2 rounded-lg text-sm ${
-                                  theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
-                                }`}
+                                className="px-4 py-3 rounded-full text-white/70 hover:text-white text-sm font-medium transition-all duration-200 active:scale-95 bg-white/5 backdrop-blur-sm"
                               >
                                 Cancel
                               </button>
@@ -1586,9 +1579,7 @@ const AppContent: React.FC = () => {
                             <>
                               <button
                                 onClick={() => setMobileFormStep('class')}
-                                className={`px-3 py-2 rounded-lg text-sm ${
-                                  theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
-                                }`}
+                                className="px-4 py-3 rounded-full text-white/70 hover:text-white text-sm font-medium transition-all duration-200 active:scale-95 bg-white/5 backdrop-blur-sm"
                               >
                                 Back
                               </button>
@@ -1612,11 +1603,11 @@ const AppContent: React.FC = () => {
                                       } else {
                                         handleCreateClass(
                                           mobileClassFormData.name,
-                                          mobileClassFormData.type,
+                                          mobileClassFormData.type!,
                                           mobileClassFormData.description
                                         );
                                       }
-                                      setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
+                                      setMobileClassFormData({ name: '', type: null, description: '' });
                                       setShowMobileClassForm(false);
                                       setMobileFormStep('class');
                                     } finally {
@@ -1625,11 +1616,14 @@ const AppContent: React.FC = () => {
                                   }
                                 }}
                                 disabled={!mobileClassFormData.name.trim() || isEditingMobileClass}
-                                className={`flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-all ${
+                                className={`flex-1 py-3 px-4 rounded-full font-medium text-sm transition-all duration-200 active:scale-95 ${
                                   mobileClassFormData.name.trim() && !isEditingMobileClass
-                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
-                                    : 'bg-gradient-to-r from-gray-400 to-gray-500 text-gray-300 cursor-not-allowed opacity-50'
+                                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                                    : 'bg-white/10 text-white/50'
                                 } flex items-center justify-center gap-1`}
+                                style={{
+                                  background: (!mobileClassFormData.name.trim() || isEditingMobileClass) ? 'rgba(147, 51, 234, 0.3)' : 'linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%)'
+                                }}
                               >
                                 {isEditingMobileClass && (
                                   <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent"></div>
@@ -1651,37 +1645,25 @@ const AppContent: React.FC = () => {
 
                 {/* Classes List */}
                 {userClasses.length === 0 && !showMobileClassForm ? (
-                  <div className="text-center py-6 space-y-2 animate-fade-in">
-                    <div className="w-10 h-10 mx-auto rounded-full flex items-center justify-center animate-pulse bg-white/10">
-                      <BookOpen className="w-4 h-4 text-white/60" style={{ transform: 'translateX(0.5px)' }} />
+                  <div className="text-center py-8 space-y-4 animate-fade-in">
+                    <div className="w-10 h-10 mx-auto rounded-full bg-[#2C2C2E]/70 backdrop-blur-sm flex items-center justify-center">
+                      <BookOpen className="w-5 h-5 text-white/60" />
                     </div>
                     <div>
-                      <p className="text-white font-medium text-[15px]">
-                        No classes yet
-                      </p>
-                      <p className="text-gray-400 text-[13px] mt-1">
-                        Create your first class to get started
-                      </p>
+                      <p className="font-medium text-white mb-1">No classes yet</p>
+                      <p className="text-gray-400 text-sm mb-4">Create your first class to get started</p>
+                      <button
+                        onClick={() => setShowMobileClassForm(true)}
+                        className="px-6 py-3 rounded-full text-white font-medium transition-all duration-200 active:scale-95 inline-flex items-center gap-2"
+                        style={{
+                          background: 'linear-gradient(135deg, #007AFF 0%, #AF52DE 100%)',
+                          boxShadow: '0 4px 12px rgba(0, 122, 255, 0.3)'
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Create Class
+                      </button>
                     </div>
-                    <button
-                      onClick={() => setShowMobileClassForm(true)}
-                      className="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 active:scale-95"
-                      style={{
-                        background: 'linear-gradient(135deg, #007AFF 0%, #AF52DE 100%)',
-                        boxShadow: '0 4px 12px rgba(0, 122, 255, 0.3)'
-                      }}
-                      onMouseDown={(e) => {
-                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 122, 255, 0.4)';
-                      }}
-                      onMouseUp={(e) => {
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 122, 255, 0.3)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 122, 255, 0.3)';
-                      }}
-                    >
-                      <span className="text-white">Create Class</span>
-                    </button>
                   </div>
                 ) : (
                   <div className="space-y-3">

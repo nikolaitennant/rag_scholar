@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Edit2, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send, ChevronDown, Trash2, ArrowLeft, FileText } from 'lucide-react';
+import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Edit2, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send, ChevronDown, Trash2, ArrowLeft, FileText, Circle, Disc, CircleDot } from 'lucide-react';
 import { ChatInterface } from './components/ChatInterface';
 import { Sidebar } from './components/Sidebar';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -1174,36 +1174,30 @@ const AppContent: React.FC = () => {
           <div className="h-full chat-container" style={{ display: 'flex', flexDirection: 'column' }}>
             {/* iOS-Style Mobile Chat Header - Sticky */}
             <div
-              className="sticky top-0 px-4 z-50 flex-shrink-0"
+              className="px-5 flex items-center justify-between"
               style={{
-                paddingTop: 'env(safe-area-inset-top)',
-                paddingBottom: '8px',
-                background: 'rgba(28, 28, 30, 0.95)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                borderBottom: '0.33px solid var(--ios-divider)',
-                position: '-webkit-sticky'
+                paddingTop: 'calc(env(safe-area-inset-top) + 16px)',
+                paddingBottom: '16px',
+                background: 'transparent'
               }}
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="ios-title text-white">
-                    {activeClass ? activeClass.name : 'Chat'}
-                  </h1>
-                  {activeClass && (
-                    <p className="ios-caption text-white opacity-60 mt-1">
-                      {DOMAIN_TYPE_INFO[activeClass.domainType]?.label || activeClass.domainType}
-                    </p>
-                  )}
-                </div>
-                <button
+              <div>
+                <h1 className="ios-title text-white">
+                  {activeClass ? activeClass.name : 'Chat'}
+                </h1>
+                {activeClass && (
+                  <p className="ios-caption text-white opacity-60 mt-1">
+                    {DOMAIN_TYPE_INFO[activeClass.domainType]?.label || activeClass.domainType}
+                  </p>
+                )}
+              </div>
+              <button
                   onClick={handleNewChat}
-                  className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center transition-all duration-150 active:scale-95"
+                  className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-white/10 flex items-center justify-center transition-all duration-150 active:scale-95"
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                   <Plus className="w-4 h-4 text-white/70" />
                 </button>
-              </div>
             </div>
 
             {/* Mobile Chat Interface */}
@@ -1420,7 +1414,7 @@ const AppContent: React.FC = () => {
               {/* iOS-Style Classes Section */}
               <div className="space-y-4 animate-slide-in-bottom"
                 style={{
-                  animationDelay: '0.2s',
+                  animationDelay: '0.15s',
                   animationFillMode: 'both'
                 }}
               >
@@ -1437,7 +1431,7 @@ const AppContent: React.FC = () => {
                       setMobileFormStep('class');
                       setShowMobileClassForm(!showMobileClassForm);
                     }}
-                    className="w-10 h-10 rounded-full bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/30 flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95"
+                    className="w-9 h-9 min-w-9 rounded-full flex-shrink-0 bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/30 flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95"
                     style={{
                       WebkitTapHighlightColor: 'transparent',
                       backdropFilter: 'blur(10px)'
@@ -1552,7 +1546,7 @@ const AppContent: React.FC = () => {
                             {documents.length > 0 ? (
                               <div>
                                 <div className="text-sm font-medium text-white mb-3">Existing Documents</div>
-                                <div className="space-y-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                <div className="space-y-2 scrollbar-none" style={{ maxHeight: '200px', overflowY: 'auto' }}>
                                   {documents.map((doc) => (
                                     <button
                                       key={doc.id}
@@ -1710,7 +1704,7 @@ const AppContent: React.FC = () => {
                 {userClasses.length === 0 && !showMobileClassForm ? (
                   <div className="text-center py-2 space-y-3 animate-fade-in">
                     <div className="w-10 h-10 mx-auto rounded-full bg-white/10 flex items-center justify-center">
-                      <BookOpen className="w-5 h-5 text-white/60" />
+                      <BookOpen className="w-4 h-4 text-white/60" />
                     </div>
                     <div>
                       <p className="font-medium text-white mb-1">No classes yet</p>
@@ -1815,7 +1809,7 @@ const AppContent: React.FC = () => {
                                   );
                                   setShowMobileClassForm(true);
                                 }}
-                                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95"
+                                className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-white/5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95"
                                 style={{
                                   WebkitTapHighlightColor: 'transparent'
                                 }}
@@ -1827,7 +1821,7 @@ const AppContent: React.FC = () => {
                                   e.stopPropagation();
                                   handleDeleteClass(userClass.id);
                                 }}
-                                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/15 transition-all duration-200 active:scale-95"
+                                className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-white/5 flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/15 transition-all duration-200 active:scale-95"
                                 style={{
                                   WebkitTapHighlightColor: 'transparent'
                                 }}
@@ -1851,17 +1845,17 @@ const AppContent: React.FC = () => {
                   : sessions.filter(session => !session.class_id || session.class_id === null);
 
                 return (
-                  <div className="flex flex-col flex-1 min-h-0 space-y-4 animate-slide-in-bottom"
+                  <div className="flex flex-col flex-1 min-h-0 space-y-3 mt-2 animate-slide-in-bottom"
                     style={{
-                      animationDelay: '0.15s',
+                      animationDelay: '0.2s',
                       animationFillMode: 'both'
                     }}>
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-2">
                       <h3 className="ios-title text-white/80">
                         Recent Chats{activeClass ? ` - ${activeClass.name}` : ''}
                       </h3>
                       <button
-                        className="w-10 h-10 rounded-full bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/30 flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95"
+                        className="w-9 h-9 min-w-9 rounded-full flex-shrink-0 bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/30 flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95"
                         style={{
                           WebkitTapHighlightColor: 'transparent',
                           backdropFilter: 'blur(10px)'
@@ -1936,7 +1930,7 @@ const AppContent: React.FC = () => {
                                     />
                                     <button
                                       onClick={() => handleEditMobileSession(session.id, editingSessionName)}
-                                      className="w-8 h-8 rounded-full bg-green-500/15 flex items-center justify-center text-green-400 hover:bg-green-500/25 transition-all duration-200 active:scale-95"
+                                      className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-green-500/15 flex items-center justify-center text-green-400 hover:bg-green-500/25 transition-all duration-200 active:scale-95"
                                       style={{ WebkitTapHighlightColor: 'transparent' }}
                                       data-edit-action="save"
                                     >
@@ -1946,7 +1940,7 @@ const AppContent: React.FC = () => {
                                     </button>
                                     <button
                                       onClick={handleCancelEditingMobileSession}
-                                      className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:bg-white/10 transition-all duration-200 active:scale-95"
+                                      className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-white/5 flex items-center justify-center text-white/60 hover:bg-white/10 transition-all duration-200 active:scale-95"
                                       style={{ WebkitTapHighlightColor: 'transparent' }}
                                       data-edit-action="cancel"
                                     >
@@ -1977,7 +1971,7 @@ const AppContent: React.FC = () => {
                                         e.stopPropagation();
                                         handleStartEditingMobileSession(session.id, session.name);
                                       }}
-                                      className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95 ml-2"
+                                      className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-white/5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95 ml-2"
                                       style={{
                                         WebkitTapHighlightColor: 'transparent'
                                       }}
@@ -1989,7 +1983,7 @@ const AppContent: React.FC = () => {
                                         e.stopPropagation();
                                         handleDeleteSession(session.id);
                                       }}
-                                      className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/15 transition-all duration-200 active:scale-95 ml-2"
+                                      className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-white/5 flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/15 transition-all duration-200 active:scale-95 ml-2"
                                       style={{
                                         WebkitTapHighlightColor: 'transparent'
                                       }}
@@ -2067,7 +2061,7 @@ const AppContent: React.FC = () => {
               </label>
             </div>
 
-            <div className="space-y-4 px-5">
+            <div className="space-y-4 px-5 animate-fade-in" style={{ animationDelay: '0.1s', animationFillMode: 'both' }}>
               {/* Class Filter - Clean */}
               {userClasses.length > 0 && (
                 <div className="relative" ref={mobileFilterRef}>
@@ -2191,7 +2185,7 @@ const AppContent: React.FC = () => {
               {documents.filter(doc => !mobileDocumentFilter || doc.assigned_classes?.includes(mobileDocumentFilter)).length === 0 && !isDocumentLoading ? (
                 <div className="text-center py-1 space-y-2 animate-fade-in">
                   <div className="w-10 h-10 mx-auto rounded-full bg-white/10 flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-white/60" />
+                    <FileText className="w-4 h-4 text-white/60" />
                   </div>
                   <div>
                     <p className="ios-title text-white">
@@ -2257,7 +2251,7 @@ const AppContent: React.FC = () => {
                             />
                             <button
                               onClick={() => handleEditDocument(doc.id, editingDocumentName)}
-                              className="w-8 h-8 rounded-full bg-green-500/15 flex items-center justify-center text-green-400 hover:bg-green-500/25 transition-all duration-200 active:scale-95"
+                              className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-green-500/15 flex items-center justify-center text-green-400 hover:bg-green-500/25 transition-all duration-200 active:scale-95"
                               style={{ WebkitTapHighlightColor: 'transparent' }}
                               data-edit-action="save"
                             >
@@ -2267,7 +2261,7 @@ const AppContent: React.FC = () => {
                             </button>
                             <button
                               onClick={handleCancelEditingDocument}
-                              className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:bg-white/10 transition-all duration-200 active:scale-95"
+                              className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-white/5 flex items-center justify-center text-white/60 hover:bg-white/10 transition-all duration-200 active:scale-95"
                               style={{ WebkitTapHighlightColor: 'transparent' }}
                               data-edit-action="cancel"
                             >
@@ -2296,7 +2290,7 @@ const AppContent: React.FC = () => {
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => handleStartEditingDocument(doc.id, doc.filename)}
-                                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95"
+                                className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-white/5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95"
                                 style={{
                                   WebkitTapHighlightColor: 'transparent'
                                 }}
@@ -2305,7 +2299,7 @@ const AppContent: React.FC = () => {
                               </button>
                               <button
                                 onClick={() => handleDeleteDocument(doc.id)}
-                                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/15 transition-all duration-200 active:scale-95"
+                                className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-white/5 flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/15 transition-all duration-200 active:scale-95"
                                 style={{
                                   WebkitTapHighlightColor: 'transparent'
                                 }}
@@ -2327,42 +2321,35 @@ const AppContent: React.FC = () => {
 
       case 'rewards':
         return (
-          <div className="h-full overflow-y-auto pb-20">
-            {/* iOS-Style Mobile Header */}
-            <div className="px-4" style={{ 
-              paddingTop: 'calc(env(safe-area-inset-top) - 20px)',
-              paddingBottom: '24px' }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="ios-large-title text-white">
-                    Rewards
-                  </h2>
-                  <p className="ios-subtitle text-white mt-2">
-                    {mobileRewardsTab === 'achievements' ? 'Track your learning progress' : 'Redeem your points for rewards'}
-                  </p>
-                </div>
-                <div className={`rounded-full px-3 py-1.5 flex items-center gap-2 whitespace-nowrap ${
-                  theme === 'dark'
-                    ? 'bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40'
-                    : 'bg-gradient-to-r from-yellow-300/50 to-amber-400/50 border border-amber-500/50'
-                }`}>
-                  <Star className={`w-4 h-4 ${
-                    theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
-                  }`} />
-                  <span className={`font-bold text-sm ${
-                    theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
-                  }`}>
-                    {userProfile?.stats?.total_points || 0} pts
-                  </span>
-                </div>
+          <div className="h-full flex flex-col">
+            {/* Fixed Header */}
+            <div
+              className="px-5 flex items-center justify-between"
+              style={{
+                paddingTop: 'calc(env(safe-area-inset-top) - 20px)',
+                paddingBottom: '16px'
+              }}>
+              <div className="animate-fade-in" style={{ animationDelay: '0s', animationFillMode: 'both' }}>
+                <h2 className="ios-large-title text-white">
+                  Rewards
+                </h2>
+                <p className="ios-subtitle text-white mt-2">
+                  {mobileRewardsTab === 'achievements' ? 'Track your learning progress' : 'Redeem your points for rewards'}
+                </p>
+              </div>
+              <div className="rounded-full px-2 py-0 flex items-center gap-2 whitespace-nowrap bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40 animate-fade-in" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
+                <Star className="w-4 h-4 text-yellow-400" />
+                <span className="font-bold text-sm text-yellow-400">
+                  {userProfile?.stats?.total_points || 0} pts
+                </span>
               </div>
             </div>
 
-            {/* iOS-Style Segmented Control */}
-            <div className="px-6 mb-8">
-              <div className={`flex p-1 rounded-2xl ${
+            {/* Fixed Segmented Control */}
+            <div className="px-5 pb-4">
+              <div className={`flex p-1 rounded-2xl animate-fade-in ${
                 theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
-              }`}>
+              }`} style={{ animationDelay: '0.15s', animationFillMode: 'both' }}>
                 {[
                   { key: 'achievements', label: 'Achievements' },
                   { key: 'store', label: 'Store' }
@@ -2386,20 +2373,22 @@ const AppContent: React.FC = () => {
               </div>
             </div>
 
-            <div className="px-4 space-y-4">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto pb-20">
+              <div className="px-5 space-y-4">
               {mobileRewardsTab === 'achievements' ? (
                 <>
               {/* In Progress Section */}
               {achievements.filter(a => a.unlocked_at === null).length > 0 && (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 px-2">
+                  <div className="flex items-center gap-2">
                     <Target className="w-4 h-4 text-blue-400" />
                     <h4 className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                       IN PROGRESS
                     </h4>
                   </div>
                   <div className="space-y-3">
-                    {achievements.filter(a => a.unlocked_at === null).map((achievement) => {
+                    {achievements.filter(a => a.unlocked_at === null).map((achievement, index) => {
                       const getIcon = (type: string) => {
                         const iconMap: { [key: string]: any } = {
                           first_chat: MessageCircle,
@@ -2429,8 +2418,11 @@ const AppContent: React.FC = () => {
                       return (
                         <div
                           key={achievement.id}
-                          className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}
-                        >
+                          className={`p-3 rounded-lg animate-fade-in ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}
+                          style={{
+                            animationDelay: `${0.2 + index * 0.05}s`,
+                            animationFillMode: 'both'
+                          }}>
                           <div className="flex items-start justify-between mb-2">
                             <Icon className={`w-5 h-5 ${getColor(achievement.type)}`} />
                             <div className="bg-gradient-to-r from-blue-400/20 to-purple-400/20 border border-purple-400/40 rounded-full px-2 py-1 flex items-center gap-1 whitespace-nowrap">
@@ -2472,7 +2464,7 @@ const AppContent: React.FC = () => {
               {/* Unlocked Section */}
               {achievements.filter(a => a.unlocked_at !== null).length > 0 && (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 px-2">
+                  <div className="flex items-center gap-2">
                     <Trophy className={`w-4 h-4 ${
                       theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
                     }`} />
@@ -2481,7 +2473,7 @@ const AppContent: React.FC = () => {
                     </h4>
                   </div>
                   <div className="space-y-3">
-                    {achievements.filter(a => a.unlocked_at !== null).map((achievement) => {
+                    {achievements.filter(a => a.unlocked_at !== null).map((achievement, index) => {
                       const getIcon = (type: string) => {
                         const iconMap: { [key: string]: any } = {
                           first_chat: MessageCircle,
@@ -2511,8 +2503,11 @@ const AppContent: React.FC = () => {
                       return (
                         <div
                           key={achievement.id}
-                          className={`relative p-3 rounded-lg ${theme === 'dark' ? 'bg-white/10 shadow-lg' : 'bg-black/10 shadow-lg'}`}
-                        >
+                          className={`relative p-3 rounded-lg animate-fade-in ${theme === 'dark' ? 'bg-white/10 shadow-lg' : 'bg-black/10 shadow-lg'}`}
+                          style={{
+                            animationDelay: `${0.2 + index * 0.05}s`,
+                            animationFillMode: 'both'
+                          }}>
                           <div className={`absolute inset-0 rounded-lg animate-pulse ${
                             theme === 'dark'
                               ? 'bg-gradient-to-r from-yellow-400/20 to-orange-400/20'
@@ -2573,178 +2568,210 @@ const AppContent: React.FC = () => {
                 </>
               ) : (
                 /* Store Tab Content */
-                <div className="space-y-3">
-                  {/* Store Items */}
-                  <div className={`border rounded-lg p-3 ${
-                    theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
-                  }`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Zap className={`w-4 h-4 ${
-                          theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
-                        }`} />
-                        <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                          Rounded Chat Input
-                        </span>
+                <div className="space-y-4">
+                  {/* Store Items with iOS Design */}
+                  <div className="p-4 rounded-2xl transition-all duration-300 active:scale-[0.98] bg-[#1C1C1E]/40 backdrop-blur-md border border-white/5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] animate-fade-in"
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation',
+                      animationDelay: '0s',
+                      animationFillMode: 'both'
+                    }}>
+                    <div className="relative mb-3">
+                      <div className="flex items-center gap-3 pr-14">
+                        <div className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-[#6D5FFD] flex items-center justify-center">
+                          <Zap className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="ios-title text-white leading-tight">
+                            Rounded Chat Input
+                          </h4>
+                          <p className="ios-caption text-white/70 mt-1">
+                            Pill-shaped chat input with smooth corners
+                          </p>
+                        </div>
                       </div>
-                      <div className="bg-gradient-to-r from-blue-400/20 to-indigo-400/20 border border-blue-400/40 rounded-full px-2 py-1 flex items-center gap-1">
-                        <span className="text-xs text-blue-400 font-bold">
+                      <div className="absolute top-0 right-0 rounded-full px-2 py-0 bg-gradient-to-r from-purple-500/15 to-violet-500/15 border border-purple-400/20">
+                        <span className="ios-caption font-semibold text-purple-400">
                           150 pts
                         </span>
                       </div>
                     </div>
-                    <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                      Pill-shaped chat input with smooth corners
-                    </p>
                     <button
                       disabled={(userProfile?.stats?.total_points || 0) < 150}
-                      className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
+                      className={`w-full py-2.5 rounded-full ios-body font-semibold transition-all duration-200 active:scale-[0.98] ${
                         (userProfile?.stats?.total_points || 0) >= 150
-                          ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg'
-                          : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
+                          ? 'bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/30'
+                          : 'bg-white/5 border border-white/10 text-white/50 cursor-not-allowed'
                       }`}
-                    >
-                      {(userProfile?.stats?.total_points || 0) >= 50 ? 'Redeem' : `Need ${50 - (userProfile?.stats?.total_points || 0)} more points`}
-                    </button>
-                  </div>
-
-                  <div className={`border rounded-lg p-3 ${
-                    theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
-                  }`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Star className={`w-4 h-4 ${theme === 'dark' ? 'text-purple-400' : 'text-purple-600'}`} />
-                        <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                          Space Theme
-                        </span>
-                      </div>
-                      <div className="bg-gradient-to-r from-purple-400/20 to-violet-400/20 border border-purple-400/40 rounded-full px-2 py-1 flex items-center gap-1">
-                        <span className="text-xs text-purple-400 font-bold">
-                          250 pts
-                        </span>
-                      </div>
-                    </div>
-                    <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                      Deep space colors with starry gradients
-                    </p>
-                    <button
-                      disabled={(userProfile?.stats?.total_points || 0) < 250}
-                      className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
-                        (userProfile?.stats?.total_points || 0) >= 250
-                          ? 'bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white shadow-lg'
-                          : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
-                      }`}
-                    >
-                      {(userProfile?.stats?.total_points || 0) >= 100 ? 'Redeem' : `Need ${100 - (userProfile?.stats?.total_points || 0)} more points`}
-                    </button>
-                  </div>
-
-                  <div className={`border rounded-lg p-3 ${
-                    theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
-                  }`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Heart className={`w-4 h-4 ${theme === 'dark' ? 'text-pink-400' : 'text-pink-600'}`} />
-                        <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                          Cherry Blossom Theme
-                        </span>
-                      </div>
-                      <div className="bg-gradient-to-r from-pink-400/20 to-rose-400/20 border border-pink-400/40 rounded-full px-2 py-1 flex items-center gap-1">
-                        <span className="text-xs text-pink-400 font-bold">
-                          300 pts
-                        </span>
-                      </div>
-                    </div>
-                    <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                      Soft pink and white spring vibes
-                    </p>
-                    <button
-                      disabled={(userProfile?.stats?.total_points || 0) < 300}
-                      className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
-                        (userProfile?.stats?.total_points || 0) >= 300
-                          ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-lg'
-                          : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
-                      }`}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
                     >
                       {(userProfile?.stats?.total_points || 0) >= 150 ? 'Redeem' : `Need ${150 - (userProfile?.stats?.total_points || 0)} more points`}
                     </button>
                   </div>
 
-                  <div className={`border rounded-lg p-3 ${
-                    theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
-                  }`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Award className={`w-4 h-4 ${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'}`} />
-                        <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                          Cyberpunk Theme
-                        </span>
+                  <div className="p-4 rounded-2xl transition-all duration-300 active:scale-[0.98] bg-[#1C1C1E]/40 backdrop-blur-md border border-white/5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] animate-fade-in"
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation',
+                      animationDelay: '0s',
+                      animationFillMode: 'both'
+                    }}>
+                    <div className="relative mb-3">
+                      <div className="flex items-center gap-3 pr-14">
+                        <div className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-purple-500 flex items-center justify-center">
+                          <Star className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="ios-title text-white">
+                            Space Theme
+                          </h4>
+                          <p className="ios-caption text-white/70 mt-1">
+                            Deep space colors with starry gradients
+                          </p>
+                        </div>
                       </div>
-                      <div className={`rounded-full px-2 py-1 flex items-center gap-1 whitespace-nowrap ${
-                        theme === 'dark'
-                          ? 'bg-gradient-to-r from-cyan-400/20 to-teal-400/20 border border-cyan-400/40'
-                          : 'bg-slate-200/80 border border-slate-500/80'
-                      }`}>
-                        <span className={`text-xs font-bold ${
-                          theme === 'dark' ? 'text-cyan-400' : 'text-slate-800'
-                        }`}>
-                          400 pts
+                      <div className="absolute top-0 right-0 rounded-full px-2 py-0 bg-gradient-to-r from-purple-500/15 to-violet-500/15 border border-purple-400/20">
+                        <span className="ios-caption font-semibold text-purple-400">
+                          250 pts
                         </span>
                       </div>
                     </div>
-                    <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                      Neon cyber colors with electric vibes
-                    </p>
                     <button
-                      disabled={(userProfile?.stats?.total_points || 0) < 400}
-                      className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
-                        (userProfile?.stats?.total_points || 0) >= 400
-                          ? 'bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white shadow-lg'
-                          : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
+                      disabled={(userProfile?.stats?.total_points || 0) < 250}
+                      className={`w-full py-2.5 rounded-full ios-body font-semibold transition-all duration-200 active:scale-[0.98] ${
+                        (userProfile?.stats?.total_points || 0) >= 250
+                          ? 'bg-gradient-to-r from-purple-500 to-violet-500 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/30'
+                          : 'bg-white/5 border border-white/10 text-white/50 cursor-not-allowed'
                       }`}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
                     >
-                      {(userProfile?.stats?.total_points || 0) >= 200 ? 'Redeem' : `Need ${200 - (userProfile?.stats?.total_points || 0)} more points`}
+                      {(userProfile?.stats?.total_points || 0) >= 250 ? 'Redeem' : `Need ${250 - (userProfile?.stats?.total_points || 0)} more points`}
                     </button>
                   </div>
 
-                  <div className={`border rounded-lg p-3 ${
-                    theme === 'dark' ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'
-                  }`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className={`w-4 h-4 ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`} />
-                        <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                          Particle Effects
-                        </span>
+                  <div className="p-4 rounded-2xl transition-all duration-300 active:scale-[0.98] bg-[#1C1C1E]/40 backdrop-blur-md border border-white/5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] animate-fade-in"
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation',
+                      animationDelay: '0s',
+                      animationFillMode: 'both'
+                    }}>
+                    <div className="relative mb-3">
+                      <div className="flex items-center gap-3 pr-14">
+                        <div className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center">
+                          <Heart className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="ios-title text-white">
+                            Cherry Blossom Theme
+                          </h4>
+                          <p className="ios-caption text-white/70 mt-1">
+                            Soft pink and white spring vibes
+                          </p>
+                        </div>
                       </div>
-                      <div className={`rounded-full px-2 py-1 flex items-center gap-1 whitespace-nowrap ${
-                        theme === 'dark'
-                          ? 'bg-gradient-to-r from-green-400/20 to-emerald-400/20 border border-green-400/40'
-                          : 'bg-emerald-200/80 border border-emerald-600/80'
-                      }`}>
-                        <span className={`text-xs font-bold ${
-                          theme === 'dark' ? 'text-green-400' : 'text-emerald-800'
-                        }`}>
-                          500 pts
+                      <div className="absolute top-0 right-0 rounded-full px-2 py-0 bg-gradient-to-r from-pink-500/15 to-rose-500/15 border border-pink-400/20">
+                        <span className="ios-caption font-semibold text-pink-400">
+                          300 pts
                         </span>
                       </div>
                     </div>
-                    <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
-                      Floating sparkles and particle animations
-                    </p>
                     <button
-                      disabled={(userProfile?.stats?.total_points || 0) < 500}
-                      className={`w-full py-2 px-3 rounded-full text-xs font-bold transition-colors ${
-                        (userProfile?.stats?.total_points || 0) >= 500
-                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg'
-                          : 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/40 text-gray-400 cursor-not-allowed'
+                      disabled={(userProfile?.stats?.total_points || 0) < 300}
+                      className={`w-full py-2.5 rounded-full ios-body font-semibold transition-all duration-200 active:scale-[0.98] ${
+                        (userProfile?.stats?.total_points || 0) >= 300
+                          ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-500/25 hover:shadow-pink-500/30'
+                          : 'bg-white/5 border border-white/10 text-white/50 cursor-not-allowed'
                       }`}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
                     >
                       {(userProfile?.stats?.total_points || 0) >= 300 ? 'Redeem' : `Need ${300 - (userProfile?.stats?.total_points || 0)} more points`}
                     </button>
                   </div>
+
+                  <div className="p-4 rounded-2xl transition-all duration-300 active:scale-[0.98] bg-[#1C1C1E]/40 backdrop-blur-md border border-white/5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] animate-fade-in"
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation',
+                      animationDelay: '0s',
+                      animationFillMode: 'both'
+                    }}>
+                    <div className="relative mb-3">
+                      <div className="flex items-center gap-3 pr-14">
+                        <div className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-cyan-500 flex items-center justify-center">
+                          <Award className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="ios-title text-white">
+                            Cyberpunk Theme
+                          </h4>
+                          <p className="ios-caption text-white/70 mt-1">
+                            Neon cyber colors with electric vibes
+                          </p>
+                        </div>
+                      </div>
+                      <div className="absolute top-0 right-0 rounded-full px-2 py-0 bg-gradient-to-r from-cyan-500/15 to-teal-500/15 border border-cyan-400/20">
+                        <span className="ios-caption font-semibold text-cyan-400">
+                          400 pts
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      disabled={(userProfile?.stats?.total_points || 0) < 400}
+                      className={`w-full py-2.5 rounded-full ios-body font-semibold transition-all duration-200 active:scale-[0.98] ${
+                        (userProfile?.stats?.total_points || 0) >= 400
+                          ? 'bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/30'
+                          : 'bg-white/5 border border-white/10 text-white/50 cursor-not-allowed'
+                      }`}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      {(userProfile?.stats?.total_points || 0) >= 400 ? 'Redeem' : `Need ${400 - (userProfile?.stats?.total_points || 0)} more points`}
+                    </button>
+                  </div>
+
+                  <div className="p-4 rounded-2xl transition-all duration-300 active:scale-[0.98] bg-[#1C1C1E]/40 backdrop-blur-md border border-white/5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] animate-fade-in"
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation',
+                      animationDelay: '0s',
+                      animationFillMode: 'both'
+                    }}>
+                    <div className="relative mb-3">
+                      <div className="flex items-center gap-3 pr-14">
+                        <div className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-green-500 flex items-center justify-center">
+                          <Sparkles className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="ios-title text-white">
+                            Particle Effects
+                          </h4>
+                          <p className="ios-caption text-white/70 mt-1">
+                            Floating sparkles and particle animations
+                          </p>
+                        </div>
+                      </div>
+                      <div className="absolute top-0 right-0 rounded-full px-2 py-0 bg-gradient-to-r from-green-500/15 to-emerald-500/15 border border-green-400/20">
+                        <span className="ios-caption font-semibold text-green-400">
+                          500 pts
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      disabled={(userProfile?.stats?.total_points || 0) < 500}
+                      className={`w-full py-2.5 rounded-full ios-body font-semibold transition-all duration-200 active:scale-[0.98] ${
+                        (userProfile?.stats?.total_points || 0) >= 500
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25 hover:shadow-green-500/30'
+                          : 'bg-white/5 border border-white/10 text-white/50 cursor-not-allowed'
+                      }`}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      {(userProfile?.stats?.total_points || 0) >= 500 ? 'Redeem' : `Need ${500 - (userProfile?.stats?.total_points || 0)} more points`}
+                    </button>
+                  </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
         );
@@ -2752,10 +2779,12 @@ const AppContent: React.FC = () => {
       case 'settings':
         return (
           <div className="h-full overflow-y-auto pb-20" style={{
-            paddingTop: 'env(safe-area-inset-top)'
+
           }}>
             {/* iOS-Style Mobile Header */}
-            <div className="px-4" style={{ paddingTop: '72px', paddingBottom: '24px' }}>
+            <div className="px-4" style={{ 
+              paddingTop: 'calc(env(safe-area-inset-top) - 20px)',
+              paddingBottom: '24px' }}>
               <h2 className="ios-large-title text-white">
                 Settings
               </h2>
@@ -2924,7 +2953,7 @@ const AppContent: React.FC = () => {
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-3">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                <div className={`w-7 h-7 min-w-7 rounded-full flex-shrink-0 flex items-center justify-center ${
                                   theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-500/10'
                                 }`}>
                                   <Key className="w-4 h-4 text-blue-500" />
@@ -3414,7 +3443,7 @@ const AppContent: React.FC = () => {
                           }`}
                         >
                           <div className="flex items-center space-x-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            <div className={`w-7 h-7 min-w-7 rounded-full flex-shrink-0 flex items-center justify-center ${
                               theme === 'dark' ? 'bg-orange-500/20' : 'bg-orange-500/10'
                             }`}>
                               <Settings className="w-4 h-4 text-orange-500" />
@@ -3669,7 +3698,7 @@ const AppContent: React.FC = () => {
                   className={`flex flex-col items-center py-3 px-4 transition-all duration-200 ease-out ${
                     isActive
                       ? 'text-white'
-                      : 'text-gray-500'
+                      : 'text-gray-400'
                   }`}
                   style={{
                     minWidth: '60px',

@@ -94,22 +94,37 @@ def extract_citations_from_response(text: str, context_docs: List[Dict[str, Any]
             # Use the mapped source name for consistency
             source_file = doc.get('source') or doc.get('metadata', {}).get('source')
             source_title = source_file_to_name.get(source_file, f'Document {cite_id}')
-            page_num = doc.get('page', doc.get('page_number'))
-            line_start = doc.get('line_start')
-            line_end = doc.get('line_end')
+
+            # Extract page info directly from metadata (line info doesn't exist in chunks)
+            metadata = doc.get('metadata', {})
+            page_num = metadata.get('page_label') or metadata.get('page')
+            line_start = metadata.get('line_start')  # Line info now available from chunking
+            line_end = metadata.get('line_start', 0) + metadata.get('line_count', 1) - 1 if metadata.get('line_start') else None
+
+            # Content should be directly available
+            content = doc.get('content', '')
 
             # Create enhanced citation compatible with new frontend format
+            preview_text = _create_preview(content)
             citation = {
                 "id": cite_id,
                 "source": source_title,  # Frontend expects 'source' field
                 "page": page_num,
                 "line": line_start,  # Frontend expects 'line' field
-                "preview": _create_preview(doc.get('content', '')),
+                "preview": preview_text,
                 "summary": doc.get('summary', ''),
                 "confidence": doc.get('score', 1.0),  # Frontend expects 'confidence'
                 "document_type": _extract_document_type(doc.get('source', '')),
-                "full_text": doc.get('content', ''),  # Keep for backward compatibility
-                "relevance_score": doc.get('score', 1.0)  # Keep for backward compatibility
+                "full_text": content,  # Keep for backward compatibility
+                "relevance_score": doc.get('score', 1.0),  # Keep for backward compatibility
+                "chunk_content": content,  # Explicitly include chunk content
+                "debug_info": {
+                    "content_length": len(content),
+                    "preview_length": len(preview_text),
+                    "has_content": bool(content.strip()),
+                    "source_file": doc.get('source', 'No source'),
+                    "metadata_keys": list(doc.get('metadata', {}).keys())
+                }
             }
 
             citations.append(citation)
@@ -119,7 +134,17 @@ def extract_citations_from_response(text: str, context_docs: List[Dict[str, Any]
     grouped_sources = []
     for source_title, source_citations in sources_map.items():
         # Get all pages for this source
-        pages = sorted(set(c['page'] for c in source_citations if c['page'] is not None))
+        pages = []
+        for c in source_citations:
+            if c['page'] is not None:
+                try:
+                    # Convert page to int, handle both string and int types
+                    page_num = int(c['page']) if isinstance(c['page'], str) else c['page']
+                    pages.append(page_num)
+                except (ValueError, TypeError):
+                    # Skip invalid page numbers
+                    continue
+        pages = sorted(set(pages))
 
         # Create page range display
         page_display = _format_page_range(pages) if pages else None
@@ -200,7 +225,17 @@ def _create_grouped_sources(citations: List[Dict[str, Any]]) -> List[Dict[str, A
     grouped_sources = []
     for source_title, source_citations in sources_map.items():
         # Get all pages for this source
-        pages = sorted(set(c.get('page') for c in source_citations if c.get('page') is not None))
+        pages = []
+        for c in source_citations:
+            if c.get('page') is not None:
+                try:
+                    # Convert page to int, handle both string and int types
+                    page_num = int(c.get('page')) if isinstance(c.get('page'), str) else c.get('page')
+                    pages.append(page_num)
+                except (ValueError, TypeError):
+                    # Skip invalid page numbers
+                    continue
+        pages = sorted(set(pages))
 
         # Create page range display
         page_display = _format_page_range(pages) if pages else None
@@ -254,7 +289,7 @@ def _add_automatic_citations(text: str, num_docs: int) -> str:
     return ' '.join(result_sentences)
 
 
-def _format_page_range(pages: List[int]) -> str:
+def _format_page_range(pages) -> str:
     """Format page numbers into readable ranges (e.g., '12-14, 16')."""
     if not pages:
         return ""
@@ -264,18 +299,33 @@ def _format_page_range(pages: List[int]) -> str:
 
     # Group consecutive pages
     ranges = []
-    start = pages[0]
-    end = pages[0]
+    # Ensure start and end are integers from the beginning
+    try:
+        start = int(pages[0]) if isinstance(pages[0], str) else pages[0]
+        end = start
+    except (ValueError, TypeError):
+        # If first page is invalid, return empty string
+        return ""
 
     for page in pages[1:]:
-        if page == end + 1:
-            end = page
-        else:
-            if start == end:
-                ranges.append(str(start))
+        try:
+            # Ensure we're working with integers for both page and end
+            page = int(page) if isinstance(page, str) else page
+            end = int(end) if isinstance(end, str) else end
+
+            if page == end + 1:
+                end = page
             else:
-                ranges.append(f"{start}-{end}")
-            start = end = page
+                # Add current range and start new one
+                if start == end:
+                    ranges.append(str(start))
+                else:
+                    ranges.append(f"{start}-{end}")
+                start = page
+                end = page
+        except (ValueError, TypeError):
+            # Skip invalid page numbers
+            continue
 
     # Add final range
     if start == end:

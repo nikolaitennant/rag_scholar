@@ -191,6 +191,34 @@ Context: {context}"""
             # Add to memory (will auto-summarize if needed)
             memory.save_context({"input": question}, {"output": response_content})
 
+            # TODO: Store citation metadata separately if we have context docs
+            # Temporarily disabled due to frontend compilation issues
+            # if context_docs:
+            #     try:
+            #         import json
+            #         from langchain_google_firestore import FirestoreChatMessageHistory
+            #         from langchain_core.messages import SystemMessage
+            #
+            #         citation_history = FirestoreChatMessageHistory(
+            #             session_id=session_id,
+            #             collection=f"users/{user_id}/chat_sessions"
+            #         )
+            #
+            #         # Store citation metadata as a system message that can be retrieved later
+            #         citation_metadata = {
+            #             "type": "citation_metadata",
+            #             "context_docs": context_docs,
+            #             "timestamp": None
+            #         }
+            #
+            #         citation_history.add_message(SystemMessage(
+            #             content=f"CITATION_METADATA: {json.dumps(citation_metadata)}"
+            #         ))
+            #     except Exception as e:
+            #         # Don't fail the chat if citation storage fails
+            #         logger.warning(f"Failed to store citation metadata: {e}")
+            #         pass
+
             # Store session metadata with class_id for filtering and get generated name
             generated_name = await self._store_session_metadata(user_id, session_id, class_id, question, response_content, class_name, domain_type)
 
@@ -206,6 +234,7 @@ Context: {context}"""
                 "response": response_content,
                 "session_id": session_id,
                 "sources": sources,
+                "context_docs": context_docs,  # Pass full context docs for citation processing
                 "context_count": len(context_docs),
                 "chat_name": generated_name  # Include generated ChatGPT-style name
             }

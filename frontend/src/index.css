@@ -4,7 +4,7 @@
 
 @layer base {
   html, body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
@@ -12,6 +12,29 @@
     overflow: hidden;
     scrollbar-width: none;
     -ms-overflow-style: none;
+
+    /* Force dark color scheme for iOS PWA */
+    color-scheme: dark;
+    background-color: #1C1C1E;
+
+    /* Prevent iOS white background flash */
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* iOS Design System Colors */
+  :root {
+    --ios-background-dark: #1C1C1E;
+    --ios-surface-dark: #2C2C2E;
+    --ios-text-primary: #FFFFFF;
+    --ios-text-secondary: #A9A9AB;
+    --ios-accent-blue: #007AFF;
+    --ios-accent-purple: #AF52DE;
+    --ios-accent-green: #34C759;
+    --ios-accent-orange: #FF9500;
+    --ios-divider: rgba(255, 255, 255, 0.1);
+    --ios-shadow: rgba(0, 0, 0, 0.1);
   }
 
   html::-webkit-scrollbar,
@@ -22,6 +45,50 @@
   #root {
     height: 100vh;
     overflow: hidden;
+    background-color: #1C1C1E;
+
+    /* iOS PWA specific fixes */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  /* iOS PWA Keyboard and Background Fixes */
+  @supports (-webkit-touch-callout: none) {
+    /* iOS specific styles */
+    html {
+      background-color: #1C1C1E !important;
+
+      /* Prevent viewport scaling issues */
+      -webkit-text-size-adjust: 100%;
+      touch-action: manipulation;
+    }
+
+    body {
+      /* Prevent white flash during keyboard animation */
+      background-color: #1C1C1E !important;
+
+      /* iOS safe area handling */
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+
+    /* Fix for iOS keyboard white background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #1C1C1E;
+      z-index: -1;
+      pointer-events: none;
+    }
   }
 
   /* Modern dot circle loader animation */
@@ -37,16 +104,71 @@
     }
   }
 
-  /* iOS-style tap animation for tab bar */
-  @keyframes tabPress {
+  /* iOS-style tap animation */
+  @keyframes iosTapPress {
     0% {
       transform: scale(1);
     }
     50% {
-      transform: scale(0.95);
+      transform: scale(0.97);
     }
     100% {
-      transform: scale(1.05);
+      transform: scale(1);
+    }
+  }
+
+  /* iOS-native fade-in animation */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* iOS-native scale animation for touch feedback */
+  @keyframes iosScalePress {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(0.98);
+    }
+  }
+
+  /* iOS-native slide animations */
+  @keyframes slideInFromRight {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideInFromBottom {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* iOS keyboard slide animation */
+  @keyframes iosSlideUp {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(-100px);
     }
   }
 }
@@ -70,36 +192,71 @@
 }
 
 @layer utilities {
-  /* iOS-specific mobile styles */
-  .ios-text-header {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
-    font-size: 22px;
-    font-weight: 600;
-    line-height: 1.27272727;
-    letter-spacing: -0.02em;
+  /* iOS-native spacing rhythm */
+  .ios-spacing-8 { margin: 8px; }
+  .ios-spacing-12 { margin: 12px; }
+  .ios-spacing-16 { margin: 16px; }
+  .ios-spacing-20 { margin: 20px; }
+  .ios-spacing-24 { margin: 24px; }
+
+  /* iOS-native animations */
+  .animate-fade-in {
+    animation: fadeIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   }
 
-  .ios-text-title {
+  .animate-slide-in-right {
+    animation: slideInFromRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
+  .animate-slide-in-bottom {
+    animation: slideInFromBottom 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
+  /* Prevent bounce scrolling */
+  .ios-scroll {
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* iOS Typography System */
+  .ios-large-title {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.022em;
+  }
+
+  .ios-title {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
     font-size: 17px;
     font-weight: 600;
-    line-height: 1.29411765;
+    line-height: 1.29;
     letter-spacing: -0.01em;
   }
 
-  .ios-text-body {
+  .ios-body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
     font-size: 15px;
     font-weight: 400;
-    line-height: 1.33333333;
+    line-height: 1.33;
     letter-spacing: -0.01em;
   }
 
-  .ios-text-caption {
+  .ios-subtitle {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.33;
+    letter-spacing: -0.01em;
+    opacity: 0.7;
+  }
+
+  .ios-caption {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
     font-size: 13px;
     font-weight: 400;
-    line-height: 1.38461538;
+    line-height: 1.38;
     letter-spacing: -0.008em;
   }
 
@@ -109,25 +266,193 @@
     -webkit-backdrop-filter: blur(20px);
   }
 
+  /* iOS Button System */
   .ios-button {
-    @apply rounded-2xl px-6 py-3 font-medium transition-all duration-150;
+    @apply rounded-2xl px-6 py-3 font-medium transition-all duration-300 ease-in-out;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
 
+  .ios-button:active {
+    animation: iosTapPress 0.15s ease-in-out;
+  }
+
   .ios-button-primary {
-    @apply ios-button bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white;
+    @apply ios-button text-white;
+    background: var(--ios-accent-blue);
+  }
+
+  .ios-button-primary:hover {
+    background: #0056D6;
   }
 
   .ios-button-secondary {
-    @apply ios-button bg-white/10 hover:bg-white/15 active:bg-white/20 text-white border border-white/20;
+    @apply ios-button text-white border;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--ios-divider);
   }
 
+  .ios-button-secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  /* iOS-native Surface System */
   .ios-card {
-    @apply rounded-2xl bg-white/5 dark:bg-white/5 border border-white/10 dark:border-white/10 p-4;
+    @apply rounded-2xl transition-transform duration-200;
+    background: #1C1C1E;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.25);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+  }
+
+  .ios-card:active {
+    transform: scale(0.98);
+  }
+
+  .ios-card-elevated {
+    @apply rounded-2xl transition-transform duration-200;
+    background: #2C2C2E;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .ios-card-elevated:active {
+    transform: scale(0.98);
+  }
+
+  /* iOS-native progress bar */
+  .ios-progress-bar {
+    @apply h-2 bg-gray-800 rounded-full overflow-hidden;
+  }
+
+  .ios-progress-fill {
+    @apply h-full rounded-full;
+    background: linear-gradient(90deg, #60A5FA 0%, #A78BFA 100%);
+    transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .ios-grouped-list {
+    @apply rounded-2xl overflow-hidden shadow-sm;
+    background: var(--ios-surface-dark);
+    border: 1px solid var(--ios-divider);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .ios-input {
+    @apply border-none outline-none bg-transparent;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 32px;
+    padding: 12px 16px;
+    color: var(--ios-text-primary);
+  }
+
+  .ios-input:focus {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .ios-input::placeholder {
+    color: #8E8E93;
+  }
+
+  /* iOS Keyboard Focus and Background Fixes */
+  .ios-input:focus {
+    background: rgba(255, 255, 255, 0.12) !important;
+    outline: none;
+    border: none;
+
+    /* Prevent iOS zoom on focus */
+    font-size: 16px;
+
+    /* Override any system focus styles */
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* iOS PWA Keyboard Background Override */
+  @media screen and (max-width: 768px) {
+    /* Target mobile devices specifically */
+    .ios-input-container {
+      position: relative;
+      background-color: #1C1C1E;
+
+      /* Ensure dark background extends beyond input */
+      &::before {
+        content: '';
+        position: absolute;
+        top: -50px;
+        left: -50px;
+        right: -50px;
+        bottom: -50px;
+        background-color: #1C1C1E;
+        z-index: -1;
+        pointer-events: none;
+      }
+    }
+
+    /* Override system input background on iOS */
+    input[type="text"]:focus {
+      background-color: rgba(255, 255, 255, 0.08) !important;
+      caret-color: #007AFF;
+
+      /* Prevent white keyboard background */
+      -webkit-user-modify: read-write-plaintext-only;
+    }
+
+    /* Prevent iOS keyboard white space */
+    body.keyboard-open {
+      background-color: #1C1C1E !important;
+      overflow: hidden;
+    }
+
+    /* iOS keyboard viewport fix */
+    .keyboard-spacer {
+      height: env(keyboard-inset-height, 0px);
+      background-color: #1C1C1E;
+      transition: height 0.3s ease-in-out;
+    }
+
+    /* Prevent viewport resize on keyboard open - force overlay behavior */
+    body.keyboard-open {
+      height: 100vh !important;
+      overflow: hidden !important;
+      position: fixed !important;
+      width: 100% !important;
+    }
+
+    /* Chat container fixes for keyboard overlay */
+    .chat-container {
+      height: 100vh !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+    }
+
+    /* Hide white input accessory bar above keyboard */
+    input:focus {
+      caret-color: #007AFF !important;
+      background-color: rgba(255, 255, 255, 0.08) !important;
+      -webkit-user-modify: read-write-plaintext-only;
+      -webkit-user-select: text;
+      -webkit-appearance: none;
+    }
+
+    /* Cover any potential white gaps with dark background */
+    body.keyboard-open::after {
+      content: '';
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 50px;
+      background-color: #1C1C1E;
+      z-index: 9999;
+      pointer-events: none;
+    }
   }
 
   /* Hide all scrollbars by default */
@@ -180,4 +505,5 @@
   .scrollbar-hover::-webkit-scrollbar-corner {
     background: transparent;
   }
+
 }

@@ -126,20 +126,69 @@ async def get_session_messages(
         )
 
         message_list = []
-        for msg in history.messages:
+        citation_metadata_map = {}
+
+        # First pass: extract citation metadata from system messages
+        import json
+        for i, msg in enumerate(history.messages):
+            if hasattr(msg, 'type') and msg.type == "system" and hasattr(msg, 'content'):
+                if msg.content.startswith("CITATION_METADATA: "):
+                    try:
+                        metadata_json = msg.content[19:]  # Remove "CITATION_METADATA: " prefix
+                        metadata = json.loads(metadata_json)
+                        if metadata.get("type") == "citation_metadata":
+                            # Associate this metadata with the next AI message
+                            citation_metadata_map[i] = metadata
+                    except json.JSONDecodeError:
+                        continue
+
+        # Second pass: build message list with citation data
+        from ..services.langchain_citations import extract_citations_from_response
+        ai_message_count = 0
+
+        for i, msg in enumerate(history.messages):
             if hasattr(msg, 'type') and hasattr(msg, 'content'):
                 if msg.type == "human":
                     role = "user"
                 elif msg.type == "ai":
                     role = "assistant"
+                    ai_message_count += 1
+                elif msg.type == "system" and msg.content.startswith("CITATION_METADATA: "):
+                    continue  # Skip citation metadata messages
                 else:
                     continue  # Skip other message types
 
-                message_list.append({
+                message_content = {
                     "role": role,
                     "content": msg.content,
                     "timestamp": None  # LangChain messages might not have timestamp
-                })
+                }
+
+                # If this is an AI message, check for associated citation metadata
+                if role == "assistant":
+                    # Look for citation metadata in the next few messages
+                    for j in range(i, min(i + 3, len(history.messages))):
+                        if j in citation_metadata_map:
+                            metadata = citation_metadata_map[j]
+                            context_docs = metadata.get("context_docs", [])
+                            if context_docs and "[CITE:" in msg.content:
+                                try:
+                                    # Re-generate citation data using stored context
+                                    enhanced_result = extract_citations_from_response(
+                                        text=msg.content,
+                                        context_docs=context_docs
+                                    )
+                                    message_content.update({
+                                        "citations": enhanced_result["citations"],
+                                        "grouped_sources": enhanced_result["grouped_sources"],
+                                        "sources": enhanced_result["sources"]
+                                    })
+                                except Exception as e:
+                                    # If citation processing fails, just include the stored context
+                                    message_content["sources"] = [doc.get("source", "Unknown") for doc in context_docs]
+                            break
+
+                message_list.append(message_content)
 
         return {"messages": message_list}
 

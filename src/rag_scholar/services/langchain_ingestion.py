@@ -12,7 +12,7 @@ from langchain_community.document_loaders import (
     CSVLoader,
     GCSFileLoader,
 )
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter, NLTKTextSplitter
 from langchain_google_firestore import FirestoreVectorStore
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
@@ -41,6 +41,8 @@ class LangChainIngestionPipeline:
             chunk_size=settings.chunk_size,
             chunk_overlap=settings.chunk_overlap,
             separators=["\\n\\n", "\\n", " ", ""],
+            keep_separator=True,  # Keep separators for better context
+            add_start_index=True,  # Add start index to metadata
         )
 
         # Loader mapping
@@ -88,6 +90,9 @@ class LangChainIngestionPipeline:
             # Split documents
             split_docs = self.text_splitter.split_documents(documents)
 
+            # Add line information to chunks
+            split_docs = self._add_line_information(split_docs)
+
             # Get vector store
             vector_store = self._get_vector_store(user_id)
 
@@ -113,6 +118,50 @@ class LangChainIngestionPipeline:
                         user_id=user_id,
                         error=str(e))
             raise
+
+    def _add_line_information(self, split_docs):
+        """Add enhanced metadata to document chunks using production-ready tools."""
+        for doc in split_docs:
+            content = doc.page_content
+
+            # LangChain already adds start_index if enabled
+            start_index = doc.metadata.get('start_index', 0)
+
+            # Calculate line information from content
+            lines = content.split('\n')
+
+            # Add enhanced metadata for better citations
+            doc.metadata.update({
+                'line_start': content[:start_index].count('\n') + 1 if start_index > 0 else 1,
+                'line_count': len(lines),
+                'word_count': len(content.split()),
+                'char_count': len(content),
+                'chunk_index': start_index,  # Character position in original document
+                # Content type detection for better display
+                'content_type': self._detect_content_type(content),
+                'has_tables': bool('|' in content and content.count('|') > 3),
+                'has_equations': bool(any(symbol in content for symbol in ['=', '∫', '∑', '∂', '√'])),
+                'has_code': bool(any(keyword in content.upper() for keyword in ['SELECT', 'FROM', 'WHERE', 'def ', 'class ', 'import '])),
+            })
+
+        return split_docs
+
+    def _detect_content_type(self, content: str) -> str:
+        """Detect the type of content for better citation display."""
+        content_upper = content.upper()
+
+        if any(keyword in content_upper for keyword in ['SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE']):
+            return 'sql'
+        elif any(keyword in content_upper for keyword in ['DEF ', 'CLASS ', 'IMPORT ', 'RETURN']):
+            return 'code'
+        elif any(symbol in content for symbol in ['∫', '∑', '∂', '√', 'lim', 'theorem']):
+            return 'mathematics'
+        elif content.count('|') > 3 and '\n' in content:
+            return 'table'
+        elif any(word in content_upper for word in ['FIGURE', 'TABLE', 'CHART', 'DIAGRAM']):
+            return 'figure'
+        else:
+            return 'text'
 
     async def ingest_from_gcs(
         self,
@@ -146,6 +195,9 @@ class LangChainIngestionPipeline:
 
             # Split and index
             split_docs = self.text_splitter.split_documents(documents)
+
+            # Add line information to chunks
+            split_docs = self._add_line_information(split_docs)
             vector_store = self._get_vector_store(user_id)
             await vector_store.aadd_documents(split_docs)
 
@@ -462,6 +514,9 @@ class LangChainIngestionPipeline:
 
                 # Split documents
                 split_docs = self.text_splitter.split_documents(documents)
+
+                # Add line information using LangChain's built-in metadata
+                split_docs = self._add_line_information(split_docs)
 
                 # Get vector store for user
                 user_id = metadata.get("uploaded_by") if metadata else None

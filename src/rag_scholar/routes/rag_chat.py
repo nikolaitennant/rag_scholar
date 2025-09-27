@@ -124,15 +124,8 @@ async def chat(
             class_id=request.class_id,
             k=request.k,
         )
-        # Convert to format expected by RAG pipeline
-        context_docs = [
-            {
-                "content": result["content"],
-                "source": result["source"],
-                "metadata": result.get("metadata", {})
-            }
-            for result in search_results
-        ]
+        # Preserve all search result data including score and metadata fields
+        context_docs = search_results
 
     # Chat with RAG pipeline
     result = await rag_pipeline.chat_with_history(
@@ -145,11 +138,12 @@ async def chat(
         domain_type=request.domain_type,
     )
 
-    # Enhanced citation processing
-    if result.get("response") and context_docs:
+    # Enhanced citation processing - use context_docs from pipeline result if available
+    pipeline_context_docs = result.get("context_docs", context_docs)
+    if result.get("response") and pipeline_context_docs:
         enhanced_result = extract_citations_from_response(
             text=result["response"],
-            context_docs=context_docs
+            context_docs=pipeline_context_docs
         )
         # Merge enhanced citations with original result
         result.update({

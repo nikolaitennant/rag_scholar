@@ -70,6 +70,7 @@ def create_app() -> FastAPI:
             "http://127.0.0.1:3000",
             "http://localhost:3001",  # In case frontend runs on different port
             "http://127.0.0.1:3001",
+            "http://192.168.4.175:3000",  # Network IP for iPhone testing
             "https://ragscholarai.firebaseapp.com",  # Production frontend
             "https://ragscholarai.web.app"  # Alternative Firebase domain
         ],

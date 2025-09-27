@@ -30,7 +30,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_API_URL=http://localhost:8000/api/v1
+      - REACT_APP_API_URL=http://192.168.4.175:8000/api/v1
       # Doppler configuration for secure secret management
       - DOPPLER_PROJECT=rag-scholar
       - DOPPLER_CONFIG=dev

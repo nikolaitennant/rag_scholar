@@ -1111,14 +1111,14 @@ const AppContent: React.FC = () => {
     switch (mobilePage) {
       case 'chat':
         return (
-          <div className="h-full flex flex-col chat-container">
-            {/* iOS-Style Mobile Chat Header */}
+          <div className="h-full relative chat-container">
+            {/* iOS-Style Mobile Chat Header - Fixed */}
             <div
-              className="px-4"
+              className="fixed top-0 left-0 right-0 px-4 z-50"
               style={{
                 paddingTop: 'env(safe-area-inset-top)',
                 paddingBottom: '8px',
-                background: 'rgba(28, 28, 30, 0.8)',
+                background: 'rgba(28, 28, 30, 0.95)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
                 borderBottom: '0.33px solid var(--ios-divider)'
@@ -1145,8 +1145,8 @@ const AppContent: React.FC = () => {
               </div>
             </div>
 
-            {/* Mobile Chat Interface */}
-            <div className="flex-1 min-h-0 flex flex-col">
+            {/* Mobile Chat Interface - With top padding for fixed header */}
+            <div className="flex flex-col h-full" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 60px)' }}>
               {/* Messages Area */}
               <div className="flex-1 overflow-y-auto p-4" style={{
                 paddingBottom: isKeyboardOpen ? '20px' : '160px'

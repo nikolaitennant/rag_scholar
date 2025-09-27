@@ -1151,9 +1151,11 @@ const AppContent: React.FC = () => {
               <div className="flex-1 overflow-y-auto p-4" style={{
                 paddingBottom: isKeyboardOpen ? '20px' : '160px'
               }}>
-                {messages.length === 0 ? (
-                  /* Mobile welcome state - simpler than desktop */
-                  <div className="flex flex-col justify-center h-full text-center">
+                {messages.length === 0 && !mobileInput.trim() ? (
+                  /* Mobile welcome state - fades out when typing */
+                  <div className={`flex flex-col justify-center h-full text-center transition-opacity duration-300 ${
+                    mobileInput.trim() ? 'opacity-0' : 'opacity-100'
+                  }`}>
                     <div className={`mb-8 ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
                       <h2 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                         Welcome to RAG Scholar!
@@ -1230,8 +1232,7 @@ const AppContent: React.FC = () => {
                     setMobileInput('');
                     setShowCommandSuggestions(false);
                   }
-                }} className="flex space-x-2">
-                  <div className="relative flex-1">
+                }}>
                     <input
                       type="text"
                       value={mobileInput}
@@ -1241,7 +1242,7 @@ const AppContent: React.FC = () => {
                         setShowCommandSuggestions(value.startsWith('/'));
                       }}
                       placeholder="Ask anything..."
-                      className="ios-input w-full text-base pr-12 focus:outline-none transition-all duration-300 ease-in-out"
+                      className="ios-input w-full text-base focus:outline-none transition-all duration-300 ease-in-out"
                       style={{
                         fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
                         fontSize: '16px',
@@ -1255,21 +1256,6 @@ const AppContent: React.FC = () => {
                         e.preventDefault();
                       }}
                     />
-                    <button
-                      type="submit"
-                      disabled={!mobileInput.trim() || isChatLoading}
-                      className={`absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-150 ${
-                        mobileInput.trim() && !isChatLoading
-                          ? 'bg-blue-500 text-white active:scale-95'
-                          : theme === 'dark'
-                            ? 'bg-white/10 text-white/40'
-                            : 'bg-black/10 text-black/40'
-                      }`}
-                      style={{ WebkitTapHighlightColor: 'transparent' }}
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </div>
                   </form>
                 </div>
               </div>

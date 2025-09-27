@@ -1427,7 +1427,8 @@ const AppContent: React.FC = () => {
                               value={mobileClassFormData.name}
                               onChange={(e) => setMobileClassFormData(prev => ({ ...prev, name: e.target.value }))}
                               placeholder="Class name (e.g., History 101)"
-                              className="w-full px-4 py-3 rounded-2xl text-sm bg-[#2C2C2E]/70 border border-white/10 text-white placeholder-white/50 focus:border-purple-500/60 focus:ring-4 focus:ring-purple-500/20 focus:outline-none backdrop-blur-sm transition-all duration-200"
+                              className="w-full px-4 py-3 rounded-full text-sm bg-[#2C2C2E]/70 border border-white/10 text-white placeholder-white/50 focus:border-purple-500/60 focus:ring-4 focus:ring-purple-500/20 focus:outline-none backdrop-blur-sm transition-all duration-200"
+                              autoFocus
                             />
                             <div className="grid grid-cols-3 gap-2">
                               {Object.entries(DOMAIN_TYPE_INFO).map(([type, info]) => {
@@ -1436,9 +1437,9 @@ const AppContent: React.FC = () => {
                                   <button
                                     key={type}
                                     onClick={() => setMobileClassFormData(prev => ({ ...prev, type: type as DomainType }))}
-                                    className={`aspect-square p-3 rounded-2xl transition-all duration-200 flex flex-col items-center justify-center gap-1 active:scale-95 hover:bg-white/5 ${
+                                    className={`aspect-square p-2 rounded-3xl transition-all duration-200 flex flex-col items-center justify-center gap-1 active:scale-95 hover:bg-white/5 ${
                                       mobileClassFormData.type === type
-                                        ? 'bg-gradient-to-br from-purple-500/30 to-purple-600/30 border-2 border-purple-500/60 text-purple-300 ring-2 ring-purple-500/30'
+                                        ? 'bg-violet-500/20 border-2 border-violet-500/50 text-white'
                                         : 'bg-[#2C2C2E]/50 border border-white/10 text-white/60 backdrop-blur-sm'
                                     }`}
                                   >

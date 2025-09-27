@@ -439,6 +439,8 @@
       -webkit-user-modify: read-write-plaintext-only;
       -webkit-user-select: text;
       -webkit-appearance: none;
+      outline: none !important;
+      border: none !important;
     }
 
     /* Cover any potential white gaps with dark background */

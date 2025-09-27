@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, Settings, History, HelpCircle, Menu, Gift, Home, File, Trophy, Star, Zap, Heart, Award, Sparkles, X, BookOpen, Upload, Book, Beaker, Briefcase, Code, GraduationCap, Edit3, Trash2, MessageSquare } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from '../contexts/ThemeContext';
@@ -114,6 +114,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [dropdownPosition, setDropdownPosition] = useState<{top: number, left: number, width: number} | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
+  // Dynamic loading state for chats visibility
+  const [chatsVisible, setChatsVisible] = useState(false);
+  const [showDynamicLoading, setShowDynamicLoading] = useState(false);
+  const chatsContainerRef = useRef<HTMLDivElement>(null);
+  const chatItemsRef = useRef<HTMLDivElement>(null);
+
 
   const [addToClassOpen, setAddToClassOpen] = useState<string | null>(null);
   const [addToClassPosition, setAddToClassPosition] = useState<{top: number, left: number, width: number} | null>(null);
@@ -205,6 +211,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     loadSessions();
   }, [user]);
+
+  // Disable dynamic loading temporarily due to compilation errors
+  useEffect(() => {
+    setChatsVisible(true);
+    setShowDynamicLoading(false);
+  }, [currentSessions.length]);
 
   const handleDeleteSession = async (sessionId: string) => {
     const session = sessions.find(s => s.id === sessionId);
@@ -1289,7 +1301,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               </div>
 
-              {appLoading ? (
+              {(appLoading && currentSessions.length === 0) || showDynamicLoading ? (
                 <div className="flex items-center justify-center" style={{ height: 'calc(100vh - 400px)', minHeight: '200px' }}>
                   <div className="relative w-6 h-6">
                     {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
@@ -1329,7 +1341,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-[70vh] overflow-y-auto scrollbar-none">
+                <div ref={chatItemsRef} className="space-y-2 max-h-[70vh] overflow-y-auto scrollbar-none">
                   {currentSessions.map((session, index) => {
                     const isActive = sessionId === session.id;
                     const isPreview = session.isPreview || (index === 0 && (session.message_count || 0) === 0);
@@ -1338,7 +1350,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <div key={session.id}>
                         <button
                           onClick={() => onSelectSession?.(session.id)}
-                          className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group ${
+                          className={`relative w-full text-left p-3 rounded-lg transition-all duration-200 group outline-none focus:outline-none ${
                               isActive
                                 ? theme === 'dark'
                                   ? 'bg-violet-500/20'

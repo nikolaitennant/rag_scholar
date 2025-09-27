@@ -17,7 +17,7 @@ export const CitationRenderer: React.FC<CitationRendererProps> = ({
 }) => {
 
   // Process content and render citations inline
-  const renderContentWithCitations = React.useMemo((): Array<string | React.ReactNode> => {
+  const renderContentWithCitations = React.useMemo(() => {
     let processedText = content;
 
     // Handle multiple citation formats:
@@ -81,7 +81,7 @@ export const CitationRenderer: React.FC<CitationRendererProps> = ({
       const citation = citations[citationIndex];
 
       // Create fallback citation if needed
-      const normalizedCitation = citation || {
+      const normalizedCitation: Citation = citation || {
         id: `fallback-${citationId}`,
         source: `Source ${citationId}`,
         page: undefined,

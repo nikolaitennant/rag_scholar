@@ -59,7 +59,7 @@ export const CitationTooltip: React.FC<CitationTooltipProps> = ({
     return 'Recent'; // This would be replaced with actual date parsing
   };
 
-  // Get preview text with better formatting
+  // Get preview text directly from citation
   const getPreviewText = () => {
     if (citation.preview && citation.preview.length > 10) {
       return citation.preview.length > 120 ? citation.preview.substring(0, 120) + '...' : citation.preview;
@@ -151,25 +151,27 @@ export const CitationTooltip: React.FC<CitationTooltipProps> = ({
         <span>{getPublicationDate()}</span>
       </div>
 
-      {/* Page and Line Information */}
-      <div className="flex items-center gap-3 text-xs mt-2">
-        {citation.page && (
-          <div className={`flex items-center gap-1 ${
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            <Hash className="w-3 h-3" />
-            <span>Page {citation.page}</span>
-          </div>
-        )}
-        {citation.line && (
-          <div className={`flex items-center gap-1 ${
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            <FileText className="w-3 h-3" />
-            <span>Line {citation.line}</span>
-          </div>
-        )}
-      </div>
+      {/* Page and Line Information - only show if data exists */}
+      {(citation.page || citation.line) && (
+        <div className="flex items-center gap-3 text-xs mt-2">
+          {citation.page && (
+            <div className={`flex items-center gap-1 ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              <Hash className="w-3 h-3" />
+              <span>Page {citation.page}</span>
+            </div>
+          )}
+          {citation.line && (
+            <div className={`flex items-center gap-1 ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              <FileText className="w-3 h-3" />
+              <span>Line {citation.line}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Preview Text */}
       <div className={`mt-3 p-2 rounded-lg text-xs leading-relaxed ${

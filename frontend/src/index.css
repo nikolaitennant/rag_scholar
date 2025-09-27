@@ -36,6 +36,19 @@
       opacity: 0.4;
     }
   }
+
+  /* iOS-style tap animation for tab bar */
+  @keyframes tabPress {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(0.95);
+    }
+    100% {
+      transform: scale(1.05);
+    }
+  }
 }
 
 @layer components {
@@ -57,6 +70,66 @@
 }
 
 @layer utilities {
+  /* iOS-specific mobile styles */
+  .ios-text-header {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.27272727;
+    letter-spacing: -0.02em;
+  }
+
+  .ios-text-title {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.29411765;
+    letter-spacing: -0.01em;
+  }
+
+  .ios-text-body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.33333333;
+    letter-spacing: -0.01em;
+  }
+
+  .ios-text-caption {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.38461538;
+    letter-spacing: -0.008em;
+  }
+
+  .ios-list-item {
+    @apply rounded-xl bg-white/5 dark:bg-white/5 border border-white/10 dark:border-white/10;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .ios-button {
+    @apply rounded-2xl px-6 py-3 font-medium transition-all duration-150;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .ios-button-primary {
+    @apply ios-button bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white;
+  }
+
+  .ios-button-secondary {
+    @apply ios-button bg-white/10 hover:bg-white/15 active:bg-white/20 text-white border border-white/20;
+  }
+
+  .ios-card {
+    @apply rounded-2xl bg-white/5 dark:bg-white/5 border border-white/10 dark:border-white/10 p-4;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
   /* Hide all scrollbars by default */
   .scrollbar-none {
     scrollbar-width: none;

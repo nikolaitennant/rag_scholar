@@ -2357,7 +2357,7 @@ const AppContent: React.FC = () => {
                   <button
                     key={key}
                     onClick={() => setMobileRewardsTab(key as any)}
-                    className={`flex-1 py-2 px-4 text-sm font-medium rounded-xl transition-all duration-150 ${
+                    className={`flex-1 py-2 px-4 text-sm font-medium rounded-xl transition-all duration-150 active:scale-95 ${
                       mobileRewardsTab === key
                         ? 'bg-white text-black shadow-sm'
                         : 'text-white/70'
@@ -2377,7 +2377,7 @@ const AppContent: React.FC = () => {
             <div className="flex-1 overflow-y-auto pb-20">
               <div className="px-5 space-y-4">
               {mobileRewardsTab === 'achievements' ? (
-                <>
+                <div key="achievements-content">
               {/* In Progress Section */}
               {achievements.filter(a => a.unlocked_at === null).length > 0 && (
                 <div className="space-y-3">
@@ -2565,16 +2565,16 @@ const AppContent: React.FC = () => {
                       </p>
                     </div>
                   )}
-                </>
+                </div>
               ) : (
                 /* Store Tab Content */
-                <div className="space-y-4">
+                <div key="store-content" className="space-y-4">
                   {/* Store Items with iOS Design */}
                   <div className="p-4 rounded-2xl transition-all duration-300 active:scale-[0.98] bg-[#1C1C1E]/40 backdrop-blur-md border border-white/5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] animate-fade-in"
                     style={{
                       WebkitTapHighlightColor: 'transparent',
                       touchAction: 'manipulation',
-                      animationDelay: '0s',
+                      animationDelay: '0.05s',
                       animationFillMode: 'both'
                     }}>
                     <div className="relative mb-3">
@@ -2614,7 +2614,7 @@ const AppContent: React.FC = () => {
                     style={{
                       WebkitTapHighlightColor: 'transparent',
                       touchAction: 'manipulation',
-                      animationDelay: '0s',
+                      animationDelay: '0.1s',
                       animationFillMode: 'both'
                     }}>
                     <div className="relative mb-3">
@@ -2654,7 +2654,7 @@ const AppContent: React.FC = () => {
                     style={{
                       WebkitTapHighlightColor: 'transparent',
                       touchAction: 'manipulation',
-                      animationDelay: '0s',
+                      animationDelay: '0.15s',
                       animationFillMode: 'both'
                     }}>
                     <div className="relative mb-3">
@@ -2694,7 +2694,7 @@ const AppContent: React.FC = () => {
                     style={{
                       WebkitTapHighlightColor: 'transparent',
                       touchAction: 'manipulation',
-                      animationDelay: '0s',
+                      animationDelay: '0.2s',
                       animationFillMode: 'both'
                     }}>
                     <div className="relative mb-3">
@@ -2734,7 +2734,7 @@ const AppContent: React.FC = () => {
                     style={{
                       WebkitTapHighlightColor: 'transparent',
                       touchAction: 'manipulation',
-                      animationDelay: '0s',
+                      animationDelay: '0.25s',
                       animationFillMode: 'both'
                     }}>
                     <div className="relative mb-3">

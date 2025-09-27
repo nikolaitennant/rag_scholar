@@ -1456,31 +1456,33 @@ const AppContent: React.FC = () => {
                               <p className="text-gray-400 text-sm">Upload or select documents for your class</p>
                             </div>
 
-                            {/* Upload new document button - simplified */}
-                            <button
-                              onClick={() => {
-                                // Trigger file input (we'll need to add a hidden input)
-                                const fileInput = document.createElement('input');
-                                fileInput.type = 'file';
-                                fileInput.accept = '.pdf,.txt,.md,.doc,.docx';
-                                fileInput.onchange = (e) => {
-                                  const file = (e.target as HTMLInputElement).files?.[0];
-                                  if (file) {
-                                    // Handle file upload
-                                    console.log('File selected:', file.name);
-                                    // You can implement actual upload logic here
-                                  }
-                                };
-                                fileInput.click();
-                              }}
-                              className="py-3 px-4 rounded-2xl transition-all duration-200 active:scale-[0.98] bg-purple-500/10 border border-purple-500/30 backdrop-blur-sm flex items-center justify-center gap-2 self-center"
-                              style={{
-                                WebkitTapHighlightColor: 'transparent'
-                              }}
-                            >
-                              <Plus className="w-5 h-5 text-purple-400" />
-                              <span className="text-sm font-medium text-purple-400">Upload Document</span>
-                            </button>
+                            {/* Upload new document button - pill style */}
+                            <div className="flex justify-center">
+                              <button
+                                onClick={() => {
+                                  // Trigger file input (we'll need to add a hidden input)
+                                  const fileInput = document.createElement('input');
+                                  fileInput.type = 'file';
+                                  fileInput.accept = '.pdf,.txt,.md,.doc,.docx';
+                                  fileInput.onchange = (e) => {
+                                    const file = (e.target as HTMLInputElement).files?.[0];
+                                    if (file) {
+                                      // Handle file upload
+                                      console.log('File selected:', file.name);
+                                      // You can implement actual upload logic here
+                                    }
+                                  };
+                                  fileInput.click();
+                                }}
+                                className="py-2.5 px-6 rounded-full transition-all duration-200 active:scale-[0.95] bg-purple-500/10 border border-purple-500/30 backdrop-blur-sm flex items-center justify-center gap-2"
+                                style={{
+                                  WebkitTapHighlightColor: 'transparent'
+                                }}
+                              >
+                                <Plus className="w-4 h-4 text-purple-400" />
+                                <span className="text-sm font-medium text-purple-400">Upload Document</span>
+                              </button>
+                            </div>
 
                             {/* Existing documents */}
                             {documents.length > 0 ? (
@@ -1646,16 +1648,16 @@ const AppContent: React.FC = () => {
 
                 {/* Classes List */}
                 {userClasses.length === 0 && !showMobileClassForm ? (
-                  <div className="text-center py-8 space-y-4 animate-fade-in">
-                    <div className="w-10 h-10 mx-auto rounded-full bg-[#2C2C2E]/70 backdrop-blur-sm flex items-center justify-center">
+                  <div className="text-center py-6 space-y-3 animate-fade-in">
+                    <div className="w-10 h-10 mx-auto rounded-full bg-white/10 flex items-center justify-center">
                       <BookOpen className="w-5 h-5 text-white/60" />
                     </div>
                     <div>
                       <p className="font-medium text-white mb-1">No classes yet</p>
-                      <p className="text-gray-400 text-sm mb-4">Create your first class to get started</p>
+                      <p className="text-gray-400 text-sm mb-3">Create your first class to get started</p>
                       <button
                         onClick={() => setShowMobileClassForm(true)}
-                        className="px-6 py-3 rounded-full text-white font-medium transition-all duration-200 active:scale-95 inline-flex items-center gap-2"
+                        className="px-5 py-2.5 rounded-full text-white font-medium transition-all duration-200 active:scale-95 inline-flex items-center gap-2 text-sm"
                         style={{
                           background: 'linear-gradient(135deg, #007AFF 0%, #AF52DE 100%)',
                           boxShadow: '0 4px 12px rgba(0, 122, 255, 0.3)'

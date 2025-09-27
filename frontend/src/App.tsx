@@ -1297,7 +1297,7 @@ const AppContent: React.FC = () => {
       case 'home':
         return (
           <div className="h-full overflow-y-scroll pb-20" style={{
-            paddingTop: `calc(env(safe-area-inset-top) + 6px)`,
+            paddingTop: `calc(env(safe-area-inset-top) - 22px)`,
             WebkitOverflowScrolling: 'touch'
           }}>
             {/* iOS-Native Header */}
@@ -1319,10 +1319,10 @@ const AppContent: React.FC = () => {
               </p>
             </div>
 
-            <div className="space-y-4 px-5">
+            <div className="space-y-4 px-5 animate-fade-in-down delay-[100ms]">
               {/* Learning Progress Card */}
               <button
-                className="w-full px-4 py-3 animate-slide-in-bottom bg-[#1C1C1E]/40 backdrop-blur-xl border border-white/20 rounded-2xl text-left transition-all duration-200 active:scale-[0.98]"
+                className="w-full px-4 py-3 animate-slide-in-bottom bg-[#1C1C1E]/40 backdrop-blur-md border border-white/5 rounded-2xl text-left transition-all duration-200 active:scale-[0.98] shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
                 style={{
                   animationDelay: '0.1s',
                   animationFillMode: 'both',
@@ -1400,13 +1400,13 @@ const AppContent: React.FC = () => {
                   </h2>
                   <button
                     onClick={() => setShowMobileClassForm(!showMobileClassForm)}
-                    className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center transition-all duration-200 active:scale-95"
+                    className="w-10 h-10 rounded-full bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/20 flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95"
                     style={{
                       WebkitTapHighlightColor: 'transparent',
                       backdropFilter: 'blur(10px)'
                     }}
                   >
-                    <Plus className="w-5 h-5 text-purple-400" />
+                    <Plus className="w-5 h-5 text-white" />
                   </button>
                 </div>
 
@@ -1679,7 +1679,7 @@ const AppContent: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-3 animate-fade-in-down delay-[200ms]">
                     {userClasses
                       .filter(userClass =>
                         // Hide class being edited until fully loaded
@@ -1692,15 +1692,14 @@ const AppContent: React.FC = () => {
                         const docCount = documents.filter(doc => doc.assigned_classes?.includes(userClass.id)).length;
 
                       return (
-                        <div key={userClass.id} className={`p-4 transition-all duration-300 active:scale-[0.98] rounded-2xl relative ${
+                        <div key={userClass.id} className={`p-4 transition-all duration-300 active:scale-[0.98] rounded-2xl relative border border-white/5 ${
                           isActive
-                            ? 'bg-gradient-to-r from-purple-500/20 to-violet-500/20'
-                            : 'bg-[#1C1C1E]/40 backdrop-blur-md'
+                            ? 'bg-gradient-to-r from-purple-500/20 to-violet-500/20 shadow-[0_4px_12px_rgba(0,0,0,0.25)]'
+                            : 'bg-[#1C1C1E]/40 backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.25)]'
                         }`}
                         style={{
                           WebkitTapHighlightColor: 'transparent',
-                          touchAction: 'manipulation',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                          touchAction: 'manipulation'
                         }}>
                           <div className="flex items-center space-x-3">
                             <button
@@ -1801,7 +1800,7 @@ const AppContent: React.FC = () => {
                         Recent Chats{activeClass ? ` - ${activeClass.name}` : ''}
                       </h3>
                       <button
-                        className="w-10 h-10 rounded-full bg-purple-500/15 flex items-center justify-center transition-all duration-200 active:scale-95"
+                        className="w-10 h-10 rounded-full bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/20 flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95"
                         style={{
                           WebkitTapHighlightColor: 'transparent',
                           backdropFilter: 'blur(10px)'
@@ -1812,10 +1811,10 @@ const AppContent: React.FC = () => {
                           setMobilePage('chat');
                         }}
                       >
-                        <Plus className="w-5 h-5 text-purple-400" />
+                        <Plus className="w-5 h-5 text-white" />
                       </button>
                     </div>
-                    <div className="space-y-3 flex-1 overflow-y-auto scrollbar-none">
+                    <div className="space-y-3 flex-1 overflow-y-auto scrollbar-none animate-fade-in-down delay-[300ms]">
                       {filteredSessions.length === 0 ? (
                         <div className="text-center py-8">
                           <div className={`w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center ${
@@ -1832,7 +1831,7 @@ const AppContent: React.FC = () => {
                           {filteredSessions.map((session) => (
                             <div
                               key={session.id}
-                              className="px-4 py-3 transition-all duration-300 active:scale-[0.98] hover:bg-white/8 rounded-2xl bg-[#1C1C1E]/40 backdrop-blur-md"
+                              className="px-4 py-2.5 transition-all duration-300 active:scale-[0.98] active:bg-white/5 hover:bg-white/8 rounded-2xl bg-[#1C1C1E]/40 backdrop-blur-md"
                               style={{
                                 WebkitTapHighlightColor: 'transparent',
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
@@ -1979,9 +1978,9 @@ const AppContent: React.FC = () => {
               </div>
 
               {/* iOS-Style Upload Button */}
-              <label className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95"
+              <label className="w-12 h-12 rounded-full bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/20 flex items-center justify-center cursor-pointer transition-all duration-150 hover:scale-105 active:scale-95"
                 style={{ WebkitTapHighlightColor: 'transparent' }}>
-                <Plus className="w-6 h-6 text-purple-400" />
+                <Plus className="w-6 h-6 text-white" />
                 <input
                   type="file"
                   accept=".pdf,.txt,.md,.docx"

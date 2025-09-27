@@ -1146,11 +1146,12 @@ const AppContent: React.FC = () => {
               </div>
             </div>
 
-            {/* Messages Area - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-4" style={{
-              paddingBottom: isKeyboardOpen ? '20px' : '160px',
-              minHeight: 0
-            }}>
+            {/* Mobile Chat Interface */}
+            <div className="flex-1 min-h-0 flex flex-col">
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-4" style={{
+                paddingBottom: isKeyboardOpen ? '20px' : '160px'
+              }}>
                 {messages.length === 0 && !mobileInput.trim() ? (
                   /* Mobile welcome state - fades out when typing */
                   <div className={`flex flex-col justify-center h-full text-center transition-opacity duration-300 ${
@@ -1708,14 +1709,14 @@ const AppContent: React.FC = () => {
                                   <span className={`ios-caption px-2 py-1 rounded-full ${
                                     isActive
                                       ? 'bg-purple-500/20 text-purple-300'
-                                      : 'bg-white/10 text-white/70'
+                                      : 'bg-transparent text-white/70'
                                   }`}>
                                     {typeInfo?.label || userClass.domainType}
                                   </span>
                                   <span className={`ios-caption px-2 py-1 rounded-full ${
                                     isActive
                                       ? 'bg-purple-500/20 text-purple-300'
-                                      : 'bg-white/10 text-white/70'
+                                      : 'bg-transparent text-white/70'
                                   }`}>
                                     {docCount} doc{docCount !== 1 ? 's' : ''}
                                   </span>
@@ -1739,7 +1740,7 @@ const AppContent: React.FC = () => {
                                   );
                                   setShowMobileClassForm(true);
                                 }}
-                                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95"
+                                className="w-8 h-8 rounded-full bg-transparent flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95"
                                 style={{
                                   WebkitTapHighlightColor: 'transparent'
                                 }}
@@ -1751,7 +1752,7 @@ const AppContent: React.FC = () => {
                                   e.stopPropagation();
                                   handleDeleteClass(userClass.id);
                                 }}
-                                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/15 transition-all duration-200 active:scale-95"
+                                className="w-8 h-8 rounded-full bg-transparent flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/15 transition-all duration-200 active:scale-95"
                                 style={{
                                   WebkitTapHighlightColor: 'transparent'
                                 }}

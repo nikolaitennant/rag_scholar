@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, X, Edit3, Trash2 } from 'lucide-react';
+import { Plus, X, Edit3, Trash2, BookOpen } from 'lucide-react';
 import { DomainType, UserClass } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { DOMAIN_TYPE_INFO } from '../constants/domains';
@@ -54,82 +54,87 @@ export const ClassManager: React.FC<ClassManagerProps> = ({
 
   if (showCreateForm) {
     return (
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className={`text-lg font-semibold ${
-            theme === 'dark' ? 'text-white' : 'text-black'
-          }`}>{editingClass ? 'Edit Class' : 'Create New Class'}</h3>
-          <button
-            onClick={resetForm}
-            className={`p-1 rounded-lg transition-colors ${
-              theme === 'dark'
-                ? 'hover:bg-white/10 text-white/60 hover:text-white'
-                : 'hover:bg-black/10 text-black/60 hover:text-black'
-            }`}
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${
+      <div className="p-4 pt-[calc(env(safe-area-inset-top)+8px)] pb-6 animate-fade-in duration-500 ease-out">
+        <div className="bg-[#1C1C1E] bg-white/5 rounded-[20px] p-6 backdrop-blur-lg border border-white/10" style={{
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)'
+        }}>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className={`text-lg font-semibold ${
               theme === 'dark' ? 'text-white' : 'text-black'
-            }`}>
-              Class Name
-            </label>
-            <input
-              type="text"
-              value={newClassName}
-              onChange={(e) => setNewClassName(e.target.value)}
-              placeholder="e.g., Law 101, Biology Research"
-              className={`w-full px-3 py-2 rounded-lg border transition-colors ${
+            }`}>{editingClass ? 'Edit Class' : 'Create New Class'}</h3>
+            <button
+              onClick={resetForm}
+              className={`p-2 rounded-full transition-all duration-200 active:scale-95 hover:bg-white/5 ${
                 theme === 'dark'
-                  ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-violet-500'
-                  : 'bg-white border-gray-300 text-black placeholder-gray-500 focus:border-violet-500'
-              } focus:outline-none focus:ring-2 focus:ring-violet-500/20`}
-            />
+                  ? 'text-white/60 hover:text-white'
+                  : 'text-black/60 hover:text-black'
+              }`}
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
 
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${
-              theme === 'dark' ? 'text-white' : 'text-black'
-            }`}>
-              Domain Type
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {Object.entries(DOMAIN_TYPE_INFO).map(([type, info]) => {
-                const Icon = info.icon;
-                return (
-                  <button
-                    key={type}
-                    onClick={() => setNewClassType(type as DomainType)}
-                    className={`p-3 rounded-lg border-2 transition-all duration-200 flex items-center gap-2 ${
-                      newClassType === type
-                        ? theme === 'dark'
-                          ? 'border-blue-500 bg-blue-500/20 text-blue-300'
-                          : 'border-blue-500 bg-blue-50 text-blue-700'
-                        : theme === 'dark'
-                          ? 'border-gray-700 hover:border-gray-600 text-white/60 hover:text-white'
-                          : 'border-gray-300 hover:border-gray-400 text-black/60 hover:text-black'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-xs font-medium">{info.label}</span>
-                  </button>
-                );
-              })}
+          <div className="space-y-4">
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
+                theme === 'dark' ? 'text-white' : 'text-black'
+              }`}>
+                Class Name
+              </label>
+              <input
+                type="text"
+                value={newClassName}
+                onChange={(e) => setNewClassName(e.target.value)}
+                placeholder="e.g., Law 101, Biology Research"
+                className={`w-full px-4 py-3 rounded-2xl border transition-all duration-200 bg-[#2C2C2E]/70 border-white/10 text-white placeholder-gray-400 focus:border-purple-500/60 focus:ring-4 focus:ring-purple-500/20 ${
+                  theme === 'dark'
+                    ? 'bg-[#2C2C2E]/70 border-white/10 text-white placeholder-gray-400 focus:border-purple-500/60'
+                    : 'bg-white/10 border-black/10 text-black placeholder-black/50 focus:border-purple-500/60'
+                } focus:outline-none backdrop-blur-sm`}
+              />
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium mb-3 ${
+                theme === 'dark' ? 'text-white' : 'text-black'
+              }`}>
+                Domain Type
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {Object.entries(DOMAIN_TYPE_INFO).map(([type, info]) => {
+                  const Icon = info.icon;
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => setNewClassType(type as DomainType)}
+                      className={`aspect-square p-4 rounded-2xl transition-all duration-200 flex flex-col items-center justify-center gap-2 active:scale-95 hover:bg-white/5 ${
+                        newClassType === type
+                          ? 'bg-gradient-to-br from-purple-500/30 to-purple-600/30 border-2 border-purple-500/60 text-purple-300 ring-2 ring-purple-500/30'
+                          : theme === 'dark'
+                            ? 'bg-[#2C2C2E]/50 border border-white/10 text-white/60 hover:text-white backdrop-blur-sm'
+                            : 'bg-white/10 border border-black/10 text-black/60 hover:text-black backdrop-blur-sm'
+                      }`}
+                    >
+                      <Icon className="h-[20px] w-[20px]" />
+                      <span className="text-[13px] font-medium text-center">{info.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
 
-        <button
-          onClick={handleCreateClass}
-          disabled={!newClassName.trim()}
-          className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 rounded-lg transition-all duration-200 disabled:opacity-50 mt-6"
-        >
-          {editingClass ? 'Update Class' : 'Create Class'}
-        </button>
+          <button
+            onClick={handleCreateClass}
+            disabled={!newClassName.trim()}
+            className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium py-4 rounded-full transition-all duration-200 disabled:opacity-50 mt-6 active:scale-95"
+            style={{
+              background: !newClassName.trim() ? 'rgba(147, 51, 234, 0.3)' : 'linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%)'
+            }}
+          >
+            {editingClass ? 'Update Class' : 'Create Class'}
+          </button>
+        </div>
       </div>
     );
   }
@@ -151,7 +156,7 @@ export const ClassManager: React.FC<ClassManagerProps> = ({
         </div>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 font-medium"
+          className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-3 rounded-full transition-all duration-200 flex items-center gap-2 font-medium active:scale-95"
         >
           <Plus className="h-4 w-4" />
           New Class
@@ -159,16 +164,21 @@ export const ClassManager: React.FC<ClassManagerProps> = ({
       </div>
 
       {classes.length === 0 ? (
-        <div className={`text-center py-12 ${
-          theme === 'dark' ? 'text-white/60' : 'text-black/60'
-        }`}>
-          <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
-            theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
-          }`}>
-            <Plus className="h-8 w-8" />
+        <div className="text-center py-8 space-y-4 animate-fade-in duration-500 ease-out">
+          <div className="w-10 h-10 mx-auto rounded-full bg-[#2C2C2E]/70 backdrop-blur-sm flex items-center justify-center">
+            <BookOpen className="h-5 w-5 text-white/60" />
           </div>
-          <p className="font-medium mb-2">No classes yet</p>
-          <p className="text-sm">Create your first class to get started</p>
+          <div>
+            <p className="font-medium text-white mb-1">No classes yet</p>
+            <p className="text-gray-400 text-sm mb-4">Create your first class to get started</p>
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-3 rounded-full transition-all duration-200 font-medium active:scale-95 inline-flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Create Class
+            </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-2">

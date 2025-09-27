@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Edit2, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send, ChevronDown, Trash2, ArrowLeft } from 'lucide-react';
+import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Edit2, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send, ChevronDown, Trash2, ArrowLeft, FileText } from 'lucide-react';
 import { ChatInterface } from './components/ChatInterface';
 import { Sidebar } from './components/Sidebar';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -15,6 +15,8 @@ import { apiService } from './services/api';
 import { getCommandSuggestions } from './utils/commandParser';
 import { Message, DomainType, Document, UserClass } from './types';
 import { DOMAIN_TYPE_INFO } from './constants/domains';
+import { SwipeableList, SwipeableListItem, SwipeAction, TrailingActions } from 'react-swipeable-list';
+import 'react-swipeable-list/dist/styles.css';
 
 const AppContent: React.FC = () => {
   const { theme, themeMode, background, toggleTheme, setBackground, getBackgroundClass } = useTheme();
@@ -36,6 +38,7 @@ const AppContent: React.FC = () => {
   const [isDocumentLoading, setIsDocumentLoading] = useState(false);
   const [loadingDocuments, setLoadingDocuments] = useState<Set<string>>(new Set());
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   // Comprehensive app loading state (ChatGPT style)
   const [appLoading, setAppLoading] = useState(true);
@@ -46,6 +49,7 @@ const AppContent: React.FC = () => {
   const [settingsPage, setSettingsPage] = useState<'main' | 'account' | 'appearance' | 'advanced' | 'help'>('main');
   const [mobileRewardsTab, setMobileRewardsTab] = useState<'achievements' | 'store'>('achievements');
   const [showMobileClassForm, setShowMobileClassForm] = useState(false);
+  const [mobileFormStep, setMobileFormStep] = useState<'class' | 'docs'>('class');
   const [editingMobileClass, setEditingMobileClass] = useState<UserClass | null>(null);
   const [mobileEditingClassDocs, setMobileEditingClassDocs] = useState<string[]>([]);
   const [mobileClassFormData, setMobileClassFormData] = useState({ name: '', type: DomainType.GENERAL, description: '' });
@@ -396,6 +400,41 @@ const AppContent: React.FC = () => {
     return () => clearTimeout(timer);
   }, []); // Only run once on mount
 
+  // Keyboard detection for iOS to hide dock when keyboard opens
+  useEffect(() => {
+    const initialViewportHeight = window.visualViewport?.height || window.innerHeight;
+
+    const handleViewportChange = () => {
+      const currentHeight = window.visualViewport?.height || window.innerHeight;
+      const heightDifference = initialViewportHeight - currentHeight;
+
+      // Consider keyboard open if viewport shrunk by more than 150px
+      const keyboardOpen = heightDifference > 150;
+      setIsKeyboardOpen(keyboardOpen);
+
+      // Add/remove body class to prevent viewport resize
+      if (keyboardOpen) {
+        document.body.classList.add('keyboard-open');
+      } else {
+        document.body.classList.remove('keyboard-open');
+      }
+    };
+
+    // Use visualViewport API for better keyboard detection on iOS
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      return () => {
+        window.visualViewport?.removeEventListener('resize', handleViewportChange);
+      };
+    } else {
+      // Fallback for browsers without visualViewport
+      window.addEventListener('resize', handleViewportChange);
+      return () => {
+        window.removeEventListener('resize', handleViewportChange);
+      };
+    }
+  }, []);
+
   // Show theme toggle on hover and hide after 200ms of no interaction
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
@@ -412,6 +451,24 @@ const AppContent: React.FC = () => {
       setThemeToggleVisible(false);
     }, 200);
     setHoverTimeout(timeout);
+  };
+
+
+  const handleDeleteSession = async (sessionId: string) => {
+    try {
+      await apiService.deleteSession(sessionId);
+      setSessions(prev => prev.filter(session => session.id !== sessionId));
+
+
+      // If deleting current session, clear messages
+      if (currentSessionId === sessionId) {
+        setCurrentSessionId(null);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+      alert('Failed to delete chat. Please try again.');
+    }
   };
 
   const handleThemeToggleClick = () => {
@@ -669,19 +726,6 @@ const AppContent: React.FC = () => {
       ));
     } catch (error) {
       console.error('Failed to rename session:', error);
-    }
-  };
-
-  const handleDeleteSession = async (sessionId: string) => {
-    try {
-      await apiService.deleteSession(sessionId);
-      setSessions(prev => prev.filter(session => session.id !== sessionId));
-      if (currentSessionId === sessionId) {
-        setCurrentSessionId(null);
-        setMessages([]);
-      }
-    } catch (error) {
-      console.error('Failed to delete session:', error);
     }
   };
 
@@ -1067,21 +1111,26 @@ const AppContent: React.FC = () => {
     switch (mobilePage) {
       case 'chat':
         return (
-          <div className="h-full flex flex-col">
+          <div className="h-full flex flex-col chat-container">
             {/* iOS-Style Mobile Chat Header */}
-            <div className={`px-6 py-4 backdrop-blur-xl ${
-              theme === 'dark' ? 'bg-black/20' : 'bg-white/80'
-            }`} style={{
-              paddingTop: 'max(env(safe-area-inset-top), 16px)',
-              borderBottom: theme === 'dark' ? '0.33px solid rgba(255, 255, 255, 0.13)' : '0.33px solid rgba(0, 0, 0, 0.13)'
-            }}>
+            <div
+              className="px-4"
+              style={{
+                paddingTop: 'env(safe-area-inset-top)',
+                paddingBottom: '8px',
+                background: 'rgba(28, 28, 30, 0.8)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                borderBottom: '0.33px solid var(--ios-divider)'
+              }}
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="ios-text-title text-white">
+                  <h1 className="ios-title text-white">
                     {activeClass ? activeClass.name : 'Chat'}
                   </h1>
                   {activeClass && (
-                    <p className="ios-text-caption text-white/60 mt-1">
+                    <p className="ios-caption text-white opacity-60 mt-1">
                       {DOMAIN_TYPE_INFO[activeClass.domainType]?.label || activeClass.domainType}
                     </p>
                   )}
@@ -1100,7 +1149,7 @@ const AppContent: React.FC = () => {
             <div className="flex-1 min-h-0 flex flex-col">
               {/* Messages Area */}
               <div className="flex-1 overflow-y-auto p-4" style={{
-                paddingBottom: '80px'
+                paddingBottom: isKeyboardOpen ? '20px' : '160px'
               }}>
                 {messages.length === 0 ? (
                   /* Mobile welcome state - simpler than desktop */
@@ -1154,12 +1203,17 @@ const AppContent: React.FC = () => {
                 )}
               </div>
 
-              {/* Fixed Bottom Input - Hides dock when keyboard is up */}
-              <div className="fixed left-0 right-0 p-4 backdrop-blur-md z-50" style={{
-                background: theme === 'dark' ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.9)',
-                bottom: '4rem',
-                paddingBottom: 'max(env(safe-area-inset-bottom), 16px)'
-              }}>
+              {/* Fixed Bottom Input - iOS Style */}
+              <div
+                className="fixed left-0 right-0 p-4 z-50"
+                style={{
+                  bottom: isKeyboardOpen
+                    ? 'max(env(safe-area-inset-bottom), 16px)'
+                    : 'calc(76px + max(env(safe-area-inset-bottom), 8px))',
+                  background: 'transparent',
+                  transition: 'bottom 0.3s ease-in-out'
+                }}
+              >
                 <div className="relative">
                   <CommandSuggestions
                     suggestions={getCommandSuggestions(mobileInput)}
@@ -1187,25 +1241,18 @@ const AppContent: React.FC = () => {
                         setShowCommandSuggestions(value.startsWith('/'));
                       }}
                       placeholder="Ask anything..."
-                      className={`w-full backdrop-blur-xl rounded-full px-5 py-4 pr-12 text-base focus:outline-none transition-all duration-200 ${
-                        theme === 'dark'
-                          ? 'bg-white/10 text-white placeholder-white/50'
-                          : 'bg-white/90 text-black placeholder-black/50'
-                      }`}
+                      className="ios-input w-full text-base pr-12 focus:outline-none transition-all duration-300 ease-in-out"
                       style={{
                         fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
                         fontSize: '16px',
                         WebkitTapHighlightColor: 'transparent',
-                        boxShadow: theme === 'dark'
-                          ? '0 2px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-                          : '0 2px 20px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                        border: 'none',
+                        boxShadow: 'none'
                       }}
                       disabled={isChatLoading}
                       onFocus={(e) => {
-                        // Small delay to ensure keyboard is open, then scroll input into view
-                        setTimeout(() => {
-                          e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }, 300);
+                        // Prevent default scroll behavior for iOS overlay keyboard
+                        e.preventDefault();
                       }}
                     />
                     <button
@@ -1232,100 +1279,52 @@ const AppContent: React.FC = () => {
 
       case 'home':
         return (
-          <div className="h-full overflow-y-auto pb-20" style={{
-            paddingTop: 'env(safe-area-inset-top)'
+          <div className="h-full overflow-y-scroll pb-20" style={{
+            paddingTop: `calc(env(safe-area-inset-top) - 10px)`,
+            WebkitOverflowScrolling: 'touch'
           }}>
-            {/* iOS-Style Mobile Header */}
-            <div className="px-4 py-4">
-              <div className="text-left">
-                <h1 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                  {(() => {
-                    const hour = new Date().getHours();
-                    const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
-                    if (hour < 12) return `Good morning, ${userName}`;
-                    if (hour < 17) return `Good afternoon, ${userName}`;
-                    return `Good evening, ${userName}`;
-                  })()}
-                  <Heart className="w-5 h-5 text-violet-400 animate-pulse inline-block ml-2" style={{ verticalAlign: 'middle', transform: 'translateY(-1.5px)' }} />
-                </h1>
-                <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Ready to explore your documents?
-                </p>
-              </div>
+            {/* iOS-Native Header */}
+            <div className="px-5 animate-fade-in" style={{
+              paddingBottom: '20px'
+            }}>
+              <h1 className="text-[28px] font-semibold tracking-tight text-white">
+                {(() => {
+                  const hour = new Date().getHours();
+                  const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
+                  if (hour < 12) return `Good morning, ${userName}`;
+                  if (hour < 17) return `Good afternoon, ${userName}`;
+                  return `Good evening, ${userName}`;
+                })()}
+                <Heart className="w-6 h-6 text-[#AF52DE] animate-pulse inline-block ml-3" style={{ verticalAlign: 'middle', transform: 'translateY(-2px)' }} />
+              </h1>
+              <p className="text-sm text-gray-400 mt-1">
+                Ready to explore your documents?
+              </p>
             </div>
 
-            <div className="space-y-6 px-4">
-              {/* iOS-Style Quick Actions */}
-              <div className="space-y-4">
-                {activeClass ? (
-                  <button
-                    onClick={() => {
-                      handleNewChat();
-                      setMobilePage('chat');
-                    }}
-                    className="ios-card w-full p-5 text-left transition-all duration-150 active:scale-95"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center">
-                        <MessageSquare className="w-6 h-6 text-blue-400" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="ios-text-title text-white mb-1">
-                          Start New Chat
-                        </h3>
-                        <p className="ios-text-caption text-white/60">
-                          Chat with {activeClass.name} documents
-                        </p>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-white/40" />
-                    </div>
-                  </button>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="ios-card p-4">
-                      <h3 className="ios-text-title text-white mb-3">
-                        Get Started
-                      </h3>
-                      <p className="ios-text-caption text-white/60 mb-4">
-                        Create a class and upload documents to start chatting
-                      </p>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => setShowMobileClassForm(true)}
-                          className="flex-1 bg-blue-500/20 text-blue-400 py-3 px-4 rounded-2xl transition-all duration-150 active:scale-95 text-sm font-medium"
-                          style={{ WebkitTapHighlightColor: 'transparent' }}
-                        >
-                          Create Class
-                        </button>
-                        <button
-                          onClick={() => setMobilePage('docs')}
-                          className="flex-1 bg-green-500/20 text-green-400 py-3 px-4 rounded-2xl transition-all duration-150 active:scale-95 text-sm font-medium"
-                          style={{ WebkitTapHighlightColor: 'transparent' }}
-                        >
-                          Upload Docs
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-              </div>
-
-              {/* Learning Progress */}
+            <div className="space-y-4 px-5">
+              {/* Learning Progress Card */}
               <button
+                className="w-full p-5 animate-slide-in-bottom rounded-2xl text-left transition-all duration-200 active:scale-[0.98]"
+                style={{
+                  animationDelay: '0.1s',
+                  animationFillMode: 'both',
+                  background: 'rgba(0, 0, 0, 0.4)',
+                  backdropFilter: 'blur(20px) saturate(120%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(120%)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
                 onClick={() => setMobilePage('rewards')}
-                className="ios-card w-full p-4 text-left transition-all duration-150 active:scale-95"
-                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="ios-text-title text-white">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">
                     Learning Progress
                   </h3>
                   <div className="flex items-center space-x-2">
-                    <Star className="w-4 h-4 text-yellow-400" />
-                    <span className="ios-text-body text-white text-sm font-medium">
-                      {userProfile?.stats?.total_points || 0} pts
+                    <Star className="w-5 h-5 text-yellow-400" />
+                    <span className="text-lg font-semibold text-white">
+                      {userProfile?.stats?.total_points || 610} pts
                     </span>
                   </div>
                 </div>
@@ -1341,17 +1340,17 @@ const AppContent: React.FC = () => {
                     const progress = ((nextGoal.progress || 0) / (nextGoal.target || 1)) * 100;
                     return (
                       <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="ios-text-caption text-white/70">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm text-gray-400">
                             Next: {nextGoal.name}
                           </span>
-                          <span className="ios-text-caption text-white/70">
+                          <span className="text-sm text-gray-400">
                             {nextGoal.progress}/{nextGoal.target}
                           </span>
                         </div>
-                        <div className="w-full bg-white/10 rounded-full h-2">
+                        <div className="ios-progress-bar">
                           <div
-                            className="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full transition-all duration-300"
+                            className="ios-progress-fill"
                             style={{ width: `${progress}%` }}
                           />
                         </div>
@@ -1376,194 +1375,312 @@ const AppContent: React.FC = () => {
               </button>
 
               {/* iOS-Style Classes Section */}
-              <div className="space-y-4">
+              <div className="space-y-4 animate-slide-in-bottom"
+                style={{
+                  animationDelay: '0.2s',
+                  animationFillMode: 'both'
+                }}
+              >
                 <div className="flex items-center justify-between">
-                  <h2 className="ios-text-title text-white">
+                  <h2 className="text-lg font-semibold text-white">
                     Classes
                   </h2>
                   <button
                     onClick={() => setShowMobileClassForm(!showMobileClassForm)}
-                    className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center transition-all duration-150 active:scale-95"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center transition-all duration-200 active:scale-95 ring-1 ring-purple-500/30"
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      backdropFilter: 'blur(10px)'
+                    }}
                   >
-                    <Plus className="w-4 h-4 text-blue-400" />
+                    <Plus className="w-5 h-5 text-purple-400" />
                   </button>
                 </div>
 
                 {/* Create Class Form */}
-                {showMobileClassForm && (
-                  <div className={`p-4 rounded-xl mb-4 ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}>
-                    <h4 className={`font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                      {editingMobileClass ? 'Edit Class' : 'Create New Class'}
-                    </h4>
-                    <div className="space-y-4">
-                      <input
-                        type="text"
-                        value={mobileClassFormData.name}
-                        onChange={(e) => setMobileClassFormData(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="Class name (e.g., History 101)"
-                        className={`w-full px-4 py-3 rounded-lg text-sm border ${
-                          theme === 'dark'
-                            ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
-                            : 'bg-black/10 border-black/20 text-black placeholder-black/50'
-                        }`}
-                      />
-                      <div>
-                        <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Subject Type
-                        </label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {Object.entries(DOMAIN_TYPE_INFO).map(([type, info]) => {
-                            const Icon = info.icon;
-                            return (
-                              <button
-                                key={type}
-                                onClick={() => setMobileClassFormData(prev => ({ ...prev, type: type as DomainType }))}
-                                className={`p-3 rounded-lg transition-all flex flex-col items-center space-y-1 ${
-                                  mobileClassFormData.type === type
-                                    ? theme === 'dark'
-                                      ? 'bg-white/20 text-white'
-                                      : 'bg-black/20 text-black'
-                                    : theme === 'dark'
-                                      ? 'bg-white/5 text-white/70 hover:bg-white/10'
-                                      : 'bg-black/5 text-black/70 hover:bg-black/10'
-                                }`}
-                              >
-                                <Icon className="w-4 h-4" />
-                                <span className="text-xs font-medium">{info.label}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
+                {showMobileClassForm && createPortal(
+                  <>
+                    {/* Soft overlay behind form - covers entire screen */}
+                    <div className="fixed inset-0 bg-black/30 backdrop-blur-md animate-fade-in" style={{ zIndex: 999 }} />
 
-                      {/* Document Assignment - Only show if there are documents */}
-                      {documents.length > 0 && (
-                        <div>
-                          <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Assign Documents (optional)
-                          </label>
-                          <div className="max-h-32 overflow-y-auto space-y-2">
-                            {documents.map((doc) => (
-                              <button
-                                key={doc.id}
-                                type="button"
-                                onClick={() => {
-                                  setMobileEditingClassDocs(prev =>
-                                    prev.includes(doc.id)
-                                      ? prev.filter(id => id !== doc.id)
-                                      : [...prev, doc.id]
-                                  );
-                                }}
-                                className={`w-full text-left p-2 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                                  mobileEditingClassDocs.includes(doc.id)
-                                    ? theme === 'dark'
-                                      ? 'bg-white/15 text-white'
-                                      : 'bg-black/15 text-black'
-                                    : theme === 'dark'
-                                      ? 'bg-white/5 text-white/70 hover:bg-white/10'
-                                      : 'bg-black/5 text-black/70 hover:bg-black/10'
-                                }`}
-                              >
-                                <span className="truncate">{doc.filename}</span>
-                                {mobileEditingClassDocs.includes(doc.id) && (
-                                  <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0 ml-2"></div>
-                                )}
-                              </button>
-                            ))}
+                    {/* Form container - centered */}
+                    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 1000 }}>
+                      <div
+                        className="w-full max-w-sm rounded-2xl border border-[#2C2C2E] animate-slide-in-bottom"
+                        style={{
+                          background: '#1C1C1E',
+                          boxShadow: '0 0 20px rgba(0, 0, 0, 0.5)',
+                          padding: '16px 20px'
+                        }}
+                      >
+                      <div className="space-y-3">
+                        {mobileFormStep === 'class' ? (
+                          <div className="space-y-3">
+                            <input
+                              type="text"
+                              value={mobileClassFormData.name}
+                              onChange={(e) => setMobileClassFormData(prev => ({ ...prev, name: e.target.value }))}
+                              placeholder="Class name (e.g., History 101)"
+                              className={`w-full px-3 py-2 rounded-lg text-sm border ${
+                                theme === 'dark'
+                                  ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
+                                  : 'bg-black/10 border-black/20 text-black placeholder-black/50'
+                              }`}
+                            />
+                            <div className="grid grid-cols-3 gap-3">
+                              {Object.entries(DOMAIN_TYPE_INFO).map(([type, info]) => {
+                                const Icon = info.icon;
+                                return (
+                                  <button
+                                    key={type}
+                                    onClick={() => setMobileClassFormData(prev => ({ ...prev, type: type as DomainType }))}
+                                    className={`aspect-square p-1 rounded-lg transition-all flex flex-col items-center justify-center space-y-0.5 ${
+                                      mobileClassFormData.type === type
+                                        ? theme === 'dark'
+                                          ? 'bg-white/20 text-white'
+                                          : 'bg-black/20 text-black'
+                                        : theme === 'dark'
+                                          ? 'bg-white/5 text-white/70 hover:bg-white/10'
+                                          : 'bg-black/5 text-black/70 hover:bg-black/10'
+                                    }`}
+                                  >
+                                    <Icon className="w-3 h-3" />
+                                    <span className="text-[10px] font-medium leading-tight">{info.label}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="text-center py-2">
+                              <h4 className="text-white font-medium mb-1">Add Documents</h4>
+                              <p className="text-gray-400 text-sm">Select documents for your class</p>
+                            </div>
 
-                      <div className="flex space-x-3">
-                        <button
-                          onClick={async () => {
-                            if (mobileClassFormData.name.trim() && !isEditingMobileClass) {
-                              setIsEditingMobileClass(true);
-                              try {
-                                if (editingMobileClass) {
-                                  // Edit existing class
-                                  handleEditClass(
-                                    editingMobileClass.id,
-                                    mobileClassFormData.name,
-                                    mobileClassFormData.type,
-                                    mobileClassFormData.description
-                                  );
-                                  // Wait a bit for state updates
-                                  await new Promise(resolve => setTimeout(resolve, 100));
-                                  // Also handle document assignment
-                                  handleAssignDocuments(editingMobileClass.id, mobileEditingClassDocs);
-                                  // Wait for document assignment to complete
-                                  await new Promise(resolve => setTimeout(resolve, 2000));
+                            {/* Upload new document button */}
+                            <button
+                              onClick={() => {
+                                // Trigger file input (we'll need to add a hidden input)
+                                const fileInput = document.createElement('input');
+                                fileInput.type = 'file';
+                                fileInput.accept = '.pdf,.txt,.md,.doc,.docx';
+                                fileInput.onchange = (e) => {
+                                  const file = (e.target as HTMLInputElement).files?.[0];
+                                  if (file) {
+                                    // Handle file upload
+                                    console.log('File selected:', file.name);
+                                    // You can implement actual upload logic here
+                                  }
+                                };
+                                fileInput.click();
+                              }}
+                              className="w-full p-4 rounded-2xl text-white transition-all duration-200 active:scale-95"
+                              style={{
+                                background: 'rgba(0, 122, 255, 0.1)',
+                                border: '2px dashed rgba(0, 122, 255, 0.3)',
+                                WebkitTapHighlightColor: 'transparent'
+                              }}
+                            >
+                              <div className="flex flex-col items-center space-y-2">
+                                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                  <Plus className="w-5 h-5 text-blue-400" />
+                                </div>
+                                <span className="text-sm font-medium text-blue-400">Upload New Document</span>
+                                <span className="text-xs text-gray-400">PDF, TXT, MD, DOC</span>
+                              </div>
+                            </button>
+
+                            {/* Existing documents */}
+                            {documents.length > 0 ? (
+                              <div>
+                                <div className="text-sm font-medium text-white mb-3">Existing Documents</div>
+                                <div className="space-y-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                  {documents.map((doc) => (
+                                    <button
+                                      key={doc.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setMobileEditingClassDocs(prev =>
+                                          prev.includes(doc.id)
+                                            ? prev.filter(id => id !== doc.id)
+                                            : [...prev, doc.id]
+                                        );
+                                      }}
+                                      className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all duration-200 active:scale-95 ${
+                                        mobileEditingClassDocs.includes(doc.id)
+                                          ? 'bg-blue-500/20 text-white border-2 border-blue-500/40'
+                                          : 'bg-white/8 text-white/90 hover:bg-white/12'
+                                      }`}
+                                      style={{
+                                        WebkitTapHighlightColor: 'transparent'
+                                      }}
+                                    >
+                                      <div className="flex items-center space-x-3 min-w-0">
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                          mobileEditingClassDocs.includes(doc.id)
+                                            ? 'bg-blue-500/30'
+                                            : 'bg-gray-600/50'
+                                        }`}>
+                                          <FileText className={`w-5 h-5 ${
+                                            mobileEditingClassDocs.includes(doc.id)
+                                              ? 'text-blue-400'
+                                              : 'text-gray-400'
+                                          }`} />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                          <div className="text-sm font-medium truncate">{doc.filename}</div>
+                                          <div className="text-xs text-gray-400">Document</div>
+                                        </div>
+                                      </div>
+                                      {mobileEditingClassDocs.includes(doc.id) && (
+                                        <div className="w-3 h-3 rounded-full bg-blue-400 flex-shrink-0"></div>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-center py-4">
+                                <div className="text-gray-400 text-sm">No documents available</div>
+                                <div className="text-gray-500 text-xs mt-1">Upload your first document above</div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="flex space-x-2">
+                          {mobileFormStep === 'class' ? (
+                            <>
+                              <button
+                                onClick={() => {
+                                  if (mobileClassFormData.name.trim()) {
+                                    setMobileFormStep('docs');
+                                  }
+                                }}
+                                disabled={!mobileClassFormData.name.trim()}
+                                className={`flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-all ${
+                                  mobileClassFormData.name.trim()
+                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
+                                    : 'bg-gradient-to-r from-gray-400 to-gray-500 text-gray-300 cursor-not-allowed opacity-50'
+                                } flex items-center justify-center gap-1`}
+                              >
+                                Next
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowMobileClassForm(false);
+                                  setMobileFormStep('class');
+                                  setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
                                   setEditingMobileClass(null);
                                   setMobileEditingClassDocs([]);
-                                } else {
-                                  // Create new class
-                                  handleCreateClass(
-                                    mobileClassFormData.name,
-                                    mobileClassFormData.type,
-                                    mobileClassFormData.description
-                                  );
+                                }}
+                                className={`px-3 py-2 rounded-lg text-sm ${
+                                  theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                                }`}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => setMobileFormStep('class')}
+                                className={`px-3 py-2 rounded-lg text-sm ${
+                                  theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                                }`}
+                              >
+                                Back
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (mobileClassFormData.name.trim() && !isEditingMobileClass) {
+                                    setIsEditingMobileClass(true);
+                                    try {
+                                      if (editingMobileClass) {
+                                        handleEditClass(
+                                          editingMobileClass.id,
+                                          mobileClassFormData.name,
+                                          mobileClassFormData.type,
+                                          mobileClassFormData.description
+                                        );
+                                        await new Promise(resolve => setTimeout(resolve, 100));
+                                        handleAssignDocuments(editingMobileClass.id, mobileEditingClassDocs);
+                                        await new Promise(resolve => setTimeout(resolve, 2000));
+                                        setEditingMobileClass(null);
+                                        setMobileEditingClassDocs([]);
+                                      } else {
+                                        handleCreateClass(
+                                          mobileClassFormData.name,
+                                          mobileClassFormData.type,
+                                          mobileClassFormData.description
+                                        );
+                                      }
+                                      setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
+                                      setShowMobileClassForm(false);
+                                      setMobileFormStep('class');
+                                    } finally {
+                                      setIsEditingMobileClass(false);
+                                    }
+                                  }
+                                }}
+                                disabled={!mobileClassFormData.name.trim() || isEditingMobileClass}
+                                className={`flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-all ${
+                                  mobileClassFormData.name.trim() && !isEditingMobileClass
+                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
+                                    : 'bg-gradient-to-r from-gray-400 to-gray-500 text-gray-300 cursor-not-allowed opacity-50'
+                                } flex items-center justify-center gap-1`}
+                              >
+                                {isEditingMobileClass && (
+                                  <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent"></div>
+                                )}
+                                {isEditingMobileClass
+                                  ? (editingMobileClass ? 'Updating...' : 'Creating...')
+                                  : (editingMobileClass ? 'Update' : 'Create')
                                 }
-                                setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
-                                setShowMobileClassForm(false);
-                              } finally {
-                                setIsEditingMobileClass(false);
-                              }
-                            }
-                          }}
-                          disabled={!mobileClassFormData.name.trim() || isEditingMobileClass}
-                          className={`flex-1 py-3 px-4 rounded-lg font-medium text-sm transition-all ${
-                            mobileClassFormData.name.trim() && !isEditingMobileClass
-                              ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
-                              : 'bg-gradient-to-r from-gray-400 to-gray-500 text-gray-300 cursor-not-allowed opacity-50'
-                          } flex items-center justify-center gap-2`}
-                        >
-                          {isEditingMobileClass && (
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                              </button>
+                            </>
                           )}
-                          {isEditingMobileClass
-                            ? (editingMobileClass ? 'Updating...' : 'Creating...')
-                            : (editingMobileClass ? 'Update Class' : 'Create Class')
-                          }
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowMobileClassForm(false);
-                            setMobileClassFormData({ name: '', type: DomainType.GENERAL, description: '' });
-                            setEditingMobileClass(null);
-                            setMobileEditingClassDocs([]);
-                          }}
-                          className={`px-4 py-3 rounded-lg text-sm ${
-                            theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
-                          }`}
-                        >
-                          Cancel
-                        </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                    </div>
+                  </>,
+                  document.body
                 )}
 
                 {/* Classes List */}
-                {userClasses.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div className={`w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center ${
-                      theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
-                    }`}>
-                      <BookOpen className={`w-6 h-6 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`} />
+                {userClasses.length === 0 && !showMobileClassForm ? (
+                  <div className="text-center py-6 space-y-2 animate-fade-in">
+                    <div className="w-10 h-10 mx-auto rounded-full flex items-center justify-center animate-pulse bg-white/10">
+                      <BookOpen className="w-4 h-4 text-white/60" style={{ transform: 'translateX(0.5px)' }} />
                     </div>
-                    <p className={`font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                      No classes yet
-                    </p>
-                    <p className={`text-sm mb-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Create your first class
-                    </p>
+                    <div>
+                      <p className="text-white font-medium text-[15px]">
+                        No classes yet
+                      </p>
+                      <p className="text-gray-400 text-[13px] mt-1">
+                        Create your first class to get started
+                      </p>
+                    </div>
                     <button
                       onClick={() => setShowMobileClassForm(true)}
-                      className="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+                      className="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 active:scale-95"
+                      style={{
+                        background: 'linear-gradient(135deg, #007AFF 0%, #AF52DE 100%)',
+                        boxShadow: '0 4px 12px rgba(0, 122, 255, 0.3)'
+                      }}
+                      onMouseDown={(e) => {
+                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 122, 255, 0.4)';
+                      }}
+                      onMouseUp={(e) => {
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 122, 255, 0.3)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 122, 255, 0.3)';
+                      }}
                     >
-                      Create Class
+                      <span className="text-white">Create Class</span>
                     </button>
                   </div>
                 ) : (
@@ -1580,13 +1697,19 @@ const AppContent: React.FC = () => {
                         const docCount = documents.filter(doc => doc.assigned_classes?.includes(userClass.id)).length;
 
                       return (
-                        <div key={userClass.id} className={`p-4 rounded-xl transition-all ${
+                        <div key={userClass.id} className={`p-5 transition-all duration-200 active:scale-[0.98] rounded-2xl relative ${
                           isActive
-                            ? 'bg-purple-500/20 shadow-lg shadow-purple-500/20'
-                            : theme === 'dark'
-                              ? 'bg-white/5 hover:bg-white/8'
-                              : 'bg-black/5 hover:bg-black/8'
-                        }`}>
+                            ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 shadow-lg'
+                            : ''
+                        }`}
+                        style={{
+                          WebkitTapHighlightColor: 'transparent',
+                          touchAction: 'manipulation',
+                          background: isActive ? undefined : 'rgba(0, 0, 0, 0.4)',
+                          backdropFilter: 'blur(20px) saturate(120%)',
+                          WebkitBackdropFilter: 'blur(20px) saturate(120%)',
+                          boxShadow: isActive ? undefined : '0 8px 32px rgba(0, 0, 0, 0.25)'
+                        }}>
                           <div className="flex items-center space-x-3">
                             <button
                               onClick={() => handleSelectClass(userClass)}
@@ -1598,38 +1721,36 @@ const AppContent: React.FC = () => {
                                   : theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                               }`} />}
                               <div className="flex-1 min-w-0">
-                                <h4 className={`font-medium truncate text-sm text-left ${
-                                  isActive
-                                    ? 'text-white'
-                                    : theme === 'dark' ? 'text-white' : 'text-black'
+                                <h4 className={`ios-title text-white truncate text-left ${
+                                  isActive ? 'opacity-100' : 'opacity-90'
                                 }`}>
                                   {userClass.name}
                                 </h4>
-                                <div className="flex items-center space-x-2 mt-1">
+                                <div className="flex items-center space-x-2 mt-2">
                                   {isActive && (
                                     <div className="relative">
                                       <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
                                       <div className="absolute top-0 left-0 w-2 h-2 bg-purple-400 rounded-full animate-ping"></div>
                                     </div>
                                   )}
-                                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  <span className={`ios-caption px-2 py-1 rounded-full ${
                                     isActive
                                       ? 'bg-purple-500/20 text-purple-300'
-                                      : theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                                      : 'bg-white/10 text-white/70'
                                   }`}>
                                     {typeInfo?.label || userClass.domainType}
                                   </span>
-                                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  <span className={`ios-caption px-2 py-1 rounded-full ${
                                     isActive
                                       ? 'bg-purple-500/20 text-purple-300'
-                                      : theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
+                                      : 'bg-white/10 text-white/70'
                                   }`}>
                                     {docCount} doc{docCount !== 1 ? 's' : ''}
                                   </span>
                                 </div>
                               </div>
                             </button>
-                            <div className="flex space-x-1">
+                            <div className="flex space-x-2">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1646,26 +1767,24 @@ const AppContent: React.FC = () => {
                                   );
                                   setShowMobileClassForm(true);
                                 }}
-                                className={`p-2 rounded-lg transition-colors ${
-                                  theme === 'dark'
-                                    ? 'text-gray-400 hover:text-white hover:bg-white/10'
-                                    : 'text-gray-600 hover:text-black hover:bg-black/10'
-                                }`}
+                                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95"
+                                style={{
+                                  WebkitTapHighlightColor: 'transparent'
+                                }}
                               >
-                                <Edit2 className="w-3 h-3" />
+                                <Edit2 className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDeleteClass(userClass.id);
                                 }}
-                                className={`p-2 rounded-lg transition-colors ${
-                                  theme === 'dark'
-                                    ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10'
-                                    : 'text-gray-600 hover:text-red-600 hover:bg-red-500/10'
-                                }`}
+                                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/15 transition-all duration-200 active:scale-95"
+                                style={{
+                                  WebkitTapHighlightColor: 'transparent'
+                                }}
                               >
-                                <Trash2 className="w-3 h-3" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </div>
@@ -1685,48 +1804,104 @@ const AppContent: React.FC = () => {
 
                 return (
                   <div className="flex flex-col flex-1 min-h-0">
-                    <div className="mb-3">
-                      <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="ios-title text-white">
                         Recent Chats{activeClass ? ` - ${activeClass.name}` : ''}
                       </h3>
+                      <button
+                        className="w-10 h-10 rounded-full bg-blue-500/15 flex items-center justify-center transition-all duration-200 active:scale-95"
+                        style={{
+                          WebkitTapHighlightColor: 'transparent',
+                          backdropFilter: 'blur(10px)'
+                        }}
+                        onClick={() => {
+                          setCurrentSessionId(null);
+                          setMessages([]);
+                          setMobilePage('chat');
+                        }}
+                      >
+                        <Plus className="w-5 h-5 text-blue-400" />
+                      </button>
                     </div>
-                    <div className="space-y-2 flex-1 overflow-y-auto scrollbar-none">
+                    <div className="space-y-3 flex-1 overflow-y-auto scrollbar-none">
                       {filteredSessions.length === 0 ? (
                         <div className="text-center py-8">
-                          <div className={`w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center ${
+                          <div className={`w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center ${
                             theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
                           }`}>
-                            <MessageSquare className={`w-6 h-6 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`} />
+                            <MessageSquare className={`w-4 h-4 ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`} />
                           </div>
-                          <p className={`font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                          <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                             No chats yet
-                          </p>
-                          <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            {activeClass ? `Start a conversation in ${activeClass.name}` : 'Start a new conversation'}
                           </p>
                         </div>
                       ) : (
-                        filteredSessions.map((session) => (
-                          <button
-                            key={session.id}
-                            onClick={() => {
-                              handleSelectSession(session.id);
-                              setMobilePage('chat');
-                            }}
-                            className={`w-full p-3 rounded-lg text-left transition-all ${
-                              theme === 'dark'
-                                ? 'bg-white/5 hover:bg-white/10'
-                                : 'bg-black/5 hover:bg-black/10'
-                            }`}
-                          >
-                            <p className={`font-medium text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                              {session.name}
-                            </p>
-                            <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                              {formatLocalDate(session.updated_at)}
-                            </p>
-                          </button>
-                        ))
+                        <SwipeableList
+                          style={{
+                            backgroundColor: 'transparent',
+                            overflow: 'visible'
+                          }}
+                        >
+                            {filteredSessions.map((session) => {
+                              const trailingActions = () => (
+                                <TrailingActions>
+                                  <SwipeAction
+                                    onClick={() => handleDeleteSession(session.id)}
+                                    destructive={true}
+                                    Tag="div"
+                                  >
+                                    <div
+                                      className="flex items-center justify-center h-full w-16 text-white font-medium text-xs"
+                                      style={{
+                                        backgroundColor: '#FF3B30',
+                                        borderRadius: '0 10px 10px 0',
+                                        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                                        transition: 'all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)'
+                                      }}
+                                    >
+                                      Delete
+                                    </div>
+                                  </SwipeAction>
+                                </TrailingActions>
+                              );
+
+                              return (
+                                <SwipeableListItem
+                                  key={session.id}
+                                  trailingActions={trailingActions()}
+                                  threshold={0.15}
+                                  swipeStartThreshold={5}
+                                  maxSwipe={0.5}
+                                  className="mb-2"
+                                >
+                                  <div
+                                    className="ios-card-elevated w-full p-4 text-left transition-all duration-200 active:scale-[0.98]"
+                                    style={{
+                                      willChange: 'transform',
+                                      touchAction: 'pan-y',
+                                      WebkitTapHighlightColor: 'transparent'
+                                    }}
+                                    onClick={() => {
+                                      handleSelectSession(session.id);
+                                      setMobilePage('chat');
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="ios-title text-white truncate">
+                                          {session.name}
+                                        </h4>
+                                        <p className="ios-subtitle text-white/60 mt-1">
+                                          {formatLocalDate(session.updated_at)}
+                                        </p>
+                                      </div>
+                                      <ChevronRight className="w-4 h-4 text-white/40 ml-3 flex-shrink-0" />
+                                    </div>
+                                  </div>
+                                </SwipeableListItem>
+                              );
+                            })}
+                          </SwipeableList>
                       )}
                     </div>
                   </div>
@@ -1743,12 +1918,12 @@ const AppContent: React.FC = () => {
             paddingTop: 'env(safe-area-inset-top)'
           }}>
             {/* iOS-Style Mobile Header */}
-            <div className="px-4 py-4 flex items-center justify-between">
+            <div className="px-4 flex items-center justify-between" style={{ paddingTop: '72px', paddingBottom: '24px' }}>
               <div>
-                <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                <h2 className="ios-large-title text-white">
                   Documents
                 </h2>
-                <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                <p className="ios-subtitle text-white mt-2">
                   {(() => {
                     const filteredCount = mobileDocumentFilter
                       ? documents.filter(doc => doc.assigned_classes?.includes(mobileDocumentFilter)).length
@@ -1966,14 +2141,14 @@ const AppContent: React.FC = () => {
       case 'rewards':
         return (
           <div className="h-full overflow-y-auto pb-20">
-            {/* Mobile Header */}
-            <div className="px-4 py-4">
+            {/* iOS-Style Mobile Header */}
+            <div className="px-4" style={{ paddingTop: '72px', paddingBottom: '24px' }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                  <h2 className="ios-large-title text-white">
                     Rewards
                   </h2>
-                  <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <p className="ios-subtitle text-white mt-2">
                     {mobileRewardsTab === 'achievements' ? 'Track your learning progress' : 'Redeem your points for rewards'}
                   </p>
                 </div>
@@ -2391,50 +2566,62 @@ const AppContent: React.FC = () => {
             paddingTop: 'env(safe-area-inset-top)'
           }}>
             {/* iOS-Style Mobile Header */}
-            <div className="px-4 py-4">
-              <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+            <div className="px-4" style={{ paddingTop: '72px', paddingBottom: '24px' }}>
+              <h2 className="ios-large-title text-white">
                 Settings
               </h2>
-              <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              <p className="ios-subtitle text-white mt-2">
                 Customize your experience
               </p>
             </div>
 
             {settingsPage === 'main' && (
-              /* Main Settings List */
-              <div className="px-6 space-y-3">
-                {[
-                  { key: 'account', label: 'Account', icon: User, subtitle: 'Manage your profile and preferences' },
-                  { key: 'appearance', label: 'Appearance', icon: Palette, subtitle: 'Theme, background, and display options' },
-                  { key: 'advanced', label: 'Advanced', icon: Settings, subtitle: 'API settings and advanced configuration' },
-                  { key: 'help', label: 'Help & Support', icon: HelpCircle, subtitle: 'Get help and send feedback' }
-                ].map(({ key, label, icon: Icon, subtitle }) => (
-                  <button
-                    key={key}
-                    onClick={() => setSettingsPage(key as any)}
-                    className={`w-full p-4 rounded-xl transition-all duration-150 active:scale-95 ${
-                      theme === 'dark' ? 'bg-white/5' : 'bg-black/5'
-                    }`}
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                          <Icon className="w-4 h-4 text-white" />
+              /* iOS-Style Grouped Settings List */
+              <div className="px-4">
+                <div className="ios-grouped-list">
+                  {[
+                    { key: 'account', label: 'Account', icon: User, subtitle: 'Manage your profile and preferences', color: 'blue' },
+                    { key: 'appearance', label: 'Appearance', icon: Palette, subtitle: 'Theme, background, and display options', color: 'purple' },
+                    { key: 'advanced', label: 'Advanced', icon: Settings, subtitle: 'API settings and advanced configuration', color: 'gray' },
+                    { key: 'help', label: 'Help & Support', icon: HelpCircle, subtitle: 'Get help and send feedback', color: 'green' }
+                  ].map(({ key, label, icon: Icon, subtitle, color }, index, array) => (
+                    <div key={key}>
+                      <button
+                        onClick={() => setSettingsPage(key as any)}
+                        className="w-full px-4 py-3.5 text-left transition-all duration-300 ease-in-out hover:bg-white/5 active:bg-white/10"
+                        style={{
+                          WebkitTapHighlightColor: 'transparent',
+                          animation: 'iosTapPress 0.15s ease-in-out'
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              color === 'blue' ? 'bg-[#007AFF]' :
+                              color === 'purple' ? 'bg-[#AF52DE]' :
+                              color === 'gray' ? 'bg-[#8E8E93]' :
+                              'bg-[#34C759]'
+                            }`}>
+                              <Icon className="w-4.5 h-4.5 text-white" />
+                            </div>
+                            <div className="text-left">
+                              <h3 className="ios-title text-white">
+                                {label}
+                              </h3>
+                              <p className="ios-caption text-white opacity-60 mt-0.5">
+                                {subtitle}
+                              </p>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-[#8E8E93]" />
                         </div>
-                        <div className="text-left">
-                          <h3 className={`font-semibold text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                            {label}
-                          </h3>
-                          <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            {subtitle}
-                          </p>
-                        </div>
-                      </div>
-                      <ChevronRight className={`w-5 h-5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} />
+                      </button>
+                      {index < array.length - 1 && (
+                        <div className="h-px ml-11 bg-[rgba(255,255,255,0.1)]" />
+                      )}
                     </div>
-                  </button>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
 
@@ -2456,86 +2643,141 @@ const AppContent: React.FC = () => {
                 {/* Page Content */}
                 {settingsPage === 'account' && (
                   <div className="space-y-6">
-                    <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                      Account Settings
-                    </h3>
+                    {/* iOS-Style Account Settings */}
 
-                    {/* Account Section */}
-                    <div className={`p-4 rounded-xl ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}>
-                      <div className="space-y-4">
-                        <div>
-                          <label className={`block text-sm font-medium mb-2 ${
-                            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                          }`}>
-                            Display Name
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                            className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
-                              theme === 'dark'
-                                ? 'bg-black/30 border-white/20 text-white placeholder-gray-400'
-                                : 'bg-white border-gray-300 text-black placeholder-gray-500'
-                            } focus:outline-none focus:ring-2 focus:ring-violet-500/50`}
-                          />
-                        </div>
+                    {/* Profile Section */}
+                    <div className="space-y-2">
+                      <h4 className={`px-4 text-xs font-medium uppercase tracking-wider ${
+                        theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
+                      }`}>
+                        Profile
+                      </h4>
 
-                        <div className={`p-3 rounded-lg ${
-                          theme === 'dark' ? 'bg-black/10 border border-white/10' : 'bg-white border border-gray-200'
-                        }`}>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                                Email
-                              </p>
-                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                                {user?.email}
-                              </p>
+                      <div className="px-4">
+                        <div className={`rounded-2xl overflow-hidden shadow-sm ${
+                          theme === 'dark'
+                            ? 'bg-gray-900/60 border border-gray-800'
+                            : 'bg-white border border-gray-200'
+                        }`} style={{
+                          backdropFilter: 'blur(20px)',
+                          WebkitBackdropFilter: 'blur(20px)'
+                        }}>
+                          {/* Display Name Row */}
+                          <div className="px-4 py-3.5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <p className={`text-base font-medium ${
+                                  theme === 'dark' ? 'text-white' : 'text-black'
+                                }`}>
+                                  Name
+                                </p>
+                              </div>
+                              <div className="flex-1 text-right">
+                                <input
+                                  type="text"
+                                  value={formData.name}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                                  className={`text-base text-right bg-transparent border-none outline-none w-full ${
+                                    theme === 'dark'
+                                      ? 'text-gray-300 placeholder-gray-500'
+                                      : 'text-gray-600 placeholder-gray-400'
+                                  }`}
+                                  placeholder="Enter name"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className={`h-px ml-4 ${
+                            theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'
+                          }`} />
+
+                          {/* Email Row */}
+                          <div className="px-4 py-3.5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <p className={`text-base font-medium ${
+                                  theme === 'dark' ? 'text-white' : 'text-black'
+                                }`}>
+                                  Email
+                                </p>
+                              </div>
+                              <div className="flex-1 text-right">
+                                <p className={`text-base ${
+                                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
+                                  {user?.email}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
+                      </div>
+                    </div>
 
-                        {!isResetPasswordMode && (
+                    {/* Security Section */}
+                    <div className="space-y-1">
+                      <h4 className={`px-4 pb-2 text-xs font-medium uppercase tracking-wider ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        Security
+                      </h4>
+
+                      <div className={`mx-4 rounded-2xl overflow-hidden ${
+                        theme === 'dark' ? 'bg-gray-800/50' : 'bg-white'
+                      }`}>
+                        {!isResetPasswordMode ? (
                           <button
                             onClick={() => setIsResetPasswordMode(true)}
-                            className={`w-full flex items-center justify-center space-x-2 p-3 rounded-lg transition-all ${
-                              theme === 'dark'
-                                ? 'bg-white/10 text-white hover:bg-white/20'
-                                : 'bg-black/10 text-black hover:bg-black/20'
+                            className={`w-full px-4 py-3 text-left transition-colors ${
+                              theme === 'dark' ? 'hover:bg-gray-700/50 active:bg-gray-700/70' : 'hover:bg-gray-50 active:bg-gray-100'
                             }`}
                           >
-                            <Key className="w-4 h-4" />
-                            <span className="font-medium">Reset Password</span>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                  theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-500/10'
+                                }`}>
+                                  <Key className="w-4 h-4 text-blue-500" />
+                                </div>
+                                <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                                  Change Password
+                                </p>
+                              </div>
+                              <ChevronRight className={`w-5 h-5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} />
+                            </div>
                           </button>
-                        )}
-
-                        {isResetPasswordMode && (
-                          <div className="space-y-4">
+                        ) : (
+                          <div className="px-4 py-4 space-y-4">
                             <div className="text-center">
-                              <h4 className={`font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                              <div className={`w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center ${
+                                theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-500/10'
+                              }`}>
+                                <Key className="w-8 h-8 text-blue-500" />
+                              </div>
+                              <h4 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                                 Reset Password
                               </h4>
                               <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                                Send password reset email to your account
+                                We'll send a password reset link to your email address
                               </p>
                             </div>
 
                             {saveMessage && (
-                              <div className={`p-3 rounded-lg text-center text-sm ${
+                              <div className={`p-4 rounded-xl text-center text-sm ${
                                 saveMessage.includes('sent')
                                   ? theme === 'dark'
-                                    ? 'bg-green-900/20 text-green-400'
-                                    : 'bg-green-50 text-green-600'
+                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                    : 'bg-green-50 text-green-600 border border-green-200'
                                   : theme === 'dark'
-                                    ? 'bg-red-900/20 text-red-400'
-                                    : 'bg-red-50 text-red-600'
+                                    ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                    : 'bg-red-50 text-red-600 border border-red-200'
                               }`}>
                                 {saveMessage}
                               </div>
                             )}
 
-                            <div className="flex space-x-3">
+                            <div className="space-y-3">
                               <button
                                 onClick={async () => {
                                   if (user?.email) {
@@ -2553,11 +2795,11 @@ const AppContent: React.FC = () => {
                                   }
                                 }}
                                 disabled={isLoading}
-                                className={`flex-1 py-3 rounded-lg font-medium text-sm ${
+                                className={`w-full py-3 rounded-xl font-semibold text-base transition-colors ${
                                   theme === 'dark'
-                                    ? 'bg-white/20 hover:bg-white/30 text-white'
-                                    : 'bg-black/20 hover:bg-black/30 text-black'
-                                } disabled:opacity-50`}
+                                    ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
                               >
                                 {isLoading ? 'Sending...' : 'Send Reset Email'}
                               </button>
@@ -2567,10 +2809,10 @@ const AppContent: React.FC = () => {
                                   setIsResetPasswordMode(false);
                                   setSaveMessage(null);
                                 }}
-                                className={`flex-1 py-3 rounded-lg font-medium text-sm ${
+                                className={`w-full py-3 rounded-xl font-medium text-base transition-colors ${
                                   theme === 'dark'
-                                    ? 'bg-white/10 text-white hover:bg-white/20'
-                                    : 'bg-black/10 text-black hover:bg-black/20'
+                                    ? 'bg-gray-700/50 hover:bg-gray-700/70 text-white'
+                                    : 'bg-gray-100 hover:bg-gray-200 text-black'
                                 }`}
                               >
                                 Cancel
@@ -2578,18 +2820,45 @@ const AppContent: React.FC = () => {
                             </div>
                           </div>
                         )}
+                      </div>
+                    </div>
 
-                        <button
-                          onClick={handleLogout}
-                          className={`w-full flex items-center justify-center space-x-2 p-3 rounded-lg transition-all ${
-                            theme === 'dark'
-                              ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                              : 'bg-red-100 text-red-600 hover:bg-red-200'
-                          }`}
-                        >
-                          <LogOut className="w-4 h-4" />
-                          <span className="font-medium">Sign Out</span>
-                        </button>
+                    {/* Account Actions Section */}
+                    <div className="space-y-2">
+                      <h4 className={`px-4 text-xs font-medium uppercase tracking-wider ${
+                        theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
+                      }`}>
+                        Actions
+                      </h4>
+
+                      <div className="px-4">
+                        <div className={`rounded-2xl overflow-hidden shadow-sm ${
+                          theme === 'dark'
+                            ? 'bg-gray-900/60 border border-gray-800'
+                            : 'bg-white border border-gray-200'
+                        }`} style={{
+                          backdropFilter: 'blur(20px)',
+                          WebkitBackdropFilter: 'blur(20px)'
+                        }}>
+                          <button
+                            onClick={handleLogout}
+                            className={`w-full px-4 py-3.5 text-left transition-all duration-150 active:scale-[0.98] ${
+                              theme === 'dark'
+                                ? 'hover:bg-red-500/10 active:bg-red-500/20'
+                                : 'hover:bg-red-50 active:bg-red-100'
+                            }`}
+                            style={{ WebkitTapHighlightColor: 'transparent' }}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center">
+                                <LogOut className="w-4.5 h-4.5 text-white" />
+                              </div>
+                              <p className="text-base font-medium text-red-500">
+                                Sign Out
+                              </p>
+                            </div>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2597,74 +2866,177 @@ const AppContent: React.FC = () => {
 
                 {settingsPage === 'appearance' && (
                   <div className="space-y-6">
-                    <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                      Appearance
-                    </h3>
+                    {/* iOS-Style Appearance Settings */}
 
-                    {/* Appearance Section */}
-                    <div className={`p-4 rounded-xl ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}>
-                      <div className="space-y-4">
-                        {/* Theme Toggle */}
-                        <div>
-                          <label className={`block text-sm font-medium mb-2 ${
-                            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                          }`}>
-                            Color Theme
-                          </label>
+                    {/* Theme Section */}
+                    <div className="space-y-2">
+                      <h4 className={`px-4 text-xs font-medium uppercase tracking-wider ${
+                        theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
+                      }`}>
+                        Display
+                      </h4>
+
+                      <div className="px-4">
+                        <div className={`rounded-2xl overflow-hidden shadow-sm ${
+                          theme === 'dark'
+                            ? 'bg-gray-900/60 border border-gray-800'
+                            : 'bg-white border border-gray-200'
+                        }`} style={{
+                          backdropFilter: 'blur(20px)',
+                          WebkitBackdropFilter: 'blur(20px)'
+                        }}>
                           <button
                             onClick={toggleTheme}
-                            className={`w-full flex items-center justify-between p-3 rounded-lg transition-all ${
+                            className={`w-full px-4 py-3.5 text-left transition-all duration-150 active:scale-[0.98] ${
                               theme === 'dark'
-                                ? 'bg-white/10 hover:bg-white/20'
-                                : 'bg-black/10 hover:bg-black/20'
+                                ? 'hover:bg-gray-800/60 active:bg-gray-800/80'
+                                : 'hover:bg-gray-50 active:bg-gray-100'
                             }`}
+                            style={{ WebkitTapHighlightColor: 'transparent' }}
                           >
-                            <div className="flex items-center space-x-3">
-                              {theme === 'dark' ? (
-                                <Moon className="w-5 h-5 text-blue-400" />
-                              ) : (
-                                <Sun className="w-5 h-5 text-orange-500" />
-                              )}
-                              <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                                {themeMode === 'auto' ? `Auto (${theme})` : theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
-                              </span>
-                            </div>
-                            <div className={`w-12 h-6 rounded-full transition-colors ${
-                              theme === 'dark' ? 'bg-blue-500' : 'bg-gray-300'
-                            }`}>
-                              <div className={`w-5 h-5 mt-0.5 rounded-full bg-white transition-transform ${
-                                theme === 'dark' ? 'translate-x-6' : 'translate-x-0.5'
-                              }`} />
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                                  theme === 'dark' ? 'bg-blue-500' : 'bg-orange-500'
+                                }`}>
+                                  {theme === 'dark' ? (
+                                    <Moon className="w-4.5 h-4.5 text-white" />
+                                  ) : (
+                                    <Sun className="w-4.5 h-4.5 text-white" />
+                                  )}
+                                </div>
+                                <div>
+                                  <p className={`text-base font-medium ${
+                                    theme === 'dark' ? 'text-white' : 'text-black'
+                                  }`}>
+                                    Appearance
+                                  </p>
+                                  <p className={`text-sm ${
+                                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                                  }`}>
+                                    {themeMode === 'auto' ? `Auto (${theme})` : theme === 'dark' ? 'Dark' : 'Light'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className={`w-12 h-7 rounded-full relative transition-colors ${
+                                theme === 'dark' ? 'bg-blue-500' : 'bg-gray-300'
+                              }`}>
+                                <div className={`w-5 h-5 mt-1 rounded-full bg-white transition-transform shadow-sm ${
+                                  theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+                                }`} />
+                              </div>
                             </div>
                           </button>
                         </div>
+                      </div>
+                    </div>
 
-                        {/* Background Style */}
-                        <div>
-                          <label className={`block text-sm font-medium mb-2 ${
-                            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                          }`}>
-                            Background
-                          </label>
-                          <div className="grid grid-cols-3 gap-2">
-                            {(['classic', 'gradient', 'mountain', 'ocean', 'sunset', 'forest'] as const).map((bg) => (
-                              <button
-                                key={bg}
-                                onClick={() => setBackground(bg)}
-                                className={`px-3 py-2 text-xs rounded-lg transition-all ${
-                                  background === bg
-                                    ? theme === 'dark'
-                                      ? 'bg-white/20 text-white'
-                                      : 'bg-black/20 text-black'
-                                    : theme === 'dark'
-                                      ? 'bg-white/5 text-gray-400 hover:bg-white/10'
-                                      : 'bg-black/5 text-gray-600 hover:bg-black/10'
-                                }`}
-                              >
-                                {bg.charAt(0).toUpperCase() + bg.slice(1)}
-                              </button>
-                            ))}
+                    {/* Background Section */}
+                    <div className="space-y-2">
+                      <h4 className={`px-4 text-xs font-medium uppercase tracking-wider ${
+                        theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
+                      }`}>
+                        Background Style
+                      </h4>
+
+                      <div className="px-4">
+                        <div className={`rounded-2xl overflow-hidden shadow-sm ${
+                          theme === 'dark'
+                            ? 'bg-gray-900/60 border border-gray-800'
+                            : 'bg-white border border-gray-200'
+                        }`} style={{
+                          backdropFilter: 'blur(20px)',
+                          WebkitBackdropFilter: 'blur(20px)'
+                        }}>
+                        {(['classic', 'gradient', 'mountain', 'ocean', 'sunset', 'forest'] as const).map((bg, index) => (
+                          <div key={bg}>
+                            <button
+                              onClick={() => setBackground(bg)}
+                              className={`w-full px-4 py-3.5 text-left transition-all duration-150 active:scale-[0.98] ${
+                                theme === 'dark'
+                                  ? 'hover:bg-gray-800/60 active:bg-gray-800/80'
+                                  : 'hover:bg-gray-50 active:bg-gray-100'
+                              }`}
+                              style={{ WebkitTapHighlightColor: 'transparent' }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                                    bg === 'classic' ? 'bg-gray-500' :
+                                    bg === 'gradient' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
+                                    bg === 'mountain' ? 'bg-green-500' :
+                                    bg === 'ocean' ? 'bg-blue-500' :
+                                    bg === 'sunset' ? 'bg-orange-500' :
+                                    'bg-emerald-500'
+                                  }`}>
+                                    <div className="w-4 h-4 rounded bg-white opacity-90" />
+                                  </div>
+                                  <div>
+                                    <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                                      {bg.charAt(0).toUpperCase() + bg.slice(1)}
+                                    </p>
+                                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                      {bg === 'classic' ? 'Simple solid background' :
+                                       bg === 'gradient' ? 'Colorful gradient effect' :
+                                       bg === 'mountain' ? 'Nature-inspired green tones' :
+                                       bg === 'ocean' ? 'Calming blue waves' :
+                                       bg === 'sunset' ? 'Warm orange sunset colors' :
+                                       'Peaceful forest atmosphere'}
+                                    </p>
+                                  </div>
+                                </div>
+                                {background === bg && (
+                                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                                    <div className="w-2 h-2 rounded-full bg-white" />
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                            {index < 5 && (
+                              <div className={`h-px ml-11 ${
+                                theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'
+                              }`} />
+                            )}
                           </div>
+                        ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Preview Section */}
+                    <div className="space-y-2">
+                      <h4 className={`px-4 text-xs font-medium uppercase tracking-wider ${
+                        theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
+                      }`}>
+                        Preview
+                      </h4>
+
+                      <div className="px-4">
+                        <div className={`rounded-2xl overflow-hidden shadow-sm p-4 ${
+                          theme === 'dark'
+                            ? 'bg-gray-900/60 border border-gray-800'
+                            : 'bg-white border border-gray-200'
+                        }`} style={{
+                          backdropFilter: 'blur(20px)',
+                          WebkitBackdropFilter: 'blur(20px)'
+                        }}>
+                        <div className={`rounded-xl p-4 ${
+                          background === 'classic' ? (theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50') :
+                          background === 'gradient' ? 'bg-gradient-to-br from-purple-500/10 to-pink-500/10' :
+                          background === 'mountain' ? 'bg-gradient-to-br from-green-500/10 to-emerald-500/10' :
+                          background === 'ocean' ? 'bg-gradient-to-br from-blue-500/10 to-cyan-500/10' :
+                          background === 'sunset' ? 'bg-gradient-to-br from-orange-500/10 to-red-500/10' :
+                          'bg-gradient-to-br from-emerald-500/10 to-teal-500/10'
+                        }`}>
+                          <div className="text-center py-3">
+                            <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                              Preview of {background} background
+                            </p>
+                            <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                              This is how your app will look
+                            </p>
+                          </div>
+                        </div>
                         </div>
                       </div>
                     </div>
@@ -2673,144 +3045,202 @@ const AppContent: React.FC = () => {
 
                 {settingsPage === 'advanced' && (
                   <div className="space-y-6">
-                    <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                      Advanced Settings
-                    </h3>
+                    {/* iOS-Style Advanced Settings */}
 
-                    {/* Model Parameters */}
-                    <div className={`p-4 rounded-xl ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}>
-                      <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
-                          <Cpu className="w-4 h-4 text-white" />
-                        </div>
-                        <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                          Model Parameters
-                        </h3>
-                      </div>
+                    {/* API Configuration Section */}
+                    <div className="space-y-1">
+                      <h4 className={`px-4 pb-2 text-xs font-medium uppercase tracking-wider ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        API Configuration
+                      </h4>
 
-                      {!showAdvancedParams ? (
-                        <div className={`p-4 rounded-lg text-center ${
-                          theme === 'dark' ? 'bg-black/10' : 'bg-white'
-                        }`}>
-                          <div className={`text-lg font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                            Default
-                          </div>
-                          <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
-                            Model parameters are currently using default settings
-                          </p>
-                          <button
-                            onClick={() => setShowAdvancedParams(true)}
-                            className={`px-4 py-2 rounded-lg transition-all ${
-                              theme === 'dark'
-                                ? 'bg-white/10 text-white hover:bg-white/20'
-                                : 'bg-black/10 text-black hover:bg-black/20'
-                            }`}
-                          >
-                            Customize Parameters
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between mb-4">
-                            <h4 className={`text-lg font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                              Model Parameters
-                            </h4>
-                            <button
-                              onClick={() => setShowAdvancedParams(false)}
-                              className={`text-sm px-3 py-1 rounded-lg transition-all ${
-                                theme === 'dark'
-                                  ? 'text-gray-400 hover:text-white hover:bg-white/10'
-                                  : 'text-gray-600 hover:text-black hover:bg-black/10'
-                              }`}
-                            >
-                              Use Defaults
-                            </button>
-                          </div>
-
-                          <div className="space-y-4">
-                            {/* API Key */}
-                            <div>
-                              <label className={`block text-sm font-medium mb-2 ${
-                                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                              }`}>
+                      <div className={`mx-4 rounded-2xl overflow-hidden ${
+                        theme === 'dark' ? 'bg-gray-800/50' : 'bg-white'
+                      }`}>
+                        {/* API Key Row */}
+                        <div className="px-4 py-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                                 OpenAI API Key
-                              </label>
+                              </p>
+                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {apiSettings.apiKey ? '••••••••••••••••' : 'Not configured'}
+                              </p>
+                            </div>
+                            <div className="flex-1 text-right">
                               <input
                                 type="password"
                                 value={apiSettings.apiKey}
                                 onChange={(e) => setApiSettings(prev => ({ ...prev, apiKey: e.target.value }))}
                                 placeholder="sk-..."
-                                className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
-                                  theme === 'dark'
-                                    ? 'bg-black/30 border-white/20 text-white placeholder-gray-400'
-                                    : 'bg-white border-gray-300 text-black placeholder-gray-500'
-                                } focus:outline-none focus:ring-2 focus:ring-violet-500/50`}
+                                className={`text-base text-right bg-transparent border-none outline-none w-full ${
+                                  theme === 'dark' ? 'text-gray-300 placeholder-gray-500' : 'text-gray-600 placeholder-gray-400'
+                                }`}
                               />
                             </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-                            {/* Model Selection */}
-                            <div>
-                              <label className={`block text-sm font-medium mb-2 ${
-                                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                              }`}>
+                    {/* Model Parameters Section */}
+                    <div className="space-y-1">
+                      <h4 className={`px-4 pb-2 text-xs font-medium uppercase tracking-wider ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        Model Settings
+                      </h4>
+
+                      <div className={`mx-4 rounded-2xl overflow-hidden ${
+                        theme === 'dark' ? 'bg-gray-800/50' : 'bg-white'
+                      }`}>
+                        {/* Model Selection */}
+                        <div className="px-4 py-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                                 Model
-                              </label>
+                              </p>
+                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                AI model to use for responses
+                              </p>
+                            </div>
+                            <div className="flex-1 text-right">
                               <select
                                 value={apiSettings.model}
                                 onChange={(e) => setApiSettings(prev => ({ ...prev, model: e.target.value }))}
-                                className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
-                                  theme === 'dark'
-                                    ? 'bg-black/30 border-white/20 text-white'
-                                    : 'bg-white border-gray-300 text-black'
-                                } focus:outline-none focus:ring-2 focus:ring-violet-500/50`}
+                                className={`text-base text-right bg-transparent border-none outline-none ${
+                                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                                }`}
                               >
                                 <option value="gpt-4">GPT-4</option>
                                 <option value="gpt-4-turbo">GPT-4 Turbo</option>
                                 <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
                               </select>
                             </div>
+                          </div>
+                        </div>
 
-                            {/* Temperature */}
-                            <div>
-                              <label className={`block text-sm font-medium mb-2 ${
-                                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                              }`}>
-                                Temperature: {apiSettings.temperature}
-                              </label>
-                              <input
-                                type="range"
-                                min="0"
-                                max="2"
-                                step="0.1"
-                                value={apiSettings.temperature}
-                                onChange={(e) => setApiSettings(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
-                                className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${
-                                  theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
-                                }`}
-                              />
-                            </div>
+                        <div className={`h-px ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} mx-4`} />
 
-                            {/* Max Tokens */}
-                            <div>
-                              <label className={`block text-sm font-medium mb-2 ${
-                                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                              }`}>
+                        {/* Max Tokens */}
+                        <div className="px-4 py-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                                 Max Tokens
-                              </label>
+                              </p>
+                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                Maximum response length
+                              </p>
+                            </div>
+                            <div className="flex-1 text-right">
                               <input
                                 type="number"
                                 value={apiSettings.maxTokens}
                                 onChange={(e) => setApiSettings(prev => ({ ...prev, maxTokens: parseInt(e.target.value) }))}
-                                className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
-                                  theme === 'dark'
-                                    ? 'bg-black/30 border-white/20 text-white placeholder-gray-400'
-                                    : 'bg-white border-gray-300 text-black placeholder-gray-500'
-                                } focus:outline-none focus:ring-2 focus:ring-violet-500/50`}
+                                className={`text-base text-right bg-transparent border-none outline-none w-20 ${
+                                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                                }`}
                               />
                             </div>
                           </div>
                         </div>
-                      )}
+                      </div>
+                    </div>
+
+                    {/* Temperature Section */}
+                    <div className="space-y-1">
+                      <h4 className={`px-4 pb-2 text-xs font-medium uppercase tracking-wider ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        Response Style
+                      </h4>
+
+                      <div className={`mx-4 rounded-2xl overflow-hidden p-4 ${
+                        theme === 'dark' ? 'bg-gray-800/50' : 'bg-white'
+                      }`}>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                                Creativity
+                              </p>
+                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {apiSettings.temperature < 0.3 ? 'Focused & Precise' :
+                                 apiSettings.temperature < 0.7 ? 'Balanced' :
+                                 apiSettings.temperature < 1.2 ? 'Creative' : 'Very Creative'}
+                              </p>
+                            </div>
+                            <p className={`text-lg font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                              {apiSettings.temperature}
+                            </p>
+                          </div>
+
+                          <div className="relative">
+                            <input
+                              type="range"
+                              min="0"
+                              max="2"
+                              step="0.1"
+                              value={apiSettings.temperature}
+                              onChange={(e) => setApiSettings(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
+                              className={`w-full h-2 rounded-full appearance-none cursor-pointer ${
+                                theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+                              }`}
+                              style={{
+                                background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${(apiSettings.temperature / 2) * 100}%, ${
+                                  theme === 'dark' ? '#374151' : '#E5E7EB'
+                                } ${(apiSettings.temperature / 2) * 100}%, ${
+                                  theme === 'dark' ? '#374151' : '#E5E7EB'
+                                } 100%)`
+                              }}
+                            />
+                            <div className="flex justify-between text-xs mt-1">
+                              <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Precise</span>
+                              <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Creative</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Reset Section */}
+                    <div className="space-y-1">
+                      <h4 className={`px-4 pb-2 text-xs font-medium uppercase tracking-wider ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        Configuration
+                      </h4>
+
+                      <div className={`mx-4 rounded-2xl overflow-hidden ${
+                        theme === 'dark' ? 'bg-gray-800/50' : 'bg-white'
+                      }`}>
+                        <button
+                          onClick={() => setShowAdvancedParams(false)}
+                          className={`w-full px-4 py-3 text-left transition-colors ${
+                            theme === 'dark' ? 'hover:bg-gray-700/50 active:bg-gray-700/70' : 'hover:bg-gray-50 active:bg-gray-100'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              theme === 'dark' ? 'bg-orange-500/20' : 'bg-orange-500/10'
+                            }`}>
+                              <Settings className="w-4 h-4 text-orange-500" />
+                            </div>
+                            <div>
+                              <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                                Reset to Defaults
+                              </p>
+                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                Restore recommended settings
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -3013,18 +3443,22 @@ const AppContent: React.FC = () => {
       <div className="md:hidden w-full">
         {renderMobilePage()}
 
-        {/* iOS-Style Mobile Bottom Navigation */}
-        <div className={`fixed bottom-0 left-0 right-0 backdrop-blur-xl transition-transform duration-200 ${
-          theme === 'dark'
-            ? background === 'classic' ? 'bg-neutral-900/80' : 'bg-black/20'
-            : 'bg-white/80'
-        }`} style={{
-          paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
-          paddingLeft: 'env(safe-area-inset-left)',
-          paddingRight: 'env(safe-area-inset-right)',
-          borderTop: theme === 'dark' ? '0.33px solid rgba(255, 255, 255, 0.13)' : '0.33px solid rgba(0, 0, 0, 0.13)',
-          transform: 'translateY(max(0px, env(keyboard-inset-height, 0px)))'
-        }}>
+        {/* iOS-Native Bottom Navigation with Translucent Blur */}
+        <div
+          className="fixed bottom-0 left-0 right-0 transition-all duration-300 ease-in-out"
+          style={{
+            background: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(30px) saturate(120%)',
+            WebkitBackdropFilter: 'blur(30px) saturate(120%)',
+            paddingBottom: `max(env(safe-area-inset-bottom), 12px)`,
+            paddingLeft: 'env(safe-area-inset-left)',
+            paddingRight: 'env(safe-area-inset-right)',
+            borderTop: '0.5px solid rgba(128, 128, 128, 0.3)',
+            transform: isKeyboardOpen ? 'translateY(100%)' : 'translateY(0)',
+            opacity: mobilePage === 'chat' ? 0.8 : 1,
+            pointerEvents: isKeyboardOpen ? 'none' : 'auto'
+          }}
+        >
           <div className="flex justify-around px-1 pt-2">
             {[
               { page: 'home', icon: Home, label: 'Home' },
@@ -3043,38 +3477,40 @@ const AppContent: React.FC = () => {
                       setSettingsPage('main');
                     }
                   }}
-                  className={`flex flex-col items-center py-2 px-3 transition-colors duration-150 ease-out ${
+                  className={`flex flex-col items-center py-3 px-4 transition-all duration-200 ease-out ${
                     isActive
-                      ? theme === 'dark' ? 'text-white' : 'text-black'
-                      : theme === 'dark' ? 'text-white/55' : 'text-black/55'
-                  } active:scale-95`}
+                      ? 'text-white'
+                      : 'text-gray-500'
+                  }`}
                   style={{
-                    minWidth: '50px',
+                    minWidth: '60px',
                     WebkitTapHighlightColor: 'transparent'
                   }}
                 >
-                  <div className={`transition-transform duration-200 ease-out ${
-                    isActive ? 'transform scale-110' : 'transform scale-100'
-                  }`}>
-                    <Icon
-                      className="w-6 h-6"
-                      style={{
-                        fill: 'none',
-                        stroke: 'currentColor',
-                        strokeWidth: isActive ? '2.5' : '1.5',
-                        transition: 'stroke-width 0.15s ease-out'
-                      }}
-                    />
-                  </div>
-                  <span
-                    className={`text-[10px] mt-1 font-medium transition-all duration-200 leading-tight`}
+                  <Icon
+                    className={`w-6 h-6 transition-all duration-200 ease-out ${
+                      isActive ? 'brightness-110' : 'brightness-75'
+                    }`}
                     style={{
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
-                      letterSpacing: '-0.01em'
+                      fill: 'none',
+                      stroke: 'currentColor',
+                      strokeWidth: isActive ? '2.2' : '1.8'
                     }}
-                  >
-                    {label}
-                  </span>
+                  />
+                  {/* Show label for all tabs */}
+                  {(
+                    <span
+                      className={`text-[9px] mt-1 font-medium transition-all duration-200 leading-tight ${
+                        isActive ? 'opacity-100' : 'opacity-70'
+                      }`}
+                      style={{
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                        letterSpacing: '-0.01em'
+                      }}
+                    >
+                      {label}
+                    </span>
+                  )}
                 </button>
               );
             })}

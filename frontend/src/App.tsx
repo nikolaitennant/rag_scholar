@@ -1225,9 +1225,11 @@ const AppContent: React.FC = () => {
 
       case 'home':
         return (
-          <div className="h-full overflow-y-auto pb-20">
-            {/* Mobile Header */}
-            <div className="px-4 py-6">
+          <div className="h-full overflow-y-auto pb-20" style={{
+            paddingTop: 'env(safe-area-inset-top)'
+          }}>
+            {/* iOS-Style Mobile Header */}
+            <div className="px-4 py-4">
               <div className="text-center">
                 <h1 className={`text-3xl font-bold mb-3 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                   {(() => {
@@ -1639,8 +1641,10 @@ const AppContent: React.FC = () => {
 
       case 'docs':
         return (
-          <div className="h-full overflow-y-auto pb-20">
-            {/* Mobile Header */}
+          <div className="h-full overflow-y-auto pb-20" style={{
+            paddingTop: 'env(safe-area-inset-top)'
+          }}>
+            {/* iOS-Style Mobile Header */}
             <div className="px-4 py-4">
               <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                 Documents
@@ -2307,8 +2311,10 @@ const AppContent: React.FC = () => {
 
       case 'settings':
         return (
-          <div className="h-full overflow-y-auto pb-20">
-            {/* Mobile Header */}
+          <div className="h-full overflow-y-auto pb-20" style={{
+            paddingTop: 'env(safe-area-inset-top)'
+          }}>
+            {/* iOS-Style Mobile Header */}
             <div className="px-4 py-4">
               <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                 Settings

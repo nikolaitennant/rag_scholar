@@ -2459,10 +2459,138 @@ const AppContent: React.FC = () => {
                     <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                       Account Settings
                     </h3>
+
+                    {/* Account Section */}
                     <div className={`p-4 rounded-xl ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}>
-                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Account management features coming soon...
-                      </p>
+                      <div className="space-y-4">
+                        <div>
+                          <label className={`block text-sm font-medium mb-2 ${
+                            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            Display Name
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                            className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                              theme === 'dark'
+                                ? 'bg-black/30 border-white/20 text-white placeholder-gray-400'
+                                : 'bg-white border-gray-300 text-black placeholder-gray-500'
+                            } focus:outline-none focus:ring-2 focus:ring-violet-500/50`}
+                          />
+                        </div>
+
+                        <div className={`p-3 rounded-lg ${
+                          theme === 'dark' ? 'bg-black/10 border border-white/10' : 'bg-white border border-gray-200'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                                Email
+                              </p>
+                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {user?.email}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {!isResetPasswordMode && (
+                          <button
+                            onClick={() => setIsResetPasswordMode(true)}
+                            className={`w-full flex items-center justify-center space-x-2 p-3 rounded-lg transition-all ${
+                              theme === 'dark'
+                                ? 'bg-white/10 text-white hover:bg-white/20'
+                                : 'bg-black/10 text-black hover:bg-black/20'
+                            }`}
+                          >
+                            <Key className="w-4 h-4" />
+                            <span className="font-medium">Reset Password</span>
+                          </button>
+                        )}
+
+                        {isResetPasswordMode && (
+                          <div className="space-y-4">
+                            <div className="text-center">
+                              <h4 className={`font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                                Reset Password
+                              </h4>
+                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                Send password reset email to your account
+                              </p>
+                            </div>
+
+                            {saveMessage && (
+                              <div className={`p-3 rounded-lg text-center text-sm ${
+                                saveMessage.includes('sent')
+                                  ? theme === 'dark'
+                                    ? 'bg-green-900/20 text-green-400'
+                                    : 'bg-green-50 text-green-600'
+                                  : theme === 'dark'
+                                    ? 'bg-red-900/20 text-red-400'
+                                    : 'bg-red-50 text-red-600'
+                              }`}>
+                                {saveMessage}
+                              </div>
+                            )}
+
+                            <div className="flex space-x-3">
+                              <button
+                                onClick={async () => {
+                                  if (user?.email) {
+                                    try {
+                                      setIsLoading(true);
+                                      await resetPassword(user.email);
+                                      setSaveMessage('Password reset email sent! Check your inbox.');
+                                      setTimeout(() => setSaveMessage(null), 5000);
+                                    } catch (error) {
+                                      setSaveMessage('Failed to send reset email');
+                                      setTimeout(() => setSaveMessage(null), 5000);
+                                    } finally {
+                                      setIsLoading(false);
+                                    }
+                                  }
+                                }}
+                                disabled={isLoading}
+                                className={`flex-1 py-3 rounded-lg font-medium text-sm ${
+                                  theme === 'dark'
+                                    ? 'bg-white/20 hover:bg-white/30 text-white'
+                                    : 'bg-black/20 hover:bg-black/30 text-black'
+                                } disabled:opacity-50`}
+                              >
+                                {isLoading ? 'Sending...' : 'Send Reset Email'}
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setIsResetPasswordMode(false);
+                                  setSaveMessage(null);
+                                }}
+                                className={`flex-1 py-3 rounded-lg font-medium text-sm ${
+                                  theme === 'dark'
+                                    ? 'bg-white/10 text-white hover:bg-white/20'
+                                    : 'bg-black/10 text-black hover:bg-black/20'
+                                }`}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <button
+                          onClick={handleLogout}
+                          className={`w-full flex items-center justify-center space-x-2 p-3 rounded-lg transition-all ${
+                            theme === 'dark'
+                              ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                              : 'bg-red-100 text-red-600 hover:bg-red-200'
+                          }`}
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span className="font-medium">Sign Out</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -2472,10 +2600,73 @@ const AppContent: React.FC = () => {
                     <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                       Appearance
                     </h3>
+
+                    {/* Appearance Section */}
                     <div className={`p-4 rounded-xl ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}>
-                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Theme and appearance customization coming soon...
-                      </p>
+                      <div className="space-y-4">
+                        {/* Theme Toggle */}
+                        <div>
+                          <label className={`block text-sm font-medium mb-2 ${
+                            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            Color Theme
+                          </label>
+                          <button
+                            onClick={toggleTheme}
+                            className={`w-full flex items-center justify-between p-3 rounded-lg transition-all ${
+                              theme === 'dark'
+                                ? 'bg-white/10 hover:bg-white/20'
+                                : 'bg-black/10 hover:bg-black/20'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3">
+                              {theme === 'dark' ? (
+                                <Moon className="w-5 h-5 text-blue-400" />
+                              ) : (
+                                <Sun className="w-5 h-5 text-orange-500" />
+                              )}
+                              <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                                {themeMode === 'auto' ? `Auto (${theme})` : theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                              </span>
+                            </div>
+                            <div className={`w-12 h-6 rounded-full transition-colors ${
+                              theme === 'dark' ? 'bg-blue-500' : 'bg-gray-300'
+                            }`}>
+                              <div className={`w-5 h-5 mt-0.5 rounded-full bg-white transition-transform ${
+                                theme === 'dark' ? 'translate-x-6' : 'translate-x-0.5'
+                              }`} />
+                            </div>
+                          </button>
+                        </div>
+
+                        {/* Background Style */}
+                        <div>
+                          <label className={`block text-sm font-medium mb-2 ${
+                            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            Background
+                          </label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {(['classic', 'gradient', 'mountain', 'ocean', 'sunset', 'forest'] as const).map((bg) => (
+                              <button
+                                key={bg}
+                                onClick={() => setBackground(bg)}
+                                className={`px-3 py-2 text-xs rounded-lg transition-all ${
+                                  background === bg
+                                    ? theme === 'dark'
+                                      ? 'bg-white/20 text-white'
+                                      : 'bg-black/20 text-black'
+                                    : theme === 'dark'
+                                      ? 'bg-white/5 text-gray-400 hover:bg-white/10'
+                                      : 'bg-black/5 text-gray-600 hover:bg-black/10'
+                                }`}
+                              >
+                                {bg.charAt(0).toUpperCase() + bg.slice(1)}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -2485,10 +2676,141 @@ const AppContent: React.FC = () => {
                     <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                       Advanced Settings
                     </h3>
+
+                    {/* Model Parameters */}
                     <div className={`p-4 rounded-xl ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}>
-                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        API settings and advanced configuration coming soon...
-                      </p>
+                      <div className="flex items-center space-x-3 mb-4">
+                        <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
+                          <Cpu className="w-4 h-4 text-white" />
+                        </div>
+                        <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                          Model Parameters
+                        </h3>
+                      </div>
+
+                      {!showAdvancedParams ? (
+                        <div className={`p-4 rounded-lg text-center ${
+                          theme === 'dark' ? 'bg-black/10' : 'bg-white'
+                        }`}>
+                          <div className={`text-lg font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                            Default
+                          </div>
+                          <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
+                            Model parameters are currently using default settings
+                          </p>
+                          <button
+                            onClick={() => setShowAdvancedParams(true)}
+                            className={`px-4 py-2 rounded-lg transition-all ${
+                              theme === 'dark'
+                                ? 'bg-white/10 text-white hover:bg-white/20'
+                                : 'bg-black/10 text-black hover:bg-black/20'
+                            }`}
+                          >
+                            Customize Parameters
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className={`text-lg font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                              Model Parameters
+                            </h4>
+                            <button
+                              onClick={() => setShowAdvancedParams(false)}
+                              className={`text-sm px-3 py-1 rounded-lg transition-all ${
+                                theme === 'dark'
+                                  ? 'text-gray-400 hover:text-white hover:bg-white/10'
+                                  : 'text-gray-600 hover:text-black hover:bg-black/10'
+                              }`}
+                            >
+                              Use Defaults
+                            </button>
+                          </div>
+
+                          <div className="space-y-4">
+                            {/* API Key */}
+                            <div>
+                              <label className={`block text-sm font-medium mb-2 ${
+                                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                OpenAI API Key
+                              </label>
+                              <input
+                                type="password"
+                                value={apiSettings.apiKey}
+                                onChange={(e) => setApiSettings(prev => ({ ...prev, apiKey: e.target.value }))}
+                                placeholder="sk-..."
+                                className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                                  theme === 'dark'
+                                    ? 'bg-black/30 border-white/20 text-white placeholder-gray-400'
+                                    : 'bg-white border-gray-300 text-black placeholder-gray-500'
+                                } focus:outline-none focus:ring-2 focus:ring-violet-500/50`}
+                              />
+                            </div>
+
+                            {/* Model Selection */}
+                            <div>
+                              <label className={`block text-sm font-medium mb-2 ${
+                                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                Model
+                              </label>
+                              <select
+                                value={apiSettings.model}
+                                onChange={(e) => setApiSettings(prev => ({ ...prev, model: e.target.value }))}
+                                className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                                  theme === 'dark'
+                                    ? 'bg-black/30 border-white/20 text-white'
+                                    : 'bg-white border-gray-300 text-black'
+                                } focus:outline-none focus:ring-2 focus:ring-violet-500/50`}
+                              >
+                                <option value="gpt-4">GPT-4</option>
+                                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                              </select>
+                            </div>
+
+                            {/* Temperature */}
+                            <div>
+                              <label className={`block text-sm font-medium mb-2 ${
+                                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                Temperature: {apiSettings.temperature}
+                              </label>
+                              <input
+                                type="range"
+                                min="0"
+                                max="2"
+                                step="0.1"
+                                value={apiSettings.temperature}
+                                onChange={(e) => setApiSettings(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
+                                className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${
+                                  theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+                                }`}
+                              />
+                            </div>
+
+                            {/* Max Tokens */}
+                            <div>
+                              <label className={`block text-sm font-medium mb-2 ${
+                                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                Max Tokens
+                              </label>
+                              <input
+                                type="number"
+                                value={apiSettings.maxTokens}
+                                onChange={(e) => setApiSettings(prev => ({ ...prev, maxTokens: parseInt(e.target.value) }))}
+                                className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                                  theme === 'dark'
+                                    ? 'bg-black/30 border-white/20 text-white placeholder-gray-400'
+                                    : 'bg-white border-gray-300 text-black placeholder-gray-500'
+                                } focus:outline-none focus:ring-2 focus:ring-violet-500/50`}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -2498,10 +2820,56 @@ const AppContent: React.FC = () => {
                     <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                       Help & Support
                     </h3>
+
+                    {/* Help Section */}
                     <div className={`p-4 rounded-xl ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}>
-                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Help documentation and support options coming soon...
-                      </p>
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                            Getting Started
+                          </h4>
+                          <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Upload documents, ask questions, and get AI-powered responses with citations.
+                          </p>
+                        </div>
+
+                        <div>
+                          <h4 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                            Document Types
+                          </h4>
+                          <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Supported formats: PDF, DOCX, TXT, and more. Documents are processed and indexed for quick retrieval.
+                          </p>
+                        </div>
+
+                        <div>
+                          <h4 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                            Citations
+                          </h4>
+                          <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            All responses include source citations. Click on citation numbers to see the original text.
+                          </p>
+                        </div>
+
+                        <div>
+                          <h4 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                            Need Help?
+                          </h4>
+                          <p className={`text-sm mb-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Contact support for assistance with your account or technical issues.
+                          </p>
+                          <button
+                            className={`w-full flex items-center justify-center space-x-2 p-3 rounded-lg transition-all ${
+                              theme === 'dark'
+                                ? 'bg-white/10 text-white hover:bg-white/20'
+                                : 'bg-black/10 text-black hover:bg-black/20'
+                            }`}
+                          >
+                            <HelpCircle className="w-4 h-4" />
+                            <span className="font-medium">Contact Support</span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

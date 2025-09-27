@@ -1473,7 +1473,7 @@ const AppContent: React.FC = () => {
                                 };
                                 fileInput.click();
                               }}
-                              className="w-full py-3 rounded-2xl transition-all duration-200 active:scale-[0.98] bg-purple-500/10 border border-purple-500/30 backdrop-blur-sm flex items-center justify-center gap-2"
+                              className="py-3 px-4 rounded-2xl transition-all duration-200 active:scale-[0.98] bg-purple-500/10 border border-purple-500/30 backdrop-blur-sm flex items-center justify-center gap-2 self-center"
                               style={{
                                 WebkitTapHighlightColor: 'transparent'
                               }}
@@ -1615,14 +1615,15 @@ const AppContent: React.FC = () => {
                                     }
                                   }
                                 }}
-                                disabled={!mobileClassFormData.name.trim() || isEditingMobileClass}
-                                className={`flex-1 py-3 px-4 rounded-full font-medium text-sm transition-all duration-200 active:scale-95 ${
-                                  mobileClassFormData.name.trim() && !isEditingMobileClass
-                                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
-                                    : 'bg-white/10 text-white/50'
-                                } flex items-center justify-center gap-1`}
+                                disabled={!mobileClassFormData.name.trim() || !mobileClassFormData.type || isEditingMobileClass}
+                                className="flex-1 py-3 px-4 rounded-full font-medium text-sm transition-all duration-200 active:scale-95 text-white flex items-center justify-center gap-1"
                                 style={{
-                                  background: (!mobileClassFormData.name.trim() || isEditingMobileClass) ? 'rgba(147, 51, 234, 0.3)' : 'linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%)'
+                                  background: (mobileClassFormData.name.trim() && mobileClassFormData.type && !isEditingMobileClass)
+                                    ? 'linear-gradient(135deg, #007AFF 0%, #AF52DE 100%)'
+                                    : 'rgba(147, 51, 234, 0.3)',
+                                  boxShadow: (mobileClassFormData.name.trim() && mobileClassFormData.type && !isEditingMobileClass)
+                                    ? '0 4px 12px rgba(0, 122, 255, 0.3)'
+                                    : 'none'
                                 }}
                               >
                                 {isEditingMobileClass && (

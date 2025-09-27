@@ -1439,7 +1439,7 @@ const AppContent: React.FC = () => {
                                     onClick={() => setMobileClassFormData(prev => ({ ...prev, type: type as DomainType }))}
                                     className={`aspect-square p-2 rounded-3xl transition-all duration-200 flex flex-col items-center justify-center gap-1 active:scale-95 hover:bg-white/5 ${
                                       mobileClassFormData.type === type
-                                        ? 'bg-violet-500/20 border-2 border-violet-500/50 text-white'
+                                        ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 shadow-lg text-white'
                                         : 'bg-[#2C2C2E]/50 border border-white/10 text-white/60 backdrop-blur-sm'
                                     }`}
                                   >

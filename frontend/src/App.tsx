@@ -48,6 +48,7 @@ const AppContent: React.FC = () => {
   const [mobilePage, setMobilePage] = useState<'chat' | 'home' | 'docs' | 'rewards' | 'settings'>('home');
   const [settingsPage, setSettingsPage] = useState<'main' | 'account' | 'appearance' | 'advanced' | 'help'>('main');
   const [mobileRewardsTab, setMobileRewardsTab] = useState<'achievements' | 'store'>('achievements');
+  const [previousRewardsTab, setPreviousRewardsTab] = useState<'achievements' | 'store'>('achievements');
   const [showMobileClassForm, setShowMobileClassForm] = useState(false);
   const [mobileFormStep, setMobileFormStep] = useState<'class' | 'docs'>('class');
   const [editingMobileClass, setEditingMobileClass] = useState<UserClass | null>(null);
@@ -1325,7 +1326,7 @@ const AppContent: React.FC = () => {
             WebkitOverflowScrolling: 'touch'
           }}>
             {/* iOS-Native Header */}
-            <div className="px-5 animate-fade-in-down duration-600 ease-out" style={{
+            <div className="px-5" style={{
               paddingBottom: '20px'
             }}>
               <h1 className="text-[28px] font-semibold tracking-tight text-white">
@@ -1343,7 +1344,7 @@ const AppContent: React.FC = () => {
               </p>
             </div>
 
-            <div className="space-y-4 px-5 animate-fade-in-down delay-[100ms]">
+            <div className="space-y-4 px-5">
               {/* Learning Progress Card */}
               <button
                 className="w-full px-4 py-3 animate-slide-in-bottom bg-[#1C1C1E]/50 backdrop-blur-xl border border-white/10 rounded-2xl text-left transition-all duration-200 active:scale-[0.98] shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
@@ -1702,7 +1703,7 @@ const AppContent: React.FC = () => {
 
                 {/* Classes List */}
                 {userClasses.length === 0 && !showMobileClassForm ? (
-                  <div className="text-center py-2 space-y-3 animate-fade-in">
+                  <div className="text-center py-2 space-y-3">
                     <div className="w-10 h-10 mx-auto rounded-full bg-white/10 flex items-center justify-center">
                       <BookOpen className="w-4 h-4 text-white/60" />
                     </div>
@@ -1730,7 +1731,7 @@ const AppContent: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3 animate-fade-in-down delay-[200ms]">
+                  <div className="space-y-3">
                     {userClasses
                       .filter(userClass =>
                         // Hide class being edited until fully loaded
@@ -1869,7 +1870,7 @@ const AppContent: React.FC = () => {
                         <Plus className="w-5 h-5 text-white" />
                       </button>
                     </div>
-                    <div className="space-y-3 flex-1 overflow-y-auto scrollbar-none animate-fade-in-down delay-[300ms]">
+                    <div className="space-y-3 flex-1 overflow-y-auto scrollbar-none">
                       {filteredSessions.length === 0 ? (
                         <div className="text-center py-4">
                           <div className={`w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center ${
@@ -2061,7 +2062,7 @@ const AppContent: React.FC = () => {
               </label>
             </div>
 
-            <div className="space-y-4 px-5 animate-fade-in" style={{ animationDelay: '0.1s', animationFillMode: 'both' }}>
+            <div className="space-y-4 px-5">
               {/* Class Filter - Clean */}
               {userClasses.length > 0 && (
                 <div className="relative" ref={mobileFilterRef}>
@@ -2183,7 +2184,7 @@ const AppContent: React.FC = () => {
 
               {/* Documents List */}
               {documents.filter(doc => !mobileDocumentFilter || doc.assigned_classes?.includes(mobileDocumentFilter)).length === 0 && !isDocumentLoading ? (
-                <div className="text-center py-1 space-y-2 animate-fade-in">
+                <div className="text-center py-1 space-y-2">
                   <div className="w-10 h-10 mx-auto rounded-full bg-white/10 flex items-center justify-center">
                     <FileText className="w-4 h-4 text-white/60" />
                   </div>
@@ -2210,7 +2211,7 @@ const AppContent: React.FC = () => {
                       style={{
                         WebkitTapHighlightColor: 'transparent',
                         touchAction: 'manipulation',
-                        animationDelay: `${index * 0.1}s`,
+                        animationDelay: `${index * 0.05}s`,
                         animationFillMode: 'both'
                       }}>
                       <div className="flex items-start justify-between">
@@ -2329,7 +2330,7 @@ const AppContent: React.FC = () => {
                 paddingTop: 'calc(env(safe-area-inset-top) - 20px)',
                 paddingBottom: '16px'
               }}>
-              <div className="animate-fade-in" style={{ animationDelay: '0s', animationFillMode: 'both' }}>
+              <div>
                 <h2 className="ios-large-title text-white">
                   Rewards
                 </h2>
@@ -2337,7 +2338,7 @@ const AppContent: React.FC = () => {
                   {mobileRewardsTab === 'achievements' ? 'Track your learning progress' : 'Redeem your points for rewards'}
                 </p>
               </div>
-              <div className="rounded-full px-2 py-0 flex items-center gap-2 whitespace-nowrap bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40 animate-fade-in" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
+              <div className="rounded-full px-2 py-0 flex items-center gap-2 whitespace-nowrap bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border border-yellow-400/40">
                 <Star className="w-4 h-4 text-yellow-400" />
                 <span className="font-bold text-sm text-yellow-400">
                   {userProfile?.stats?.total_points || 0} pts
@@ -2347,16 +2348,19 @@ const AppContent: React.FC = () => {
 
             {/* Fixed Segmented Control */}
             <div className="px-5 pb-4">
-              <div className={`flex p-1 rounded-2xl animate-fade-in ${
+              <div className={`flex p-1 rounded-2xl ${
                 theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
-              }`} style={{ animationDelay: '0.15s', animationFillMode: 'both' }}>
+              }`}>
                 {[
                   { key: 'achievements', label: 'Achievements' },
                   { key: 'store', label: 'Store' }
                 ].map(({ key, label }) => (
                   <button
                     key={key}
-                    onClick={() => setMobileRewardsTab(key as any)}
+                    onClick={() => {
+                      setPreviousRewardsTab(mobileRewardsTab);
+                      setMobileRewardsTab(key as any);
+                    }}
                     className={`flex-1 py-2 px-4 text-sm font-medium rounded-xl transition-all duration-150 active:scale-95 ${
                       mobileRewardsTab === key
                         ? 'bg-white text-black shadow-sm'
@@ -2377,10 +2381,16 @@ const AppContent: React.FC = () => {
             <div className="flex-1 overflow-y-auto pb-20">
               <div className="px-5 space-y-4">
               {mobileRewardsTab === 'achievements' ? (
-                <div key="achievements-content">
+                <div
+                  key="achievements-content"
+                  className={
+                    previousRewardsTab === 'store'
+                      ? 'animate-slide-in-left'
+                      : ''
+                  }>
               {/* In Progress Section */}
               {achievements.filter(a => a.unlocked_at === null).length > 0 && (
-                <div className="space-y-3">
+                <div className="space-y-3 mt-6">
                   <div className="flex items-center gap-2">
                     <Target className="w-4 h-4 text-blue-400" />
                     <h4 className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
@@ -2463,7 +2473,7 @@ const AppContent: React.FC = () => {
 
               {/* Unlocked Section */}
               {achievements.filter(a => a.unlocked_at !== null).length > 0 && (
-                <div className="space-y-3">
+                <div className="space-y-3 mt-8">
                   <div className="flex items-center gap-2">
                     <Trophy className={`w-4 h-4 ${
                       theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700'
@@ -2568,7 +2578,13 @@ const AppContent: React.FC = () => {
                 </div>
               ) : (
                 /* Store Tab Content */
-                <div key="store-content" className="space-y-4">
+                <div
+                  key="store-content"
+                  className={`space-y-4 ${
+                    previousRewardsTab === 'achievements'
+                      ? 'animate-slide-in-right'
+                      : ''
+                  }`}>
                   {/* Store Items with iOS Design */}
                   <div className="p-4 rounded-2xl transition-all duration-300 active:scale-[0.98] bg-[#1C1C1E]/40 backdrop-blur-md border border-white/5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] animate-fade-in"
                     style={{
@@ -3690,12 +3706,20 @@ const AppContent: React.FC = () => {
                 <button
                   key={page}
                   onClick={() => {
-                    setMobilePage(page as any);
+                    // Immediate state update for faster response
+                    if (page === 'docs') {
+                      setMobileDocumentFilter(null);
+                      setMobileFilterDropdownOpen(false);
+                    }
+                    if (page === 'rewards') {
+                      setMobileRewardsTab('achievements');
+                    }
                     if (page === 'settings') {
                       setSettingsPage('main');
                     }
+                    setMobilePage(page as any);
                   }}
-                  className={`flex flex-col items-center py-3 px-4 transition-all duration-200 ease-out ${
+                  className={`flex flex-col items-center py-3 px-4 transition-all duration-150 ease-out active:scale-90 ${
                     isActive
                       ? 'text-white'
                       : 'text-gray-400'
@@ -3706,7 +3730,7 @@ const AppContent: React.FC = () => {
                   }}
                 >
                   <Icon
-                    className={`w-6 h-6 transition-all duration-200 ease-out ${
+                    className={`w-6 h-6 transition-all duration-100 ease-out ${
                       isActive ? 'brightness-110' : 'brightness-75'
                     }`}
                     style={{

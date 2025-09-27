@@ -212,6 +212,53 @@
     animation: slideInFromBottom 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   }
 
+  /* Page transition animations */
+  .animate-slide-in-left {
+    animation: slideInFromLeft 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
+  .animate-slide-out-right {
+    animation: slideOutToRight 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
+  .animate-slide-out-left {
+    animation: slideOutToLeft 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
+  /* Page transition keyframes */
+  @keyframes slideInFromLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideOutToRight {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+  }
+
+  @keyframes slideOutToLeft {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+  }
+
   /* Prevent bounce scrolling */
   .ios-scroll {
     overscroll-behavior-y: contain;

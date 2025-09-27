@@ -125,23 +125,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
 
   // Filter sessions by active class selection
-  console.log('📊 Sidebar filtering - activeClass:', activeClass ? { name: activeClass.name, id: activeClass.id } : null);
-  console.log('📊 All sessions count:', allSessions.length);
 
   const currentSessions = activeClass
     ? allSessions.filter(session => {
         // When a class is selected, only show sessions for that specific class
-        console.log('🔍 Filtering for class sessions, session.class_id:', session.class_id, 'activeClass.id:', activeClass.id);
         return session.class_id === activeClass.id;
       })
     : allSessions.filter(session => {
         // When no class is selected, only show sessions without a class_id
-        console.log('🔍 Filtering for sessions without class_id, session.class_id:', session.class_id);
         return !session.class_id;
       });
 
-  console.log('📊 Filtered sessions count:', currentSessions.length);
-  console.log('📊 Filtered sessions:', currentSessions.map(s => ({ name: s.name, class_id: s.class_id })));
 
   // Get real user data
   const { user, userProfile } = useUser();
@@ -237,7 +231,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         await onRenameSession(sessionId, newName);
       } else {
         // Session management removed - using onRenameSession prop only
-        console.log('Session rename not supported without onRenameSession prop');
         setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, name: newName } : s));
       }
     } catch (error) {

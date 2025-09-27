@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiService } from '../services/api';
 import { useUser } from '../contexts/UserContext';
 
@@ -30,56 +30,48 @@ export const useAchievements = () => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [newlyUnlocked, setNewlyUnlocked] = useState<Achievement[]>([]);
   const [lastChecked, setLastChecked] = useState<string | null>(null);
+  const achievementsRef = useRef<Achievement[]>([]);
 
   const fetchAchievements = useCallback(async (forceRefresh = false) => {
     // Only fetch if user is authenticated
     if (!isAuthenticated) {
-      console.log('🔄 Skipping achievements fetch - user not authenticated');
       return;
     }
 
     try {
-      console.log('🔄 Fetching achievements...', { forceRefresh });
       const profile: UserProfile = await apiService.getUserProfile();
       const currentAchievements = profile.achievements || [];
 
       // Check for newly unlocked achievements (only if we have previous state)
-      if (!forceRefresh && lastChecked && achievements.length > 0) {
-        console.log('🔍 Checking for newly unlocked achievements...');
+      if (!forceRefresh && lastChecked && achievementsRef.current.length > 0) {
         const newUnlocked = currentAchievements.filter(achievement => {
-          const oldAchievement = achievements.find(a => a.id === achievement.id || a.type === achievement.type);
+          const oldAchievement = achievementsRef.current.find(a => a.id === achievement.id || a.type === achievement.type);
           // Achievement is newly unlocked if it wasn't unlocked before but is now
           const wasUnlocked = oldAchievement?.unlocked_at;
           const isNowUnlocked = achievement.unlocked_at;
           const isNew = oldAchievement && !wasUnlocked && isNowUnlocked;
 
-          if (isNew) {
-            console.log(`🎉 Achievement "${achievement.name}" just unlocked!`);
-          }
-
           return isNew;
         });
 
         if (newUnlocked.length > 0) {
-          console.log('🎉 New achievements unlocked:', newUnlocked.map(a => a.name));
           setNewlyUnlocked(prev => [...prev, ...newUnlocked]);
         }
       }
 
-      console.log('📊 Updated achievements:', currentAchievements.length);
+      achievementsRef.current = currentAchievements;
       setAchievements(currentAchievements);
       setLastChecked(new Date().toISOString());
     } catch (error) {
       console.error('Failed to fetch achievements:', error);
     }
-  }, [isAuthenticated, achievements, lastChecked]);
+  }, [isAuthenticated]);
 
   const dismissNotification = useCallback((achievementId: string) => {
     setNewlyUnlocked(prev => prev.filter(a => a.id !== achievementId));
   }, []);
 
   const checkForNewAchievements = useCallback(async () => {
-    console.log('🔍 Checking for new achievements...');
     await fetchAchievements(false);
   }, [fetchAchievements]);
 

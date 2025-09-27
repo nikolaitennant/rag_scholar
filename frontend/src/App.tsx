@@ -216,7 +216,6 @@ const AppContent: React.FC = () => {
         message: feedbackForm.message,
         email: feedbackForm.email.trim() || undefined
       };
-      console.log('Sending feedback data:', feedbackData);
       await apiService.sendFeedback(feedbackData);
 
       // Reset form and close modal
@@ -239,9 +238,7 @@ const AppContent: React.FC = () => {
   const loadDocuments = useCallback(async () => {
     try {
       setLoadingStatus('Loading your documents...');
-      console.log('Loading documents...');
       const docs = await apiService.getDocuments();
-      console.log('✅ Documents loaded:', docs.length);
       setDocuments(docs);
     } catch (error) {
       console.error('Failed to load documents:', error);
@@ -255,7 +252,6 @@ const AppContent: React.FC = () => {
       setLoadingSessions(true);
 
       const sessionsData = await apiService.getSessions();
-      console.log('✅ Sessions loaded:', sessionsData.length);
 
       // Merge with any existing optimistic sessions, but clean up old ones
       setSessions(prev => {
@@ -296,7 +292,6 @@ const AppContent: React.FC = () => {
       setUserClasses(formattedClasses);
       // Only auto-select first class on initial app load, not when user deselects
       // This prevents overriding user's intentional deselection
-      console.log('✅ User classes loaded from cloud:', classes.length);
     } catch (error) {
       console.error('Failed to load user classes from cloud:', error);
       // Fallback to empty array on error
@@ -309,7 +304,6 @@ const AppContent: React.FC = () => {
       setLoadingStatus('Checking API connection...');
       await apiService.health();
       setApiError(null);
-      console.log('✅ API health check passed');
     } catch (error) {
       console.error('API health check failed:', error);
       setApiError('Cannot connect to API. Please check if the backend is running.');
@@ -337,7 +331,6 @@ const AppContent: React.FC = () => {
 
       // Final step: Wait for sessions to be available in state
       setLoadingStatus('Finalizing...');
-      console.log('🎯 Data loading complete, waiting for UI to update...');
 
     } catch (error) {
       console.error('App initialization failed:', error);
@@ -379,21 +372,16 @@ const AppContent: React.FC = () => {
       // Only finish loading if we have sessions OR if we've waited long enough for empty state
       const hasActualSessions = sessions.length > 0;
 
-      console.log('🎯 Data loading finished. Sessions:', sessions.length, 'Classes:', userClasses.length, 'Documents:', documents.length);
 
       if (hasActualSessions) {
         // We have sessions, wait a bit longer to ensure they're rendered
-        console.log('✅ Sessions found, finishing loading soon...');
         setTimeout(() => {
           setAppLoading(false);
-          console.log('🎉 App fully loaded with sessions - UI ready!');
         }, 2000);
       } else {
         // No sessions, wait much longer to be sure
-        console.log('⏳ No sessions found, waiting longer...');
         setTimeout(() => {
           setAppLoading(false);
-          console.log('🎉 App loaded (no sessions) - UI ready!');
         }, 8000);
       }
     }
@@ -603,7 +591,6 @@ const AppContent: React.FC = () => {
 
   // Create new chat session (ChatGPT style - just clear current chat)
   const handleNewChat = () => {
-    console.log('Starting new chat session...');
     // Generate new session ID but don't create session in UI yet
     const newSessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
 
@@ -614,7 +601,6 @@ const AppContent: React.FC = () => {
     // Note: We're starting a new chat session, so no need to clear anything
     // The new session ID will have its own cache entry
 
-    console.log('✅ Ready for new chat - session will appear when AI responds');
   };
 
   const handleClearChat = () => {
@@ -622,11 +608,9 @@ const AppContent: React.FC = () => {
   };
 
   const handleSelectSession = (sessionId: string) => {
-    console.log('ChatGPT-style session switching:', sessionId);
 
     // Prevent double-clicks by checking if already loading this session
     if (currentSessionId === sessionId && !isNewChatSession) {
-      console.log('Session already selected, ignoring duplicate click');
       return;
     }
 
@@ -648,7 +632,6 @@ const AppContent: React.FC = () => {
     if (cachedMessages.length > 0) {
       // Show cached messages instantly (ChatGPT behavior)
       setMessages(cachedMessages);
-      console.log('✅ Instant load from cache');
     } else {
       // No cache - show empty state and load from Firestore (LangChain)
       setMessages([]);
@@ -658,7 +641,6 @@ const AppContent: React.FC = () => {
       apiService.getSessionMessages(sessionId)
         .then(sessionData => {
           // Remove the race condition check - always update if we get data
-          console.log('Loaded messages for session:', sessionId, sessionData.messages?.length || 0);
           const freshMessages = sessionData.messages || [];
           setMessages(freshMessages);
           // Cache for next time
@@ -674,7 +656,6 @@ const AppContent: React.FC = () => {
     // Note: activeClass is a user class, not a domain type
     // The caching by sessionId is what matters for fast switching
 
-    console.log('✅ Session switch complete (ChatGPT-style)');
   };
 
   const handleRenameSession = async (sessionId: string, newName: string) => {
@@ -708,12 +689,9 @@ const AppContent: React.FC = () => {
     try {
       // Always upload to 'database' collection so documents can be shared across classes
       const collection = 'database';
-      console.log(`🔍 UPLOADING '${file.name}' to database collection for shared use`);
       const uploadResponse = await apiService.uploadDocument(file, collection);
-      console.log('Upload successful:', uploadResponse);
       // Refresh document list
       await loadDocuments();
-      console.log('Documents reloaded after upload');
 
       // Check for new achievements and refresh user profile after document upload (with small delay)
       setTimeout(async () => {
@@ -723,12 +701,10 @@ const AppContent: React.FC = () => {
 
       // Auto-assign the uploaded document to the current active class
       if (activeClass && uploadResponse.id) {
-        console.log(`🔗 Auto-assigning uploaded document to active class: ${activeClass.name}`);
         try {
           await handleAssignDocumentToClass(uploadResponse.id, uploadResponse.filename || file.name, activeClass.id, 'add');
-          console.log('✅ Document auto-assigned to class successfully');
         } catch (error) {
-          console.error('❌ Failed to auto-assign document to class:', error);
+          console.error('Failed to auto-assign document to class:', error);
         }
       }
     } catch (error) {
@@ -745,11 +721,8 @@ const AppContent: React.FC = () => {
     }
 
     try {
-      console.log('Attempting to delete document:', documentId);
       await apiService.deleteDocument(documentId);
-      console.log('Delete successful, refreshing documents...');
       await loadDocuments();
-      console.log('Documents refreshed after delete');
 
       // Remove from all classes
       const updatedClasses = userClasses.map(userClass => ({
@@ -811,7 +784,6 @@ const AppContent: React.FC = () => {
               await handleAssignDocumentToClass(documentId, document.filename, newClass.id, 'add');
             }
           }
-          console.log(`Successfully assigned ${selectedDocuments.length} documents to class "${name}"`);
         } catch (error) {
           console.error('Failed to assign documents to class:', error);
         }
@@ -827,30 +799,16 @@ const AppContent: React.FC = () => {
   };
 
   const handleSelectClass = (userClass: UserClass) => {
-    console.log('🔥 handleSelectClass called with:', {
-      clickedClass: { name: userClass.name, id: userClass.id },
-      currentActiveClass: activeClass ? { name: activeClass.name, id: activeClass.id } : null,
-      timestamp: Date.now()
-    });
 
     // Check if we should deselect (same class clicked)
     const shouldDeselect = activeClass && activeClass.id === userClass.id;
 
-    console.log('🧭 Decision logic:', {
-      shouldDeselect,
-      activeClassId: activeClass?.id,
-      clickedClassId: userClass.id,
-      idsMatch: activeClass?.id === userClass.id
-    });
-
     if (shouldDeselect) {
-      console.log('❌ DESELECTING class - setting activeClass to null');
       setActiveClass(null);
       setMessages([]);
       setCurrentSessionId(null);
       setIsNewChatSession(false);
     } else {
-      console.log('✅ SELECTING new class:', userClass.name);
       setActiveClass(userClass);
       setMessages([]);
       setCurrentSessionId(null);
@@ -859,7 +817,6 @@ const AppContent: React.FC = () => {
 
     // Add a small delay and verify the state change
     setTimeout(() => {
-      console.log('🔍 After state change - activeClass should be:', shouldDeselect ? null : userClass.name);
     }, 100);
   };
 
@@ -896,11 +853,9 @@ const AppContent: React.FC = () => {
     }
 
     try {
-      console.log('Starting cascading delete for class:', classId);
 
       // Find all sessions related to this class
       const sessionsToDelete = sessions.filter(session => session.class_id === classId);
-      console.log('Found sessions to delete:', sessionsToDelete.length);
 
       // Delete all related sessions from database
       const sessionDeletionPromises = sessionsToDelete.map(session =>
@@ -911,13 +866,11 @@ const AppContent: React.FC = () => {
       );
 
       await Promise.all(sessionDeletionPromises);
-      console.log('Deleted all related sessions');
 
       // Find all documents that have this class assigned
       const documentsWithClass = documents.filter(doc =>
         doc.assigned_classes && doc.assigned_classes.includes(classId)
       );
-      console.log('Found documents with class tags to remove:', documentsWithClass.length);
 
       // Remove class tags from all documents
       const documentUpdatePromises = documentsWithClass.map(doc =>
@@ -928,7 +881,6 @@ const AppContent: React.FC = () => {
       );
 
       await Promise.all(documentUpdatePromises);
-      console.log('Removed class tags from all documents');
 
       // Update local documents state - remove the deleted class ID from assigned_classes
       setDocuments(prevDocs =>
@@ -940,7 +892,6 @@ const AppContent: React.FC = () => {
 
       // Delete class from cloud
       await apiService.deleteClass(classId);
-      console.log('Deleted class from cloud');
 
       // Update local state - remove the class
       const updatedClasses = userClasses.filter(userClass => userClass.id !== classId);
@@ -971,7 +922,6 @@ const AppContent: React.FC = () => {
         }
       }
 
-      console.log('✅ Cascading delete completed successfully');
     } catch (error) {
       console.error('Failed to delete class and related data:', error);
       alert('Failed to delete class and related data. Please try again.');
@@ -1011,28 +961,23 @@ const AppContent: React.FC = () => {
       }
 
       // Remove documents from class
-      console.log(`Removing ${documentsToRemove.length} documents from class:`, documentsToRemove);
       for (const documentId of documentsToRemove) {
         const document = documents.find(doc => doc.id === documentId);
         if (document) {
-          console.log(`Removing document: ${document.filename} (${documentId})`);
           try {
             await handleAssignDocumentToClass(documentId, document.filename, classId, 'remove');
-            console.log(`Successfully removed: ${document.filename}`);
           } catch (error) {
             console.error(`Failed to remove document ${document.filename}:`, error);
           }
         }
       }
 
-      console.log(`Successfully updated document assignments for class "${userClass?.name}"`);
     } catch (error) {
       console.error('Failed to sync document assignments with backend:', error);
     }
   };
 
   const handleAssignDocumentToClass = async (documentId: string, documentSource: string, classId: string, operation: 'add' | 'remove') => {
-    console.log(`Class assignment loading started: ${operation} ${documentSource} to ${classId}`);
     setLoadingDocuments(prev => {
       const newSet = new Set(prev);
       newSet.add(documentId);
@@ -1101,11 +1046,9 @@ const AppContent: React.FC = () => {
         });
       }
 
-      console.log(`Document ${operation === 'add' ? 'assigned to' : 'removed from'} class successfully`);
     } catch (error) {
       console.error('Class assignment failed:', error);
     } finally {
-      console.log('Class assignment loading finished');
       setLoadingDocuments(prev => {
         const newSet = new Set(prev);
         newSet.delete(documentId);

@@ -219,7 +219,6 @@ export const ClassSection: React.FC<ClassSectionProps> = ({
         <div className="space-y-2">
           {classes.map((userClass) => {
             const isActive = activeClass?.id === userClass.id;
-            console.log('🎨 ClassSection rendering:', userClass.name, 'isActive:', isActive, 'activeClass:', activeClass ? { name: activeClass.name, id: activeClass.id } : null);
             return (
               <div key={userClass.id}>
                 <div
@@ -244,13 +243,11 @@ export const ClassSection: React.FC<ClassSectionProps> = ({
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('🖱️ Class button clicked:', userClass.name, userClass.id);
                         onSelectClass(userClass);
                       }}
                       onDoubleClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('🖱️🖱️ Class button double-clicked - ignoring');
                       }}
                       className="flex-1 text-left"
                     >

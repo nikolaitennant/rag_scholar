@@ -10,10 +10,15 @@ export interface Citation {
   id: string;
   source: string;
   page?: number;
-  preview: string;
-  summary?: string;
+  line?: number;
+  preview: string; // Actual text excerpt from source
+  summary?: string; // AI-generated summary
   full_text?: string;
   relevance_score: number;
+  confidence?: number; // Citation relevance score (0-1)
+  document_type?: string; // PDF, DOC, etc.
+  file_size?: string; // For display purposes
+  bbox?: { x1: number; y1: number; x2: number; y2: number }; // Future: exact location
 }
 
 export interface ChatResponse {

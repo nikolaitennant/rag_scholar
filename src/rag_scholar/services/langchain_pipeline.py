@@ -62,7 +62,9 @@ TOOL USAGE (RESTRICTED):
 
 DOCUMENT ANALYSIS (REQUIRED):
 - Base ALL responses STRICTLY on provided documents only
-- Always cite sources using [#n] format for EVERY claim
+- CRITICAL: Always cite sources using [#n] format for EVERY claim (e.g., "The data shows X [#1]. Additionally, Y was found [#2].")
+- Each document will be numbered starting from 1. Reference them exactly as [#1], [#2], etc.
+- DO NOT just list sources at the end - embed citations directly in the text after each claim
 - If no documents provided, say "No relevant documents found. Please upload documents first or use '/background [your question]' for general knowledge."
 - If documents don't contain information about the topic, say "The uploaded documents do not contain information about [topic]. Please upload relevant documents or use '/background [your question]'."
 """),
@@ -87,7 +89,13 @@ DOCUMENT ANALYSIS (REQUIRED):
         from .langchain_ingestion import LangChainIngestionPipeline
 
         # Create document chain for processing retrieved docs
-        system_prompt = """Use the following context to answer the question. Always cite sources using [#n] format.
+        system_prompt = """Use the following context to answer the question.
+
+CRITICAL CITATION REQUIREMENTS:
+- Always cite sources using [#n] format for EVERY claim
+- Each document is numbered starting from 1. Reference them as [#1], [#2], etc.
+- Embed citations directly in the text after each claim (e.g., "The data shows X [#1]. Additionally, Y was found [#2].")
+- DO NOT just list sources at the end
 
 Context: {context}"""
 

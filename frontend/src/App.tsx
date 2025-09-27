@@ -1592,7 +1592,7 @@ const AppContent: React.FC = () => {
                                         handleEditClass(
                                           editingMobileClass.id,
                                           mobileClassFormData.name,
-                                          mobileClassFormData.type,
+                                          mobileClassFormData.type!,
                                           mobileClassFormData.description
                                         );
                                         await new Promise(resolve => setTimeout(resolve, 100));

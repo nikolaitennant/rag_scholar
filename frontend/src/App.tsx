@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Edit2, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send, ChevronDown, Trash2, ArrowLeft, FileText, Circle, Disc, CircleDot } from 'lucide-react';
+import { AlertCircle, MessageSquare, Home, Upload, Settings, X, HelpCircle, Plus, BookOpen, User, Heart, Edit, Edit2, Star, Award, Zap, Trophy, Target, MessageCircle, Sparkles, LogOut, Key, Palette, Clock, Shield, Cpu, ChevronRight, Globe, Moon, Sun, Send, ChevronDown, Trash2, ArrowLeft, FileText, Circle, Disc, CircleDot, Bell, ArrowUpDown } from 'lucide-react';
 import { ChatInterface } from './components/ChatInterface';
 import { Sidebar } from './components/Sidebar';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -8,6 +8,7 @@ import { UserProvider, useUser } from './contexts/UserContext';
 import { LoginPage } from './components/LoginPage';
 import { ThemeToggle } from './components/ThemeToggle';
 import { SettingsModal } from './components/SettingsModal';
+import { SplashScreen } from './components/SplashScreen';
 import { AchievementNotification } from './components/AchievementNotification';
 import { CommandSuggestions } from './components/CommandSuggestions';
 import { useAchievements } from './hooks/useAchievements';
@@ -46,7 +47,7 @@ const AppContent: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [backgroundCommandCount, setBackgroundCommandCount] = useState(1);
   const [mobilePage, setMobilePage] = useState<'chat' | 'home' | 'docs' | 'rewards' | 'settings'>('home');
-  const [settingsPage, setSettingsPage] = useState<'main' | 'account' | 'appearance' | 'advanced' | 'help'>('main');
+  const [settingsPage, setSettingsPage] = useState<'main' | 'account' | 'appearance' | 'api' | 'advanced' | 'help' | 'timezone'>('main');
   const [mobileRewardsTab, setMobileRewardsTab] = useState<'achievements' | 'store'>('achievements');
   const [previousRewardsTab, setPreviousRewardsTab] = useState<'achievements' | 'store'>('achievements');
   const [showMobileClassForm, setShowMobileClassForm] = useState(false);
@@ -57,7 +58,13 @@ const AppContent: React.FC = () => {
   const [isEditingMobileClass, setIsEditingMobileClass] = useState(false);
   const [mobileInput, setMobileInput] = useState('');
   const [showCommandSuggestions, setShowCommandSuggestions] = useState(false);
-  const [mobileDocumentFilter, setMobileDocumentFilter] = useState<string | null>(null);
+  const [mobileDocumentFilter, setMobileDocumentFilter] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('mobileDocumentFilter') || null;
+    } catch {
+      return null;
+    }
+  });
   const [mobileFilterDropdownOpen, setMobileFilterDropdownOpen] = useState(false);
   const [mobileDropdownPosition, setMobileDropdownPosition] = useState<{
     top: number;
@@ -89,6 +96,27 @@ const AppContent: React.FC = () => {
   const [editingDocumentId, setEditingDocumentId] = useState<string | null>(null);
   const [editingDocumentName, setEditingDocumentName] = useState('');
   const isMobile = window.innerWidth < 768;
+
+  // Persist document filter to localStorage
+  useEffect(() => {
+    try {
+      if (mobileDocumentFilter) {
+        localStorage.setItem('mobileDocumentFilter', mobileDocumentFilter);
+      } else {
+        localStorage.removeItem('mobileDocumentFilter');
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [mobileDocumentFilter]);
+
+  // Sync docs filter when active class changes (from home tab) or when navigating to docs
+  useEffect(() => {
+    if (activeClass && (mobilePage === 'home' || mobilePage === 'docs')) {
+      // Update filter when class is selected on home OR when navigating to docs with an active class
+      setMobileDocumentFilter(activeClass.id);
+    }
+  }, [activeClass, mobilePage]);
 
   // Provider detection helper
   const getProviderAndModels = () => {
@@ -170,7 +198,7 @@ const AppContent: React.FC = () => {
   const [apiSettings, setApiSettings] = useState({
     apiKey: localStorage.getItem('api_key') || '',
     model: localStorage.getItem('preferred_model') || 'gpt-5-mini',
-    temperature: parseFloat(localStorage.getItem('model_temperature') || '0.7'),
+    temperature: parseFloat(localStorage.getItem('model_temperature') || '0.0'),
     maxTokens: parseInt(localStorage.getItem('max_tokens') || '2000'),
   });
   const [sessions, setSessions] = useState<any[]>([]);
@@ -2184,7 +2212,7 @@ const AppContent: React.FC = () => {
 
               {/* Documents List */}
               {documents.filter(doc => !mobileDocumentFilter || doc.assigned_classes?.includes(mobileDocumentFilter)).length === 0 && !isDocumentLoading ? (
-                <div className="text-center py-1 space-y-2">
+                <div className="text-center py-8 space-y-2 animate-fade-in">
                   <div className="w-10 h-10 mx-auto rounded-full bg-white/10 flex items-center justify-center">
                     <FileText className="w-4 h-4 text-white/60" />
                   </div>
@@ -2793,773 +2821,26 @@ const AppContent: React.FC = () => {
         );
 
       case 'settings':
-        return (
-          <div className="h-full overflow-y-auto pb-20" style={{
-
-          }}>
-            {/* iOS-Style Mobile Header */}
-            <div className="px-4" style={{ 
-              paddingTop: 'calc(env(safe-area-inset-top) - 20px)',
-              paddingBottom: '24px' }}>
-              <h2 className="ios-large-title text-white">
-                Settings
-              </h2>
-              <p className="ios-subtitle text-white mt-2">
-                Customize your experience
-              </p>
-            </div>
-
-            {settingsPage === 'main' && (
-              /* iOS-Style Grouped Settings List */
-              <div className="px-4">
-                <div className="ios-grouped-list">
-                  {[
-                    { key: 'account', label: 'Account', icon: User, subtitle: 'Manage your profile and preferences', color: 'blue' },
-                    { key: 'appearance', label: 'Appearance', icon: Palette, subtitle: 'Theme, background, and display options', color: 'purple' },
-                    { key: 'advanced', label: 'Advanced', icon: Settings, subtitle: 'API settings and advanced configuration', color: 'gray' },
-                    { key: 'help', label: 'Help & Support', icon: HelpCircle, subtitle: 'Get help and send feedback', color: 'green' }
-                  ].map(({ key, label, icon: Icon, subtitle, color }, index, array) => (
-                    <div key={key}>
-                      <button
-                        onClick={() => setSettingsPage(key as any)}
-                        className="w-full px-4 py-3.5 text-left transition-all duration-300 ease-in-out hover:bg-white/5 active:bg-white/10"
-                        style={{
-                          WebkitTapHighlightColor: 'transparent',
-                          animation: 'iosTapPress 0.15s ease-in-out'
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                              color === 'blue' ? 'bg-[#007AFF]' :
-                              color === 'purple' ? 'bg-[#AF52DE]' :
-                              color === 'gray' ? 'bg-[#8E8E93]' :
-                              'bg-[#34C759]'
-                            }`}>
-                              <Icon className="w-4.5 h-4.5 text-white" />
-                            </div>
-                            <div className="text-left">
-                              <h3 className="ios-title text-white">
-                                {label}
-                              </h3>
-                              <p className="ios-caption text-white opacity-60 mt-0.5">
-                                {subtitle}
-                              </p>
-                            </div>
-                          </div>
-                          <ChevronRight className="w-5 h-5 text-[#8E8E93]" />
-                        </div>
-                      </button>
-                      {index < array.length - 1 && (
-                        <div className="h-px ml-11 bg-[rgba(255,255,255,0.1)]" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {settingsPage !== 'main' && (
-              <div className="px-6">
-                {/* Back Button */}
-                <button
-                  onClick={() => setSettingsPage('main')}
-                  className={`flex items-center space-x-2 mb-6 p-2 rounded-lg transition-colors ${
-                    theme === 'dark' ? 'hover:bg-white/10' : 'hover:bg-black/10'
-                  }`}
-                >
-                  <ArrowLeft className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-black'}`} />
-                  <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                    Settings
-                  </span>
-                </button>
-
-                {/* Page Content */}
-                {settingsPage === 'account' && (
-                  <div className="space-y-6">
-                    {/* iOS-Style Account Settings */}
-
-                    {/* Profile Section */}
-                    <div className="space-y-2">
-                      <h4 className={`px-4 text-xs font-medium uppercase tracking-wider ${
-                        theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
-                      }`}>
-                        Profile
-                      </h4>
-
-                      <div className="px-4">
-                        <div className={`rounded-2xl overflow-hidden shadow-sm ${
-                          theme === 'dark'
-                            ? 'bg-gray-900/60 border border-gray-800'
-                            : 'bg-white border border-gray-200'
-                        }`} style={{
-                          backdropFilter: 'blur(20px)',
-                          WebkitBackdropFilter: 'blur(20px)'
-                        }}>
-                          {/* Display Name Row */}
-                          <div className="px-4 py-3.5">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <p className={`text-base font-medium ${
-                                  theme === 'dark' ? 'text-white' : 'text-black'
-                                }`}>
-                                  Name
-                                </p>
-                              </div>
-                              <div className="flex-1 text-right">
-                                <input
-                                  type="text"
-                                  value={formData.name}
-                                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                                  className={`text-base text-right bg-transparent border-none outline-none w-full ${
-                                    theme === 'dark'
-                                      ? 'text-gray-300 placeholder-gray-500'
-                                      : 'text-gray-600 placeholder-gray-400'
-                                  }`}
-                                  placeholder="Enter name"
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className={`h-px ml-4 ${
-                            theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'
-                          }`} />
-
-                          {/* Email Row */}
-                          <div className="px-4 py-3.5">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <p className={`text-base font-medium ${
-                                  theme === 'dark' ? 'text-white' : 'text-black'
-                                }`}>
-                                  Email
-                                </p>
-                              </div>
-                              <div className="flex-1 text-right">
-                                <p className={`text-base ${
-                                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                                }`}>
-                                  {user?.email}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Security Section */}
-                    <div className="space-y-1">
-                      <h4 className={`px-4 pb-2 text-xs font-medium uppercase tracking-wider ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        Security
-                      </h4>
-
-                      <div className={`mx-4 rounded-2xl overflow-hidden ${
-                        theme === 'dark' ? 'bg-gray-800/50' : 'bg-white'
-                      }`}>
-                        {!isResetPasswordMode ? (
-                          <button
-                            onClick={() => setIsResetPasswordMode(true)}
-                            className={`w-full px-4 py-3 text-left transition-colors ${
-                              theme === 'dark' ? 'hover:bg-gray-700/50 active:bg-gray-700/70' : 'hover:bg-gray-50 active:bg-gray-100'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-3">
-                                <div className={`w-7 h-7 min-w-7 rounded-full flex-shrink-0 flex items-center justify-center ${
-                                  theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-500/10'
-                                }`}>
-                                  <Key className="w-4 h-4 text-blue-500" />
-                                </div>
-                                <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                                  Change Password
-                                </p>
-                              </div>
-                              <ChevronRight className={`w-5 h-5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} />
-                            </div>
-                          </button>
-                        ) : (
-                          <div className="px-4 py-4 space-y-4">
-                            <div className="text-center">
-                              <div className={`w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center ${
-                                theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-500/10'
-                              }`}>
-                                <Key className="w-8 h-8 text-blue-500" />
-                              </div>
-                              <h4 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                                Reset Password
-                              </h4>
-                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                                We'll send a password reset link to your email address
-                              </p>
-                            </div>
-
-                            {saveMessage && (
-                              <div className={`p-4 rounded-xl text-center text-sm ${
-                                saveMessage.includes('sent')
-                                  ? theme === 'dark'
-                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                    : 'bg-green-50 text-green-600 border border-green-200'
-                                  : theme === 'dark'
-                                    ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                                    : 'bg-red-50 text-red-600 border border-red-200'
-                              }`}>
-                                {saveMessage}
-                              </div>
-                            )}
-
-                            <div className="space-y-3">
-                              <button
-                                onClick={async () => {
-                                  if (user?.email) {
-                                    try {
-                                      setIsLoading(true);
-                                      await resetPassword(user.email);
-                                      setSaveMessage('Password reset email sent! Check your inbox.');
-                                      setTimeout(() => setSaveMessage(null), 5000);
-                                    } catch (error) {
-                                      setSaveMessage('Failed to send reset email');
-                                      setTimeout(() => setSaveMessage(null), 5000);
-                                    } finally {
-                                      setIsLoading(false);
-                                    }
-                                  }
-                                }}
-                                disabled={isLoading}
-                                className={`w-full py-3 rounded-xl font-semibold text-base transition-colors ${
-                                  theme === 'dark'
-                                    ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                                    : 'bg-blue-500 hover:bg-blue-600 text-white'
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                              >
-                                {isLoading ? 'Sending...' : 'Send Reset Email'}
-                              </button>
-
-                              <button
-                                onClick={() => {
-                                  setIsResetPasswordMode(false);
-                                  setSaveMessage(null);
-                                }}
-                                className={`w-full py-3 rounded-xl font-medium text-base transition-colors ${
-                                  theme === 'dark'
-                                    ? 'bg-gray-700/50 hover:bg-gray-700/70 text-white'
-                                    : 'bg-gray-100 hover:bg-gray-200 text-black'
-                                }`}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Account Actions Section */}
-                    <div className="space-y-2">
-                      <h4 className={`px-4 text-xs font-medium uppercase tracking-wider ${
-                        theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
-                      }`}>
-                        Actions
-                      </h4>
-
-                      <div className="px-4">
-                        <div className={`rounded-2xl overflow-hidden shadow-sm ${
-                          theme === 'dark'
-                            ? 'bg-gray-900/60 border border-gray-800'
-                            : 'bg-white border border-gray-200'
-                        }`} style={{
-                          backdropFilter: 'blur(20px)',
-                          WebkitBackdropFilter: 'blur(20px)'
-                        }}>
-                          <button
-                            onClick={handleLogout}
-                            className={`w-full px-4 py-3.5 text-left transition-all duration-150 active:scale-[0.98] ${
-                              theme === 'dark'
-                                ? 'hover:bg-red-500/10 active:bg-red-500/20'
-                                : 'hover:bg-red-50 active:bg-red-100'
-                            }`}
-                            style={{ WebkitTapHighlightColor: 'transparent' }}
-                          >
-                            <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center">
-                                <LogOut className="w-4.5 h-4.5 text-white" />
-                              </div>
-                              <p className="text-base font-medium text-red-500">
-                                Sign Out
-                              </p>
-                            </div>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {settingsPage === 'appearance' && (
-                  <div className="space-y-6">
-                    {/* iOS-Style Appearance Settings */}
-
-                    {/* Theme Section */}
-                    <div className="space-y-2">
-                      <h4 className={`px-4 text-xs font-medium uppercase tracking-wider ${
-                        theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
-                      }`}>
-                        Display
-                      </h4>
-
-                      <div className="px-4">
-                        <div className={`rounded-2xl overflow-hidden shadow-sm ${
-                          theme === 'dark'
-                            ? 'bg-gray-900/60 border border-gray-800'
-                            : 'bg-white border border-gray-200'
-                        }`} style={{
-                          backdropFilter: 'blur(20px)',
-                          WebkitBackdropFilter: 'blur(20px)'
-                        }}>
-                          <button
-                            onClick={toggleTheme}
-                            className={`w-full px-4 py-3.5 text-left transition-all duration-150 active:scale-[0.98] ${
-                              theme === 'dark'
-                                ? 'hover:bg-gray-800/60 active:bg-gray-800/80'
-                                : 'hover:bg-gray-50 active:bg-gray-100'
-                            }`}
-                            style={{ WebkitTapHighlightColor: 'transparent' }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-3">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                  theme === 'dark' ? 'bg-blue-500' : 'bg-orange-500'
-                                }`}>
-                                  {theme === 'dark' ? (
-                                    <Moon className="w-4.5 h-4.5 text-white" />
-                                  ) : (
-                                    <Sun className="w-4.5 h-4.5 text-white" />
-                                  )}
-                                </div>
-                                <div>
-                                  <p className={`text-base font-medium ${
-                                    theme === 'dark' ? 'text-white' : 'text-black'
-                                  }`}>
-                                    Appearance
-                                  </p>
-                                  <p className={`text-sm ${
-                                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                                  }`}>
-                                    {themeMode === 'auto' ? `Auto (${theme})` : theme === 'dark' ? 'Dark' : 'Light'}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className={`w-12 h-7 rounded-full relative transition-colors ${
-                                theme === 'dark' ? 'bg-blue-500' : 'bg-gray-300'
-                              }`}>
-                                <div className={`w-5 h-5 mt-1 rounded-full bg-white transition-transform shadow-sm ${
-                                  theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
-                                }`} />
-                              </div>
-                            </div>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Background Section */}
-                    <div className="space-y-2">
-                      <h4 className={`px-4 text-xs font-medium uppercase tracking-wider ${
-                        theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
-                      }`}>
-                        Background Style
-                      </h4>
-
-                      <div className="px-4">
-                        <div className={`rounded-2xl overflow-hidden shadow-sm ${
-                          theme === 'dark'
-                            ? 'bg-gray-900/60 border border-gray-800'
-                            : 'bg-white border border-gray-200'
-                        }`} style={{
-                          backdropFilter: 'blur(20px)',
-                          WebkitBackdropFilter: 'blur(20px)'
-                        }}>
-                        {(['classic', 'gradient', 'mountain', 'ocean', 'sunset', 'forest'] as const).map((bg, index) => (
-                          <div key={bg}>
-                            <button
-                              onClick={() => setBackground(bg)}
-                              className={`w-full px-4 py-3.5 text-left transition-all duration-150 active:scale-[0.98] ${
-                                theme === 'dark'
-                                  ? 'hover:bg-gray-800/60 active:bg-gray-800/80'
-                                  : 'hover:bg-gray-50 active:bg-gray-100'
-                              }`}
-                              style={{ WebkitTapHighlightColor: 'transparent' }}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                    bg === 'classic' ? 'bg-gray-500' :
-                                    bg === 'gradient' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
-                                    bg === 'mountain' ? 'bg-green-500' :
-                                    bg === 'ocean' ? 'bg-blue-500' :
-                                    bg === 'sunset' ? 'bg-orange-500' :
-                                    'bg-emerald-500'
-                                  }`}>
-                                    <div className="w-4 h-4 rounded bg-white opacity-90" />
-                                  </div>
-                                  <div>
-                                    <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                                      {bg.charAt(0).toUpperCase() + bg.slice(1)}
-                                    </p>
-                                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                                      {bg === 'classic' ? 'Simple solid background' :
-                                       bg === 'gradient' ? 'Colorful gradient effect' :
-                                       bg === 'mountain' ? 'Nature-inspired green tones' :
-                                       bg === 'ocean' ? 'Calming blue waves' :
-                                       bg === 'sunset' ? 'Warm orange sunset colors' :
-                                       'Peaceful forest atmosphere'}
-                                    </p>
-                                  </div>
-                                </div>
-                                {background === bg && (
-                                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
-                                    <div className="w-2 h-2 rounded-full bg-white" />
-                                  </div>
-                                )}
-                              </div>
-                            </button>
-                            {index < 5 && (
-                              <div className={`h-px ml-11 ${
-                                theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'
-                              }`} />
-                            )}
-                          </div>
-                        ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Preview Section */}
-                    <div className="space-y-2">
-                      <h4 className={`px-4 text-xs font-medium uppercase tracking-wider ${
-                        theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
-                      }`}>
-                        Preview
-                      </h4>
-
-                      <div className="px-4">
-                        <div className={`rounded-2xl overflow-hidden shadow-sm p-4 ${
-                          theme === 'dark'
-                            ? 'bg-gray-900/60 border border-gray-800'
-                            : 'bg-white border border-gray-200'
-                        }`} style={{
-                          backdropFilter: 'blur(20px)',
-                          WebkitBackdropFilter: 'blur(20px)'
-                        }}>
-                        <div className={`rounded-xl p-4 ${
-                          background === 'classic' ? (theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50') :
-                          background === 'gradient' ? 'bg-gradient-to-br from-purple-500/10 to-pink-500/10' :
-                          background === 'mountain' ? 'bg-gradient-to-br from-green-500/10 to-emerald-500/10' :
-                          background === 'ocean' ? 'bg-gradient-to-br from-blue-500/10 to-cyan-500/10' :
-                          background === 'sunset' ? 'bg-gradient-to-br from-orange-500/10 to-red-500/10' :
-                          'bg-gradient-to-br from-emerald-500/10 to-teal-500/10'
-                        }`}>
-                          <div className="text-center py-3">
-                            <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                              Preview of {background} background
-                            </p>
-                            <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                              This is how your app will look
-                            </p>
-                          </div>
-                        </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {settingsPage === 'advanced' && (
-                  <div className="space-y-6">
-                    {/* iOS-Style Advanced Settings */}
-
-                    {/* API Configuration Section */}
-                    <div className="space-y-1">
-                      <h4 className={`px-4 pb-2 text-xs font-medium uppercase tracking-wider ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        API Configuration
-                      </h4>
-
-                      <div className={`mx-4 rounded-2xl overflow-hidden ${
-                        theme === 'dark' ? 'bg-gray-800/50' : 'bg-white'
-                      }`}>
-                        {/* API Key Row */}
-                        <div className="px-4 py-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                                OpenAI API Key
-                              </p>
-                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                                {apiSettings.apiKey ? '••••••••••••••••' : 'Not configured'}
-                              </p>
-                            </div>
-                            <div className="flex-1 text-right">
-                              <input
-                                type="password"
-                                value={apiSettings.apiKey}
-                                onChange={(e) => setApiSettings(prev => ({ ...prev, apiKey: e.target.value }))}
-                                placeholder="sk-..."
-                                className={`text-base text-right bg-transparent border-none outline-none w-full ${
-                                  theme === 'dark' ? 'text-gray-300 placeholder-gray-500' : 'text-gray-600 placeholder-gray-400'
-                                }`}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Model Parameters Section */}
-                    <div className="space-y-1">
-                      <h4 className={`px-4 pb-2 text-xs font-medium uppercase tracking-wider ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        Model Settings
-                      </h4>
-
-                      <div className={`mx-4 rounded-2xl overflow-hidden ${
-                        theme === 'dark' ? 'bg-gray-800/50' : 'bg-white'
-                      }`}>
-                        {/* Model Selection */}
-                        <div className="px-4 py-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                                Model
-                              </p>
-                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                                AI model to use for responses
-                              </p>
-                            </div>
-                            <div className="flex-1 text-right">
-                              <select
-                                value={apiSettings.model}
-                                onChange={(e) => setApiSettings(prev => ({ ...prev, model: e.target.value }))}
-                                className={`text-base text-right bg-transparent border-none outline-none ${
-                                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                                }`}
-                              >
-                                <option value="gpt-4">GPT-4</option>
-                                <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className={`h-px ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} mx-4`} />
-
-                        {/* Max Tokens */}
-                        <div className="px-4 py-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                                Max Tokens
-                              </p>
-                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                                Maximum response length
-                              </p>
-                            </div>
-                            <div className="flex-1 text-right">
-                              <input
-                                type="number"
-                                value={apiSettings.maxTokens}
-                                onChange={(e) => setApiSettings(prev => ({ ...prev, maxTokens: parseInt(e.target.value) }))}
-                                className={`text-base text-right bg-transparent border-none outline-none w-20 ${
-                                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                                }`}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Temperature Section */}
-                    <div className="space-y-1">
-                      <h4 className={`px-4 pb-2 text-xs font-medium uppercase tracking-wider ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        Response Style
-                      </h4>
-
-                      <div className={`mx-4 rounded-2xl overflow-hidden p-4 ${
-                        theme === 'dark' ? 'bg-gray-800/50' : 'bg-white'
-                      }`}>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                                Creativity
-                              </p>
-                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                                {apiSettings.temperature < 0.3 ? 'Focused & Precise' :
-                                 apiSettings.temperature < 0.7 ? 'Balanced' :
-                                 apiSettings.temperature < 1.2 ? 'Creative' : 'Very Creative'}
-                              </p>
-                            </div>
-                            <p className={`text-lg font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                              {apiSettings.temperature}
-                            </p>
-                          </div>
-
-                          <div className="relative">
-                            <input
-                              type="range"
-                              min="0"
-                              max="2"
-                              step="0.1"
-                              value={apiSettings.temperature}
-                              onChange={(e) => setApiSettings(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
-                              className={`w-full h-2 rounded-full appearance-none cursor-pointer ${
-                                theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
-                              }`}
-                              style={{
-                                background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${(apiSettings.temperature / 2) * 100}%, ${
-                                  theme === 'dark' ? '#374151' : '#E5E7EB'
-                                } ${(apiSettings.temperature / 2) * 100}%, ${
-                                  theme === 'dark' ? '#374151' : '#E5E7EB'
-                                } 100%)`
-                              }}
-                            />
-                            <div className="flex justify-between text-xs mt-1">
-                              <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Precise</span>
-                              <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Creative</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Reset Section */}
-                    <div className="space-y-1">
-                      <h4 className={`px-4 pb-2 text-xs font-medium uppercase tracking-wider ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        Configuration
-                      </h4>
-
-                      <div className={`mx-4 rounded-2xl overflow-hidden ${
-                        theme === 'dark' ? 'bg-gray-800/50' : 'bg-white'
-                      }`}>
-                        <button
-                          onClick={() => setShowAdvancedParams(false)}
-                          className={`w-full px-4 py-3 text-left transition-colors ${
-                            theme === 'dark' ? 'hover:bg-gray-700/50 active:bg-gray-700/70' : 'hover:bg-gray-50 active:bg-gray-100'
-                          }`}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-7 h-7 min-w-7 rounded-full flex-shrink-0 flex items-center justify-center ${
-                              theme === 'dark' ? 'bg-orange-500/20' : 'bg-orange-500/10'
-                            }`}>
-                              <Settings className="w-4 h-4 text-orange-500" />
-                            </div>
-                            <div>
-                              <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                                Reset to Defaults
-                              </p>
-                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                                Restore recommended settings
-                              </p>
-                            </div>
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {settingsPage === 'help' && (
-                  <div className="space-y-6">
-                    <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                      Help & Support
-                    </h3>
-
-                    {/* Help Section */}
-                    <div className={`p-4 rounded-xl ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}>
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                            Getting Started
-                          </h4>
-                          <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Upload documents, ask questions, and get AI-powered responses with citations.
-                          </p>
-                        </div>
-
-                        <div>
-                          <h4 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                            Document Types
-                          </h4>
-                          <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Supported formats: PDF, DOCX, TXT, and more. Documents are processed and indexed for quick retrieval.
-                          </p>
-                        </div>
-
-                        <div>
-                          <h4 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                            Citations
-                          </h4>
-                          <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            All responses include source citations. Click on citation numbers to see the original text.
-                          </p>
-                        </div>
-
-                        <div>
-                          <h4 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                            Need Help?
-                          </h4>
-                          <p className={`text-sm mb-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Contact support for assistance with your account or technical issues.
-                          </p>
-                          <button
-                            className={`w-full flex items-center justify-center space-x-2 p-3 rounded-lg transition-all ${
-                              theme === 'dark'
-                                ? 'bg-white/10 text-white hover:bg-white/20'
-                                : 'bg-black/10 text-black hover:bg-black/20'
-                            }`}
-                          >
-                            <HelpCircle className="w-4 h-4" />
-                            <span className="font-medium">Contact Support</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
+        return <SettingsModal isOpen={true} onClose={() => setMobilePage('home')} onOpenFeedback={() => setShowFeedbackModal(true)} />;
 
       default:
         return null;
     }
   };
 
+  // Handle app initialization loading with premium splash screen
   if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
+    return <SplashScreen isVisible={true} />;
   }
 
+  // Handle transition from loading to login/main app
   if (!isAuthenticated) {
-    return <LoginPage onLogin={login} onSignUp={signUp} onResetPassword={resetPassword} />;
+    return (
+      <>
+        <SplashScreen isVisible={false} />
+        <LoginPage onLogin={login} onSignUp={signUp} onResetPassword={resetPassword} />
+      </>
+    );
   }
 
   // Show main UI immediately, with loading states in sidebar and chat
@@ -3763,6 +3044,7 @@ const AppContent: React.FC = () => {
         <SettingsModal
           isOpen={settingsOpen}
           onClose={() => setSettingsOpen(false)}
+          onOpenFeedback={() => setShowFeedbackModal(true)}
         />
       )}
 
@@ -3984,6 +3266,14 @@ const AppContent: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Premium splash screen for app loading state */}
+      <SplashScreen
+        isVisible={appLoading}
+        onTransitionComplete={() => {
+          // Optional: Add any cleanup after splash screen transition
+        }}
+      />
       </div>
     </div>
   );

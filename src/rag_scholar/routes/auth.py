@@ -16,10 +16,18 @@ router = APIRouter(tags=["authentication"])
 class UserAPISettings(BaseModel):
     """User API settings model."""
     api_key: Optional[str] = None
-    preferred_model: str = "gpt-4o-mini"
-    temperature: float = 0.7
+    preferred_model: str = "gpt-5-mini"
+    temperature: float = 0.0
     max_tokens: int = 2000
     timezone: str = "UTC"
+
+
+class UserProfileUpdate(BaseModel):
+    """User profile update model."""
+    bio: Optional[str] = None
+    research_interests: Optional[list[str]] = None
+    preferred_domains: Optional[list[str]] = None
+    profile_image: Optional[str] = None
 
 
 async def get_current_user(authorization: str | None = Header(None)) -> dict:
@@ -95,8 +103,8 @@ async def get_api_settings(current_user: dict = Depends(get_current_user)):
 
         return UserAPISettings(
             api_key=api_settings.get("api_key"),
-            preferred_model=api_settings.get("preferred_model", "gpt-4o-mini"),
-            temperature=api_settings.get("temperature", 0.7),
+            preferred_model=api_settings.get("preferred_model", "gpt-5-mini"),
+            temperature=api_settings.get("temperature", 0.0),
             max_tokens=api_settings.get("max_tokens", 2000),
             timezone=api_settings.get("timezone", "UTC")
         )
@@ -140,3 +148,32 @@ async def update_api_settings(
         raise HTTPException(status_code=500, detail="Failed to update API settings")
 
 
+@router.put("/profile")
+async def update_user_profile(
+    profile_data: UserProfileUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update user profile information."""
+    try:
+        settings = get_settings()
+        user_service = UserProfileService(settings)
+
+        # Convert the profile data to dict and remove None values
+        update_data = {k: v for k, v in profile_data.model_dump().items() if v is not None}
+
+        # Update user profile in Firestore
+        success = await user_service.update_user_profile_data(
+            current_user["id"],
+            update_data
+        )
+
+        if success:
+            return {"message": "Profile updated successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update profile")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to update user profile", error=str(e), user_id=current_user["id"])
+        raise HTTPException(status_code=500, detail="Failed to update profile")

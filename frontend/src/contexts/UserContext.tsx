@@ -22,7 +22,7 @@ interface UserContextType {
   refreshUserProfile: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateDisplayName: (newDisplayName: string) => Promise<void>;
-  updateUserProfile: (data: { bio?: string; research_interests?: string[]; preferred_domains?: string[] }) => Promise<void>;
+  updateUserProfile: (data: { bio?: string; research_interests?: string[]; preferred_domains?: string[]; profile_image?: string }) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -102,8 +102,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
-  const updateUserProfile = async (data: { bio?: string; research_interests?: string[]; preferred_domains?: string[] }) => {
-    await refreshUserProfile();
+  const updateUserProfile = async (data: { bio?: string; research_interests?: string[]; preferred_domains?: string[]; profile_image?: string }) => {
+    try {
+      await apiService.updateUserProfile(data);
+      await refreshUserProfile();
+    } catch (error) {
+      console.error('Failed to update user profile:', error);
+      throw error;
+    }
   };
 
   const resetPassword = async (email: string) => {

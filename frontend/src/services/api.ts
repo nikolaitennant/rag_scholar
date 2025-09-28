@@ -65,7 +65,7 @@ export const apiService = {
     const securePayload = {
       ...payload,
       api_key: apiKey,
-      model: model || 'gpt-4',
+      model: model || 'gpt-5-mini',
       temperature: temperature ? parseFloat(temperature) : undefined,
       max_tokens: maxTokens ? parseInt(maxTokens, 10) : undefined
     };
@@ -165,6 +165,11 @@ export const apiService = {
     return response.data;
   },
 
+  updateUserProfile: async (data: { bio?: string; research_interests?: string[]; preferred_domains?: string[]; profile_image?: string }): Promise<any> => {
+    const response = await api.put('/profile', data);
+    return response.data;
+  },
+
   grantEarlyAdopter: async (): Promise<any> => {
     const response = await api.post('/grant-early-adopter');
     return response.data;
@@ -229,26 +234,19 @@ export const apiService = {
     return response.data;
   },
 
-  // Feedback
+  // Feedback - Now uses Firebase directly for reliable delivery
   sendFeedback: async (feedbackData: {
     type: 'bug' | 'feature' | 'general';
     message: string;
     email?: string;
   }): Promise<any> => {
-    // Ensure only valid fields are sent - never send undefined or null values
-    const payload: { type: string; message: string; email?: string } = {
-      type: feedbackData.type,
-      message: feedbackData.message.trim(),
-    };
+    // Import Firebase feedback service dynamically to avoid circular imports
+    const { sendFeedback } = await import('./feedback');
 
-    // Only add email if it exists and is a valid non-empty string
-    if (feedbackData.email && typeof feedbackData.email === 'string' && feedbackData.email.trim().length > 0) {
-      payload.email = feedbackData.email.trim();
-    }
+    // Use Firebase directly instead of backend endpoint
+    await sendFeedback(feedbackData);
 
-    console.log('Sending feedback payload:', payload);
-    const response = await api.post('/feedback', payload);
-    return response.data;
+    return { success: true, message: 'Feedback sent successfully!' };
   },
 
   // Debug

@@ -435,3 +435,32 @@ class UserProfileService:
         except Exception as e:
             logger.error("Failed to update user API settings", user_id=user_id, error=str(e))
             return False
+
+    async def update_user_profile_data(self, user_id: str, profile_data: Dict) -> bool:
+        """Update user's profile data including bio, interests, domains, and profile image."""
+        try:
+            # Update profile data in profile document
+            profile_ref = self.db.collection(f"users/{user_id}/profile").document("main")
+
+            # Get existing profile or create new one
+            profile_doc = profile_ref.get()
+            if profile_doc.exists:
+                existing_data = profile_doc.to_dict() or {}
+            else:
+                existing_data = {
+                    "created_at": datetime.utcnow().isoformat(),
+                }
+
+            # Update with new data
+            existing_data.update(profile_data)
+            existing_data["updated_at"] = datetime.utcnow().isoformat()
+
+            # Save to Firestore
+            profile_ref.set(existing_data)
+
+            logger.info("Updated user profile data", user_id=user_id, updated_fields=list(profile_data.keys()))
+            return True
+
+        except Exception as e:
+            logger.error("Failed to update user profile data", user_id=user_id, error=str(e))
+            return False

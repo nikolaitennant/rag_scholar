@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, User, Mail, LogOut, Palette, Clock, Shield, Sparkles, Bell, Globe, Moon, Sun, Settings, Key, Cpu, ChevronRight } from 'lucide-react';
+import { User, Mail, LogOut, Palette, Clock, Shield, Globe, Moon, Sun, Settings, Key, Cpu, ChevronRight, HelpCircle } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
@@ -8,22 +8,28 @@ import { apiService } from '../services/api';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenFeedback?: () => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onOpenFeedback }) => {
   const { theme, themeMode, toggleTheme, background, setBackground } = useTheme();
   const { user, userProfile, logout, updateUserProfile, resetPassword, refreshUser, updateDisplayName } = useUser();
+
+  // Check if device is mobile
+  const isMobile = window.innerWidth <= 768;
   const [formData, setFormData] = useState({
     name: user?.displayName || '',
   });
   const [timezone, setTimezone] = useState(() => {
     return localStorage.getItem('userTimezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
   });
-  const [activeTab, setActiveTab] = useState<'general' | 'advanced'>('general');
+  const [currentView, setCurrentView] = useState<'main' | 'account' | 'appearance' | 'api' | 'timezone' | 'advanced' | 'help'>('main');
   const [isLoading, setIsLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
-  const [showAdvancedParams, setShowAdvancedParams] = useState(false);
+  const [showAdvancedParams, setShowAdvancedParams] = useState(true);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Model dropdown state
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
@@ -39,7 +45,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [apiSettings, setApiSettings] = useState({
     apiKey: '',
     model: 'gpt-5-mini',
-    temperature: 0.7,
+    temperature: 0.0,
     maxTokens: 2000,
   });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
@@ -47,7 +53,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   const backgroundOptions = [
     { id: 'classic', name: 'Default', color: 'from-gray-900 to-gray-100' },
-    { id: 'gradient', name: 'Gradient', color: 'from-blue-500 to-purple-600' },
+    { id: 'gradient', name: 'Slate', color: 'from-blue-500 to-purple-600' },
     { id: 'mountain', name: 'Mountain', color: 'from-orange-500 to-amber-600' },
     { id: 'ocean', name: 'Ocean', color: 'from-blue-500 to-cyan-600' },
     { id: 'sunset', name: 'Sunset', color: 'from-orange-500 to-pink-600' },
@@ -71,7 +77,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       setApiSettings({
         apiKey: settings.api_key || '',
         model: settings.preferred_model || 'gpt-5-mini',
-        temperature: settings.temperature || 0.7,
+        temperature: settings.temperature || 0.0,
         maxTokens: settings.max_tokens || 2000,
       });
       setHasLoadedSettings(true);
@@ -201,856 +207,926 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     };
   };
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setSaveMessage('Please select a valid image file');
+      setTimeout(() => setSaveMessage(null), 3000);
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setSaveMessage('Image size must be less than 5MB');
+      setTimeout(() => setSaveMessage(null), 3000);
+      return;
+    }
+
+    try {
+      setIsUploadingImage(true);
+
+      // Convert to base64 for preview (or upload to your storage service)
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const imageDataUrl = e.target?.result as string;
+
+        try {
+          // Update the user's profile_image
+          console.log('Updating profile image...');
+          await updateUserProfile({ profile_image: imageDataUrl });
+          console.log('Profile updated, refreshing user data...');
+          await refreshUser();
+          console.log('User data refreshed successfully');
+
+          setSaveMessage('Profile image updated successfully');
+          setTimeout(() => setSaveMessage(null), 3000);
+        } catch (error) {
+          console.error('Failed to update profile image:', error);
+          setSaveMessage('Failed to update profile image');
+          setTimeout(() => setSaveMessage(null), 5000);
+        }
+      };
+
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      setSaveMessage('Failed to upload image');
+      setTimeout(() => setSaveMessage(null), 3000);
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   if (!isOpen) return null;
 
 
-  const handleLogout = () => {
-    logout();
-    onClose();
-  };
 
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-lg"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className={`relative w-full max-w-4xl mx-4 rounded-2xl shadow-2xl overflow-hidden ${
-        theme === 'dark'
-          ? 'bg-black/20 backdrop-blur-2xl border border-white/10'
-          : 'bg-white/40 backdrop-blur-2xl border border-black/5'
-      }`}>
-
-        {/* Header */}
-        <div className={`p-6 border-b ${
-          theme === 'dark' ? 'border-white/10' : 'border-black/10'
-        }`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className={`text-2xl font-bold ${
-                theme === 'dark' ? 'text-white' : 'text-gray-900'
-              }`}>
-                Settings
-              </h2>
-              <p className={`text-sm mt-1 ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Customize your experience
-              </p>
-            </div>
+  const renderMainView = () => (
+    <div className="flex flex-col h-full">
+      {/* User Profile Section */}
+      <div className="px-6 py-8 border-b border-white/10">
+        <div className="flex items-center space-x-4">
+          <div className="relative">
             <button
-              onClick={onClose}
-              className={`p-2 rounded-3xl transition-all duration-200 ${
-                theme === 'dark'
-                  ? 'hover:bg-white/10 text-gray-400 hover:text-white'
-                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
-              }`}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingImage}
+              className="w-16 h-16 rounded-full overflow-hidden bg-gray-300 hover:opacity-80 transition-opacity relative group"
             >
-              <X className="w-5 h-5" />
+              <img
+                src={(user as any)?.profile_image || user?.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face"}
+                alt="Profile"
+                className="w-full h-full object-cover"
+                key={(user as any)?.profile_image || user?.photoURL}
+              />
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <User className="w-6 h-6 text-white" />
+              </div>
+              {isUploadingImage && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+          </div>
+          <div>
+            <h3 className="text-white text-xl font-semibold">{user?.displayName || 'User'}</h3>
+            <p className="text-white/60 text-sm">Click image to change</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Settings List */}
+      <div className="flex-1 px-4 py-2">
+        <div className="space-y-0">
+          <button
+            onClick={() => setCurrentView('account')}
+            className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="w-6 h-6 text-white/70">
+                <Key className="w-6 h-6" />
+              </div>
+              <span className="text-white text-base font-normal">Account</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/40" />
+          </button>
+
+          <button
+            onClick={() => setCurrentView('appearance')}
+            className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="w-6 h-6 text-white/70">
+                <Palette className="w-6 h-6" />
+              </div>
+              <span className="text-white text-base font-normal">Appearance</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/40" />
+          </button>
+
+          <button
+            onClick={() => setCurrentView('api')}
+            className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="w-6 h-6 text-white/70">
+                <Cpu className="w-6 h-6" />
+              </div>
+              <span className="text-white text-base font-normal">AI Configuration</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/40" />
+          </button>
+
+
+          <button
+            onClick={() => setCurrentView('timezone')}
+            className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="w-6 h-6 text-white/70">
+                <Clock className="w-6 h-6" />
+              </div>
+              <span className="text-white text-base font-normal">Timezone</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/40" />
+          </button>
+
+          <button
+            onClick={() => setCurrentView('advanced')}
+            className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="w-6 h-6 text-white/70">
+                <Settings className="w-6 h-6" />
+              </div>
+              <span className="text-white text-base font-normal">Advanced</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/40" />
+          </button>
+
+          <button
+            onClick={() => setCurrentView('help')}
+            className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="w-6 h-6 text-white/70">
+                <HelpCircle className="w-6 h-6" />
+              </div>
+              <span className="text-white text-base font-normal">Help</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/40" />
+          </button>
+        </div>
+      </div>
+
+    </div>
+  );
+
+  const renderAccountView = () => (
+    <div className="p-4 space-y-6" style={{ paddingTop: '8px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+      <div className="space-y-4">
+        <div>
+          <label className="block ios-caption text-white/70 mb-2 ml-1">
+            Display Name
+          </label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            className="w-full border-none outline-none bg-transparent rounded-full px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 transition-all duration-200"
+            style={{
+              fontSize: '16px',
+              background: 'rgba(255, 255, 255, 0.08)',
+            }}
+          />
+        </div>
+
+        <div className="ios-list-item p-4"
+          style={{
+            background: 'rgba(255, 255, 255, 0.08)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          }}>
+          <div>
+            <p className="ios-body text-white font-medium">Email</p>
+            <p className="ios-caption text-white/60">{user?.email}</p>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className={`px-6 border-b ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}>
-          <div className="flex space-x-6">
+        <div className="flex space-x-3">
+          {!isResetPasswordMode && (
             <button
-              onClick={() => setActiveTab('general')}
-              className={`py-3 px-4 text-sm font-medium transition-all ${
-                activeTab === 'general'
-                  ? (theme === 'dark' ? 'text-blue-400' : 'text-blue-600')
-                  : (theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900')
-              }`}
+              onClick={() => setIsResetPasswordMode(true)}
+              className="flex-1 ios-list-item p-3 active:scale-98 transition-all duration-200"
+              style={{
+                background: 'rgba(168, 85, 247, 0.15)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                border: '1px solid rgba(168, 85, 247, 0.3)',
+              }}
             >
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                General
+              <div className="flex items-center justify-center space-x-2">
+                <Key className="w-4 h-4 text-purple-400" />
+                <span className="ios-caption text-purple-400 font-medium">Reset Password</span>
               </div>
             </button>
-            <button
-              onClick={() => setActiveTab('advanced')}
-              className={`py-3 px-4 text-sm font-medium transition-all ${
-                activeTab === 'advanced'
-                  ? (theme === 'dark' ? 'text-blue-400' : 'text-blue-600')
-                  : (theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900')
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                Advanced
-              </div>
-            </button>
-          </div>
+          )}
+
+          <button
+            onClick={() => {
+              logout();
+              onClose();
+            }}
+            className="flex-1 ios-list-item p-3 active:scale-98 transition-all duration-200"
+            style={{
+              background: 'rgba(239, 68, 68, 0.15)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+            }}
+          >
+            <div className="flex items-center justify-center space-x-2">
+              <LogOut className="w-4 h-4 text-red-400" />
+              <span className="ios-caption text-red-400 font-medium">Log Out</span>
+            </div>
+          </button>
         </div>
 
-        {/* Tab Content */}
-        <div className="p-6 max-h-[70vh] overflow-y-auto scrollbar-none" style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-        }}>
-          {activeTab === 'general' ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          {/* Account Section (First) */}
-          <div className={`p-6 rounded-3xl border ${
-            theme === 'dark'
-              ? 'bg-black/5 backdrop-blur-lg border-white/5'
-              : 'bg-white/20 backdrop-blur-lg border-black/5'
-          }`}>
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center">
-                <User className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                  Account
-                </h3>
-                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Your profile and security settings
-                </p>
+        {isResetPasswordMode && (
+          <div className="space-y-4">
+            <div className="ios-list-item p-4"
+              style={{
+                background: 'rgba(255, 255, 255, 0.08)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              }}>
+              <div className="text-center">
+                <h4 className="ios-body text-white font-medium mb-2">Reset Password</h4>
+                <p className="ios-caption text-white/60">Send password reset email to your account</p>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Display Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className={`w-full px-4 py-2.5 text-sm rounded-2xl border transition-all duration-200 ${
-                    theme === 'dark'
-                      ? 'bg-black/30 border-white/20 text-white/90 placeholder-gray-400 focus:border-violet-400 hover:bg-black/40'
-                      : 'bg-black/10 border-gray-300/50 text-gray-900 placeholder-gray-500 focus:border-violet-500 hover:bg-white/25'
-                  } focus:outline-none`}
-                />
-              </div>
-
-              <div className={`p-4 rounded-2xl border ${
-                theme === 'dark' ? 'bg-black/10 border-white/10' : 'bg-white/20 border-gray-200'
+            {saveMessage && (
+              <div className={`ios-list-item p-4 text-center ${
+                saveMessage.includes('sent')
+                  ? 'bg-green-500/20 border-green-500/30'
+                  : 'bg-red-500/20 border-red-500/30'
               }`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      Email
-                    </p>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {user?.email}
-                    </p>
-                  </div>
-                </div>
+                <p className={`ios-caption ${
+                  saveMessage.includes('sent') ? 'text-green-400' : 'text-red-400'
+                }`}>{saveMessage}</p>
               </div>
+            )}
 
-              {!isResetPasswordMode && (
-                <button
-                  onClick={() => setIsResetPasswordMode(true)}
-                  className={`w-full flex items-center justify-center space-x-2 p-3 rounded-2xl border-2 transition-all duration-200 ${
-                    theme === 'dark'
-                      ? 'border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
-                      : 'border-blue-300/50 bg-blue-100/30 text-blue-700 hover:bg-blue-200/50'
-                  }`}
-                >
-                  <Key className="w-4 h-4" />
-                  <span className="font-medium">Reset Password</span>
-                </button>
-              )}
-
-              {isResetPasswordMode && (
-                <div className="space-y-4 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <div className="text-center">
-                    <h4 className={`font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      Reset Password
-                    </h4>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Send password reset email to your account
-                    </p>
-                  </div>
-
-                  <div>
-                    <input
-                      type="email"
-                      value={user?.email || ''}
-                      disabled
-                      className={`w-full px-4 py-2.5 text-sm rounded-2xl border cursor-not-allowed opacity-60 ${
-                        theme === 'dark'
-                          ? 'bg-black/30 border-white/20 text-gray-400'
-                          : 'bg-black/10 border-gray-300/50 text-gray-500'
-                      }`}
-                    />
-                  </div>
-
-                  {saveMessage && (
-                    <div className={`p-3 rounded-2xl border text-center text-sm ${
-                      saveMessage.includes('sent')
-                        ? theme === 'dark'
-                          ? 'bg-green-900/20 border-green-500/30 text-green-400'
-                          : 'bg-green-50 border-green-200 text-green-600'
-                        : theme === 'dark'
-                          ? 'bg-red-900/20 border-red-500/30 text-red-400'
-                          : 'bg-red-50 border-red-200 text-red-600'
-                    }`}>
-                      {saveMessage}
-                    </div>
-                  )}
-
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={async () => {
-                        if (user?.email) {
-                          try {
-                            setIsLoading(true);
-                            await resetPassword(user.email);
-                            setSaveMessage('Password reset email sent! Check your inbox.');
-                            setTimeout(() => setSaveMessage(null), 5000);
-                          } catch (error) {
-                            setSaveMessage('Failed to send reset email');
-                            setTimeout(() => setSaveMessage(null), 5000);
-                          } finally {
-                            setIsLoading(false);
-                          }
-                        }
-                      }}
-                      disabled={isLoading}
-                      className={`flex-1 font-medium py-3 rounded-2xl transition-all duration-200 disabled:opacity-50 ${
-                        theme === 'dark'
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
-                          : 'bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 text-white'
-                      }`}
-                    >
-                      {isLoading ? 'Sending...' : 'Send Reset Email'}
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setIsResetPasswordMode(false);
-                        setSaveMessage(null);
-                      }}
-                      className={`flex-1 border-2 font-medium py-3 rounded-2xl transition-all duration-200 ${
-                        theme === 'dark'
-                          ? 'border-white/20 text-white hover:bg-black/10'
-                          : 'border-gray-200 text-gray-700 hover:bg-white/20'
-                      }`}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
+            <div className="flex space-x-3">
+              <button
+                onClick={async () => {
+                  if (user?.email) {
+                    try {
+                      setIsLoading(true);
+                      await resetPassword(user.email);
+                      setSaveMessage('Password reset email sent! Check your inbox.');
+                      setTimeout(() => setSaveMessage(null), 5000);
+                    } catch (error) {
+                      setSaveMessage('Failed to send reset email');
+                      setTimeout(() => setSaveMessage(null), 5000);
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }
+                }}
+                disabled={isLoading}
+                className="flex-1 ios-list-item p-3 active:scale-98 transition-all duration-200 disabled:opacity-50"
+                style={{
+                  background: 'rgba(168, 85, 247, 0.15)',
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                  border: '1px solid rgba(168, 85, 247, 0.3)',
+                }}
+              >
+                <span className="ios-caption text-purple-400 font-medium">
+                  {isLoading ? 'Sending...' : 'Send Reset Email'}
+                </span>
+              </button>
 
               <button
-                onClick={handleLogout}
-                className={`w-full flex items-center justify-center space-x-2 p-3 rounded-2xl border-2 transition-all duration-200 ${
-                  theme === 'dark'
-                    ? 'border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                    : 'border-red-300/50 bg-red-100/30 text-red-700 hover:bg-red-200/50'
-                }`}
+                onClick={() => {
+                  setIsResetPasswordMode(false);
+                  setSaveMessage(null);
+                }}
+                className="flex-1 ios-button-secondary"
               >
-                <LogOut className="w-4 h-4" />
-                <span className="font-medium">Sign Out</span>
+                Cancel
               </button>
             </div>
           </div>
+        )}
+      </div>
+    </div>
+  );
 
-          {/* Appearance Section */}
-          <div className={`p-6 rounded-3xl border ${
-            theme === 'dark'
-              ? 'bg-black/5 backdrop-blur-lg border-white/5'
-              : 'bg-white/20 backdrop-blur-lg border-black/5'
-          }`}>
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-600 rounded-3xl flex items-center justify-center">
-                <Palette className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                  Appearance
-                </h3>
-                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Theme and visual preferences
+  const renderAppearanceView = () => (
+    <div className="p-4 space-y-6" style={{ paddingTop: '8px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+      <div className="space-y-4">
+        <button
+          onClick={toggleTheme}
+          className="w-full ios-list-item p-4 active:scale-98 transition-all duration-200"
+          style={{
+            background: 'rgba(255, 255, 255, 0.08)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              {theme === 'dark' ? (
+                <Moon className="w-6 h-6 text-purple-400" />
+              ) : (
+                <Sun className="w-6 h-6 text-orange-500" />
+              )}
+              <div className="text-left">
+                <p className="ios-body text-white font-medium">Theme</p>
+                <p className="ios-caption text-white/60">
+                  {themeMode === 'auto' ? `Auto (${theme})` : theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
                 </p>
               </div>
             </div>
-
-            <div className="space-y-6">
-              {/* Theme Toggle */}
-              <div>
-                <label className={`block text-sm font-medium mb-3 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Color Theme
-                </label>
-                <button
-                  onClick={toggleTheme}
-                  className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-200 ${
-                    theme === 'dark'
-                      ? 'border-white/20 hover:border-white/40 bg-black/10'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    {theme === 'dark' ? (
-                      <Moon className="w-5 h-5 text-blue-400" />
-                    ) : (
-                      <Sun className="w-5 h-5 text-orange-500" />
-                    )}
-                    <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      {themeMode === 'auto' ? `Auto (${theme})` : theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
-                    </span>
-                  </div>
-                  <div className={`w-12 h-6 rounded-full transition-colors duration-200 ${
-                    theme === 'dark' ? 'bg-blue-500' : 'bg-gray-300'
-                  }`}>
-                    <div className={`w-5 h-5 mt-0.5 rounded-full bg-white transition-transform duration-200 ${
-                      theme === 'dark' ? 'translate-x-6' : 'translate-x-0.5'
-                    }`} />
-                  </div>
-                </button>
-              </div>
-
-              {/* Background Style - Modern Version */}
-              <div>
-                <label className={`block text-sm font-medium mb-3 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Background
-                </label>
-                <div className="flex gap-2 flex-wrap">
-                  {backgroundOptions.map((option) => (
-                    <button
-                      key={option.id}
-                      onClick={() => setBackground(option.id as any)}
-                      className={`px-3 py-1.5 text-xs rounded-full border-2 transition-all duration-200 ${
-                        background === option.id
-                          ? 'border-blue-500 bg-blue-500/20 text-blue-400'
-                          : theme === 'dark'
-                            ? 'border-white/20 bg-black/10 text-white/70 hover:bg-black/20 hover:border-white/30'
-                            : 'border-gray-300/50 bg-white/20 text-gray-700 hover:bg-white/40 hover:border-gray-400/60'
-                      }`}
-                    >
-                      {option.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
+            <div className={`w-12 h-6 rounded-full transition-colors duration-200 ${
+              theme === 'dark' ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-gray-300'
+            }`}>
+              <div className={`w-5 h-5 mt-0.5 rounded-full bg-white transition-transform duration-200 ${
+                theme === 'dark' ? 'translate-x-6' : 'translate-x-0.5'
+              }`} />
             </div>
           </div>
+        </button>
 
-          {/* API Section */}
-          <div className={`p-6 rounded-3xl border ${
-            theme === 'dark'
-              ? 'bg-black/5 backdrop-blur-lg border-white/5'
-              : 'bg-white/20 backdrop-blur-lg border-black/5'
-          }`}>
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-600 rounded-3xl flex items-center justify-center">
-                <Key className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                  API Configuration
-                </h3>
-                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Configure your API key and provider
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  API Key
-                </label>
-                <form onSubmit={(e) => e.preventDefault()}>
-                  <input
-                    type="password"
-                    name="apiKey"
-                    autoComplete="off"
-                    value={apiSettings.apiKey}
-                    onChange={(e) => setApiSettings(prev => ({ ...prev, apiKey: e.target.value }))}
-                    placeholder={apiSettings.apiKey ? '••••••••••••••••••••' : 'sk-... (OpenAI) | sk-ant-... (Anthropic)'}
-                    disabled={isLoadingSettings}
-                    className={`w-full px-4 py-2.5 text-sm rounded-2xl border transition-all duration-200 ${isLoadingSettings ? 'opacity-50 cursor-not-allowed' : ''} ${
-                      theme === 'dark'
-                        ? 'bg-black/30 border-white/20 text-white/90 placeholder-gray-400 focus:border-green-400 hover:bg-black/40'
-                        : 'bg-black/10 border-gray-300/50 text-gray-900 placeholder-gray-500 focus:border-green-500 hover:bg-white/25'
-                    } focus:outline-none`}
-                  />
-                </form>
-                {getProviderAndModels().provider && (
-                  <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>
-                    ✓ Detected: {getProviderAndModels().provider}
-                  </p>
-                )}
-                <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {isLoadingSettings ? 'Loading settings...' : 'Your API key is stored securely in the cloud and syncs across all your devices'}
-                </p>
-              </div>
-
-              <div className={`p-4 rounded-2xl border ${
-                theme === 'dark' ? 'bg-black/3 border-white/10' : 'bg-white/10 border-black/5'
-              }`}>
-                <div className="flex items-start space-x-3">
-                  <Shield className={`w-4 h-4 mt-0.5 ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`} />
-                  <div>
-                    <h4 className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      Secure Integration
-                    </h4>
-                    <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Your key is encrypted and stored securely in the cloud, providing unlimited usage across all devices
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Timezone Section */}
-          <div className={`p-6 rounded-3xl border ${
-            theme === 'dark'
-              ? 'bg-black/5 backdrop-blur-lg border-white/5'
-              : 'bg-white/20 backdrop-blur-lg border-black/5'
-          }`}>
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-teal-600 rounded-3xl flex items-center justify-center">
-                <Clock className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                  Timezone
-                </h3>
-                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Regional time settings
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Timezone
-                </label>
-                <button
-                  ref={timezoneButtonRef}
-                  onClick={() => {
-                    if (!timezoneDropdownOpen && timezoneButtonRef.current) {
-                      const rect = timezoneButtonRef.current.getBoundingClientRect();
-                      setTimezoneDropdownPosition({
-                        top: rect.bottom + window.scrollY,
-                        left: rect.left + window.scrollX,
-                        width: rect.width
-                      });
+        <div className="ios-list-item p-4"
+          style={{
+            background: 'rgba(255, 255, 255, 0.08)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          }}>
+          <div className="space-y-3">
+            <p className="ios-body text-white font-medium">Background</p>
+            <div className="flex gap-2 flex-wrap">
+              {backgroundOptions.map((option) => {
+                const getOptionColors = () => {
+                  if (background === option.id) {
+                    switch (option.id) {
+                      case 'classic':
+                        return 'border-gray-300 bg-gray-300/20 text-gray-300';
+                      case 'gradient':
+                        return 'border-slate-400 bg-slate-400/20 text-slate-400';
+                      case 'mountain':
+                        return 'border-orange-500 bg-orange-500/20 text-orange-400';
+                      case 'ocean':
+                        return 'border-blue-500 bg-blue-500/20 text-blue-400';
+                      case 'sunset':
+                        return 'border-pink-500 bg-pink-500/20 text-pink-400';
+                      case 'forest':
+                        return 'border-green-500 bg-green-500/20 text-green-400';
+                      default:
+                        return 'border-purple-500 bg-purple-500/20 text-purple-400';
                     }
-                    setTimezoneDropdownOpen(!timezoneDropdownOpen);
-                  }}
-                  className={`w-full px-3 py-1.5 text-sm text-left flex items-center justify-between transition-all rounded-full ${
-                    theme === 'dark'
-                      ? 'bg-white/10 text-white/90 hover:bg-white/15'
-                      : 'bg-black/10 text-gray-900 hover:bg-white/25 border border-gray-300/50'
-                  }`}
-                >
-                  <span className="truncate">
-                    {timezone === Intl.DateTimeFormat().resolvedOptions().timeZone ? 'Auto-detect' :
-                     timezone === 'America/New_York' ? 'Eastern Time' :
-                     timezone === 'America/Chicago' ? 'Central Time' :
-                     timezone === 'America/Denver' ? 'Mountain Time' :
-                     timezone === 'America/Los_Angeles' ? 'Pacific Time' :
-                     timezone === 'Europe/London' ? 'London' :
-                     timezone === 'Europe/Paris' ? 'Paris' :
-                     timezone === 'Asia/Tokyo' ? 'Tokyo' : timezone}
-                  </span>
-                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${
-                    timezoneDropdownOpen ? 'rotate-90' : 'rotate-0'
-                  } ${
-                    theme === 'dark' ? 'text-white/50' : 'text-gray-400'
-                  }`} />
-                </button>
+                  }
+                  return 'border-white/20 bg-black/10 text-white/70 hover:bg-black/20 hover:border-white/30';
+                };
 
-                {timezoneDropdownOpen && timezoneDropdownPosition && createPortal(
-                  <>
-                    <div
-                      className="fixed inset-0 z-[9998]"
-                      onClick={() => setTimezoneDropdownOpen(false)}
-                    />
-                    <div className={`dropdown-container fixed rounded-2xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl ${
-                      theme === 'dark'
-                        ? 'bg-black/30 border-white/20'
-                        : 'bg-white/10 border-black/20'
-                    }`} style={{
-                      top: timezoneDropdownPosition.top + 2,
-                      left: timezoneDropdownPosition.left,
-                      width: timezoneDropdownPosition.width,
-                      backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
-                      WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
-                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-                    }}>
-                      <div className="relative z-10">
-                        <button
-                          onClick={() => {
-                            setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
-                            setTimezoneDropdownOpen(false);
-                          }}
-                          className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
-                            theme === 'dark'
-                              ? 'text-white/90 hover:bg-black/20'
-                              : 'text-gray-900/90 hover:bg-white/20'
-                          }`}
-                        >
-                          Auto-detect
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTimezone('America/New_York');
-                            setTimezoneDropdownOpen(false);
-                          }}
-                          className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
-                            theme === 'dark'
-                              ? 'text-white/90 hover:bg-black/20'
-                              : 'text-gray-900/90 hover:bg-white/20'
-                          }`}
-                        >
-                          Eastern Time
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTimezone('America/Chicago');
-                            setTimezoneDropdownOpen(false);
-                          }}
-                          className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
-                            theme === 'dark'
-                              ? 'text-white/90 hover:bg-black/20'
-                              : 'text-gray-900/90 hover:bg-white/20'
-                          }`}
-                        >
-                          Central Time
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTimezone('America/Denver');
-                            setTimezoneDropdownOpen(false);
-                          }}
-                          className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
-                            theme === 'dark'
-                              ? 'text-white/90 hover:bg-black/20'
-                              : 'text-gray-900/90 hover:bg-white/20'
-                          }`}
-                        >
-                          Mountain Time
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTimezone('America/Los_Angeles');
-                            setTimezoneDropdownOpen(false);
-                          }}
-                          className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
-                            theme === 'dark'
-                              ? 'text-white/90 hover:bg-black/20'
-                              : 'text-gray-900/90 hover:bg-white/20'
-                          }`}
-                        >
-                          Pacific Time
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTimezone('Europe/London');
-                            setTimezoneDropdownOpen(false);
-                          }}
-                          className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
-                            theme === 'dark'
-                              ? 'text-white/90 hover:bg-black/20'
-                              : 'text-gray-900/90 hover:bg-white/20'
-                          }`}
-                        >
-                          London
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTimezone('Europe/Paris');
-                            setTimezoneDropdownOpen(false);
-                          }}
-                          className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
-                            theme === 'dark'
-                              ? 'text-white/90 hover:bg-black/20'
-                              : 'text-gray-900/90 hover:bg-white/20'
-                          }`}
-                        >
-                          Paris
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTimezone('Asia/Tokyo');
-                            setTimezoneDropdownOpen(false);
-                          }}
-                          className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
-                            theme === 'dark'
-                              ? 'text-white/90 hover:bg-black/20'
-                              : 'text-gray-900/90 hover:bg-white/20'
-                          }`}
-                        >
-                          Tokyo
-                        </button>
-                      </div>
-                    </div>
-                  </>,
-                  document.body
-                )}
+                return (
+                  <button
+                    key={option.id}
+                    onClick={() => setBackground(option.id as any)}
+                    className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200 ${getOptionColors()}`}
+                  >
+                    {option.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderApiView = () => (
+    <div className="p-4 space-y-6" style={{ paddingTop: '8px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+      <div className="space-y-4">
+        <div>
+          <label className="block ios-caption text-white/70 mb-2 ml-1">
+            API Key
+          </label>
+          <input
+            type="password"
+            name="apiKey"
+            autoComplete="off"
+            value={apiSettings.apiKey}
+            onChange={(e) => setApiSettings(prev => ({ ...prev, apiKey: e.target.value }))}
+            placeholder={apiSettings.apiKey ? '••••••••••••••••••••' : 'sk-... (OpenAI) | sk-ant-... (Anthropic)'}
+            disabled={isLoadingSettings}
+            className="w-full border-none outline-none bg-transparent rounded-full px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 transition-all duration-200 disabled:opacity-50"
+            style={{
+              fontSize: '16px',
+              background: 'rgba(255, 255, 255, 0.08)',
+            }}
+          />
+          {getProviderAndModels().provider && (
+            <p className="ios-caption text-green-400 mt-1 ml-1">
+              ✓ Detected: {getProviderAndModels().provider}
+            </p>
+          )}
+        </div>
+
+        <div className="ios-list-item p-4"
+          style={{
+            background: 'rgba(34, 197, 94, 0.15)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+          }}>
+          <div className="flex items-start space-x-3">
+            <Shield className="w-5 h-5 text-green-400 mt-0.5" />
+            <div>
+              <h4 className="ios-body text-white font-medium">Secure Integration</h4>
+              <p className="ios-caption text-white/60 mt-1">
+                Your key is encrypted and stored securely in the cloud, providing unlimited usage across all devices
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderTimezoneView = () => (
+    <div className="p-4 space-y-6" style={{ paddingTop: '8px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+      <div className="space-y-4">
+        <div>
+          <label className="block ios-caption text-white/70 mb-2 ml-1">
+            Timezone
+          </label>
+          <button
+            ref={timezoneButtonRef}
+            onClick={() => {
+              if (!timezoneDropdownOpen && timezoneButtonRef.current) {
+                const rect = timezoneButtonRef.current.getBoundingClientRect();
+                setTimezoneDropdownPosition({
+                  top: rect.bottom + window.scrollY,
+                  left: rect.left + window.scrollX,
+                  width: rect.width
+                });
+              }
+              setTimezoneDropdownOpen(!timezoneDropdownOpen);
+            }}
+            className="w-full ios-input text-left flex items-center justify-between"
+          >
+            <span className="truncate">
+              {timezone === Intl.DateTimeFormat().resolvedOptions().timeZone ? 'Auto-detect' :
+               timezone === 'America/New_York' ? 'Eastern Time' :
+               timezone === 'America/Chicago' ? 'Central Time' :
+               timezone === 'America/Denver' ? 'Mountain Time' :
+               timezone === 'America/Los_Angeles' ? 'Pacific Time' :
+               timezone === 'Europe/London' ? 'London' :
+               timezone === 'Europe/Paris' ? 'Paris' :
+               timezone === 'Asia/Tokyo' ? 'Tokyo' : timezone}
+            </span>
+            <ChevronRight className={`w-4 h-4 transition-transform ${
+              timezoneDropdownOpen ? 'rotate-90' : 'rotate-0'
+            } text-white/50`} />
+          </button>
+
+          {timezoneDropdownOpen && timezoneDropdownPosition && createPortal(
+            <>
+              <div
+                className="fixed inset-0 z-[9998]"
+                onClick={() => setTimezoneDropdownOpen(false)}
+              />
+              <div className="fixed rounded-2xl shadow-2xl z-[9999] overflow-hidden"
+                style={{
+                  top: timezoneDropdownPosition.top + 2,
+                  left: timezoneDropdownPosition.left,
+                  width: timezoneDropdownPosition.width,
+                  background: 'rgba(28, 28, 30, 0.85)',
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+                }}>
+                <div className="space-y-0">
+                  {[
+                    { value: Intl.DateTimeFormat().resolvedOptions().timeZone, label: 'Auto-detect', isAutoDetect: true },
+                    { value: 'America/New_York', label: 'Eastern Time' },
+                    { value: 'America/Chicago', label: 'Central Time' },
+                    { value: 'America/Denver', label: 'Mountain Time' },
+                    { value: 'America/Los_Angeles', label: 'Pacific Time' },
+                    { value: 'Europe/London', label: 'London' },
+                    { value: 'Europe/Paris', label: 'Paris' },
+                    { value: 'Asia/Tokyo', label: 'Tokyo' },
+                  ].map((tz) => {
+                    const isSelected = tz.isAutoDetect
+                      ? timezone === Intl.DateTimeFormat().resolvedOptions().timeZone
+                      : timezone === tz.value && timezone !== Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+                    return (
+                      <button
+                        key={tz.value}
+                        onClick={() => {
+                          setTimezone(tz.value);
+                          setTimezoneDropdownOpen(false);
+                        }}
+                        className={`w-full px-4 py-3 text-sm text-left transition-all duration-150 active:scale-[0.97] ${
+                          isSelected
+                            ? 'bg-gradient-to-r from-purple-500/15 to-violet-500/15 text-white font-medium'
+                            : 'text-white/90 hover:bg-white/8 hover:text-white'
+                        }`}
+                      >
+                        {tz.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+            </>,
+            document.body
+          )}
+        </div>
 
-              <div className={`p-4 rounded-2xl border ${
-                theme === 'dark' ? 'bg-black/3 border-white/10' : 'bg-white/10 border-black/5'
-              }`}>
-                <div className="flex items-center space-x-3">
-                  <Globe className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} />
-                  <div className="text-sm">
-                    <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      Current Time
-                    </p>
-                    <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {new Date().toLocaleString('en-US', {
-                        timeZone: timezone,
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
+        <div className="ios-list-item p-4"
+          style={{
+            background: 'rgba(255, 255, 255, 0.08)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          }}>
+          <div className="flex items-center space-x-3">
+            <Globe className="w-5 h-5 text-white/60" />
+            <div>
+              <p className="ios-body text-white font-medium">Current Time</p>
+              <p className="ios-caption text-white/60">
+                {new Date().toLocaleString(undefined, {
+                  timeZone: timezone,
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit'
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderAdvancedView = () => (
+    <div className="p-4 space-y-6" style={{ paddingTop: '8px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h4 className="ios-title text-white">Model Parameters</h4>
+        </div>
+
+        <div>
+          <label className="block ios-caption text-white/70 mb-2 ml-1">
+            Model
+          </label>
+          <button
+            ref={modelButtonRef}
+            onClick={() => {
+                if (!modelDropdownOpen && modelButtonRef.current && getProviderAndModels().models.length > 0) {
+                  const rect = modelButtonRef.current.getBoundingClientRect();
+                  setModelDropdownPosition({
+                    top: rect.bottom + window.scrollY,
+                    left: rect.left + window.scrollX,
+                    width: rect.width
+                  });
+                }
+                setModelDropdownOpen(!modelDropdownOpen);
+              }}
+              disabled={getProviderAndModels().models.length === 0 || isLoadingSettings}
+              className="w-full ios-input text-left flex items-center justify-between disabled:opacity-50"
+            >
+              <span className="truncate">
+                {getProviderAndModels().models.length === 0
+                  ? 'Add API key to enable model selection'
+                  : getProviderAndModels().models.find(m => m.value === apiSettings.model)?.label || 'Select Model'
+                }
+              </span>
+              <ChevronRight className={`w-4 h-4 transition-transform ${
+                modelDropdownOpen ? 'rotate-90' : 'rotate-0'
+              } text-white/50`} />
+            </button>
+
+            {modelDropdownOpen && modelDropdownPosition && getProviderAndModels().models.length > 0 && createPortal(
+              <>
+                <div
+                  className="fixed inset-0 z-[9998]"
+                  onClick={() => setModelDropdownOpen(false)}
+                />
+                <div className="fixed rounded-2xl shadow-2xl z-[9999] overflow-hidden"
+                  style={{
+                    top: modelDropdownPosition.top + 2,
+                    left: modelDropdownPosition.left,
+                    width: modelDropdownPosition.width,
+                    background: 'rgba(28, 28, 30, 0.85)',
+                    backdropFilter: 'blur(20px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+                  }}>
+                  <div className="space-y-0">
+                    {getProviderAndModels().models.map(({ value, label }) => (
+                      <button
+                        key={value}
+                        onClick={() => {
+                          setApiSettings(prev => ({ ...prev, model: value }));
+                          setModelDropdownOpen(false);
+                        }}
+                        className={`w-full px-4 py-3 text-sm text-left transition-all duration-150 active:scale-[0.97] ${
+                          apiSettings.model === value
+                            ? 'bg-gradient-to-r from-purple-500/15 to-violet-500/15 text-white font-medium'
+                            : 'text-white/90 hover:bg-white/8 hover:text-white'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 </div>
+              </>,
+              document.body
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            <div>
+              <label className="block ios-caption text-white/70 mb-2 ml-1">
+                Temperature ({apiSettings.temperature})
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.1"
+                value={apiSettings.temperature}
+                onChange={(e) => setApiSettings(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
+                disabled={isLoadingSettings}
+                className="w-full h-2 rounded-full appearance-none cursor-pointer bg-white/20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-purple-500 [&::-webkit-slider-thumb]:to-pink-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/20 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-200 hover:[&::-webkit-slider-thumb]:scale-110"
+              />
+              <div className="flex justify-between ios-caption text-white/50 mt-1">
+                <span>Focused</span>
+                <span>Creative</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block ios-caption text-white/70 mb-2 ml-1">
+                Max Tokens ({apiSettings.maxTokens})
+              </label>
+              <input
+                type="range"
+                min="100"
+                max="4000"
+                step="100"
+                value={apiSettings.maxTokens}
+                onChange={(e) => setApiSettings(prev => ({ ...prev, maxTokens: parseInt(e.target.value) }))}
+                disabled={isLoadingSettings}
+                className="w-full h-2 rounded-full appearance-none cursor-pointer bg-white/20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-purple-500 [&::-webkit-slider-thumb]:to-pink-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/20 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-200 hover:[&::-webkit-slider-thumb]:scale-110"
+              />
+              <div className="flex justify-between ios-caption text-white/50 mt-1">
+                <span>100</span>
+                <span>4000</span>
               </div>
             </div>
           </div>
         </div>
-        ) : activeTab === 'advanced' ? (
-            // Advanced Tab Content
-            <div className="space-y-6">
-              {/* Model Parameters Section */}
-              <div className={`p-6 rounded-3xl border ${
-                theme === 'dark'
-                  ? 'bg-black/5 backdrop-blur-lg border-white/5'
-                  : 'bg-white/20 backdrop-blur-lg border-black/5'
-              }`}>
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-600 rounded-3xl flex items-center justify-center">
-                    <Cpu className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      Model Parameters
-                    </h3>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Customize AI model behavior and performance
-                    </p>
-                  </div>
-                </div>
+      </div>
+  );
 
-                {!showAdvancedParams ? (
-                  <div className={`p-6 rounded-2xl border text-center ${
-                    theme === 'dark' ? 'bg-black/3 border-white/10' : 'bg-white/10 border-black/5'
-                  }`}>
-                    <div className={`text-lg font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      Default
-                    </div>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
-                      Model parameters are currently using default settings
-                    </p>
-                    <button
-                      onClick={() => setShowAdvancedParams(true)}
-                      className={`px-6 py-2 rounded-2xl border-2 transition-all duration-200 ${
-                        theme === 'dark'
-                          ? 'border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20'
-                          : 'border-purple-200 bg-purple-50 text-purple-600 hover:bg-purple-100'
-                      }`}
-                    >
-                      Customize Parameters
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className={`text-lg font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                        Model Parameters
-                      </h4>
-                      <button
-                        onClick={() => setShowAdvancedParams(false)}
-                        className={`text-sm px-3 py-1 rounded-2xl transition-all ${
-                          theme === 'dark'
-                            ? 'text-gray-400 hover:text-white hover:bg-gray-700/30'
-                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
-                        }`}
-                      >
-                        Use Default
-                      </button>
-                    </div>
+  const renderHelpView = () => (
+    <div className="p-4 space-y-6" style={{ paddingTop: '8px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+      <div className="space-y-6">
+        {/* Getting Started */}
+        <div className="ios-list-item p-4"
+          style={{
+            background: 'rgba(255, 255, 255, 0.08)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          }}>
+          <h4 className="ios-body text-white font-medium mb-4">Getting Started</h4>
 
-                    <div>
-                      <label className={`block text-sm font-medium mb-2 ${
-                        theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Model
-                      </label>
-                      <button
-                        ref={modelButtonRef}
-                        onClick={() => {
-                          if (!modelDropdownOpen && modelButtonRef.current && getProviderAndModels().models.length > 0) {
-                            const rect = modelButtonRef.current.getBoundingClientRect();
-                            setModelDropdownPosition({
-                              top: rect.bottom + window.scrollY,
-                              left: rect.left + window.scrollX,
-                              width: rect.width
-                            });
-                          }
-                          setModelDropdownOpen(!modelDropdownOpen);
-                        }}
-                        disabled={getProviderAndModels().models.length === 0 || isLoadingSettings}
-                        className={`w-full px-3 py-1.5 text-sm text-left flex items-center justify-between transition-all rounded-full ${isLoadingSettings ? 'opacity-50 cursor-not-allowed' : ''} ${
-                          getProviderAndModels().models.length === 0
-                            ? 'opacity-50 cursor-not-allowed'
-                            : ''
-                        } ${
-                          theme === 'dark'
-                            ? 'bg-white/10 text-white/90 hover:bg-white/15'
-                            : 'bg-black/10 text-gray-900 hover:bg-white/25 border border-gray-300/50'
-                        }`}
-                      >
-                        <span className="truncate">
-                          {getProviderAndModels().models.length === 0
-                            ? 'Add API key to enable model selection'
-                            : getProviderAndModels().models.find(m => m.value === apiSettings.model)?.label || 'Select Model'
-                          }
-                        </span>
-                        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${
-                          modelDropdownOpen ? 'rotate-90' : 'rotate-0'
-                        } ${
-                          theme === 'dark' ? 'text-white/50' : 'text-gray-400'
-                        }`} />
-                      </button>
-
-                      {modelDropdownOpen && modelDropdownPosition && getProviderAndModels().models.length > 0 && createPortal(
-                        <>
-                          <div
-                            className="fixed inset-0 z-[9998]"
-                            onClick={() => setModelDropdownOpen(false)}
-                          />
-                          <div className={`dropdown-container fixed rounded-2xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl ${
-                            theme === 'dark'
-                              ? 'bg-black/30 border-white/20'
-                              : 'bg-white/10 border-black/20'
-                          }`} style={{
-                            top: modelDropdownPosition.top + 2,
-                            left: modelDropdownPosition.left,
-                            width: modelDropdownPosition.width,
-                            backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
-                            WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
-                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-                          }}>
-                            <div className="relative z-10">
-                              {getProviderAndModels().models.map(({ value, label }) => (
-                                <button
-                                  key={value}
-                                  onClick={() => {
-                                    setApiSettings(prev => ({ ...prev, model: value }));
-                                    setModelDropdownOpen(false);
-                                  }}
-                                  className={`w-full px-2.5 py-1 text-sm text-left transition-colors ${
-                                    theme === 'dark'
-                                      ? 'text-white/90 hover:bg-black/20'
-                                      : 'text-gray-900/90 hover:bg-white/20'
-                                  }`}
-                                >
-                                  {label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </>,
-                        document.body
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className={`block text-sm font-medium mb-2 ${
-                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                        }`}>
-                          Temperature ({apiSettings.temperature})
-                        </label>
-                        <input
-                          type="range"
-                          min="0"
-                          max="2"
-                          step="0.1"
-                          value={apiSettings.temperature}
-                          onChange={(e) => setApiSettings(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
-                          disabled={isLoadingSettings}
-                          className={`w-full h-2 rounded-full appearance-none cursor-pointer transition-all duration-200 ${isLoadingSettings ? 'opacity-50 cursor-not-allowed' : ''} ${
-                            theme === 'dark'
-                              ? 'bg-black/20 [&::-webkit-slider-thumb]:bg-purple-400 [&::-webkit-slider-thumb]:border-white/20'
-                              : 'bg-white/40 [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:border-black/10'
-                          } [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-200 hover:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full`}
-                        />
-                        <div className="flex justify-between text-xs text-gray-500 mt-1">
-                          <span>Focused</span>
-                          <span>Creative</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className={`block text-sm font-medium mb-2 ${
-                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                        }`}>
-                          Max Tokens ({apiSettings.maxTokens})
-                        </label>
-                        <input
-                          type="range"
-                          min="100"
-                          max="4000"
-                          step="100"
-                          value={apiSettings.maxTokens}
-                          onChange={(e) => setApiSettings(prev => ({ ...prev, maxTokens: parseInt(e.target.value) }))}
-                          disabled={isLoadingSettings}
-                          className={`w-full h-2 rounded-full appearance-none cursor-pointer transition-all duration-200 ${isLoadingSettings ? 'opacity-50 cursor-not-allowed' : ''} ${
-                            theme === 'dark'
-                              ? 'bg-black/20 [&::-webkit-slider-thumb]:bg-purple-400 [&::-webkit-slider-thumb]:border-white/20'
-                              : 'bg-white/40 [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:border-black/10'
-                          } [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-200 hover:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full`}
-                        />
-                        <div className="flex justify-between text-xs text-gray-500 mt-1">
-                          <span>100</span>
-                          <span>4000</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-purple-400 text-xs font-semibold">1</span>
+              </div>
+              <div>
+                <div className="ios-caption text-white font-medium">Upload documents</div>
+                <div className="ios-caption text-white/60 mt-1">Add PDFs and text files in the Documents tab</div>
               </div>
             </div>
-          ) : null}
+
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-green-400 text-xs font-semibold">2</span>
+              </div>
+              <div>
+                <div className="ios-caption text-white font-medium">Create classes</div>
+                <div className="ios-caption text-white/60 mt-1">Organize documents by subject or project</div>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-blue-400 text-xs font-semibold">3</span>
+              </div>
+              <div>
+                <div className="ios-caption text-white font-medium">Ask questions</div>
+                <div className="ios-caption text-white/60 mt-1">Chat about your content with citations</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Special Commands */}
+        <div className="ios-list-item p-4"
+          style={{
+            background: 'rgba(255, 255, 255, 0.08)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          }}>
+          <h4 className="ios-caption text-white font-medium mb-3">Special Commands</h4>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <code className="ios-caption px-2 py-1 rounded bg-white/10 text-purple-400">/background</code>
+              <span className="ios-caption text-white/70">General knowledge</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="ios-caption px-2 py-1 rounded bg-white/10 text-purple-400">/summarize</code>
+              <span className="ios-caption text-white/70">Summarize documents</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="ios-caption px-2 py-1 rounded bg-white/10 text-purple-400">/explain</code>
+              <span className="ios-caption text-white/70">Simple explanations</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="ios-caption px-2 py-1 rounded bg-white/10 text-purple-400">/search</code>
+              <span className="ios-caption text-white/70">Search documents</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="ios-caption px-2 py-1 rounded bg-white/10 text-purple-400">/compare</code>
+              <span className="ios-caption text-white/70">Compare concepts</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="ios-caption px-2 py-1 rounded bg-white/10 text-purple-400">/cite</code>
+              <span className="ios-caption text-white/70">Find citations</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Need Help Section */}
+        <div className="ios-list-item p-4"
+          style={{
+            background: 'rgba(255, 255, 255, 0.08)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          }}>
+          <h4 className="ios-caption text-white font-medium mb-3">Need Help?</h4>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                if (onOpenFeedback) {
+                  onOpenFeedback();
+                  onClose(); // Close settings modal when opening feedback
+                }
+              }}
+              className="w-full ios-list-item p-3 active:scale-98 transition-all duration-200"
+              style={{
+                background: 'rgba(168, 85, 247, 0.15)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                border: '1px solid rgba(168, 85, 247, 0.3)',
+              }}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <Mail className="w-4 h-4 text-purple-400" />
+                <span className="ios-caption text-purple-400 font-medium">Send Feedback</span>
+              </div>
+            </button>
+
+            <div className="ios-caption text-white/60 text-center">
+              Questions or suggestions? We'd love to hear from you!
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={`fixed z-[40] ${isMobile ? 'inset-0' : 'inset-0 flex items-center justify-center'}`}>
+      {/* Backdrop */}
+      <div
+        className={`absolute inset-0 ${isMobile ? 'bg-black/40' : 'bg-black/60 backdrop-blur-lg'}`}
+        onClick={onClose}
+      />
+
+      {/* Additional backdrop for individual pages to prevent bleed-through */}
+      {currentView !== 'main' && isMobile && (
+        <div
+          className="absolute inset-0 bg-black/60"
+          style={{ zIndex: -1 }}
+        />
+      )}
+
+      {/* Modal */}
+      <div className={`relative shadow-2xl overflow-hidden flex flex-col ${
+        isMobile
+          ? 'w-full h-full'
+          : 'w-full max-w-md mx-4 h-[85vh] rounded-3xl'
+      }`}
+        style={{
+          background: isMobile ? (
+            background === 'classic' ? 'rgb(35, 35, 37)' :
+            background === 'gradient' ? 'rgb(37, 42, 54)' :
+            background === 'mountain' ? 'rgb(42, 37, 32)' :
+            background === 'ocean' ? 'rgb(32, 42, 52)' :
+            background === 'sunset' ? 'rgb(52, 32, 42)' :
+            background === 'forest' ? 'rgb(27, 47, 37)' :
+            'rgb(35, 35, 37)'
+          ) : 'rgba(28, 28, 30, 0.95)',
+          backdropFilter: isMobile ? 'none' : 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: isMobile ? 'none' : 'blur(20px) saturate(180%)',
+          border: isMobile ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+          paddingBottom: isMobile ? '80px' : '0',
+          transition: 'background 0.3s ease-out'
+        }}
+        key={background}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-2" style={{
+          paddingTop: isMobile ? 'max(8px, env(safe-area-inset-top))' : '8px'
+        }}>
+          {currentView !== 'main' && (
+            <button
+              onClick={() => setCurrentView('main')}
+              className="p-2 rounded-full active:scale-90 transition-all duration-200 text-white/60"
+            >
+              <ChevronRight className="w-5 h-5 rotate-180" />
+            </button>
+          )}
+
+          {currentView !== 'main' && (
+            <h2 className="text-white text-xl font-semibold flex-1 text-left ml-2">
+              {currentView === 'account' ? 'Account' :
+               currentView === 'appearance' ? 'Appearance' :
+               currentView === 'api' ? 'AI Configuration' :
+               currentView === 'timezone' ? 'Timezone' :
+               currentView === 'advanced' ? 'Advanced' :
+               currentView === 'help' ? 'Help' : 'Settings'}
+            </h2>
+          )}
+
+          {currentView !== 'main' && (
+            <div className="w-9"></div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
+          {currentView === 'main' && renderMainView()}
+          {currentView === 'account' && renderAccountView()}
+          {currentView === 'appearance' && renderAppearanceView()}
+          {currentView === 'api' && renderApiView()}
+          {currentView === 'timezone' && renderTimezoneView()}
+          {currentView === 'advanced' && renderAdvancedView()}
+          {currentView === 'help' && renderHelpView()}
         </div>
 
         {/* Save Message */}
-        {saveMessage && (
-          <div className={`mx-6 mb-6 p-4 rounded-2xl border ${
-            saveMessage.includes('successfully')
-              ? theme === 'dark'
-                ? 'bg-green-900/20 border-green-500/30 text-green-400'
-                : 'bg-green-50 border-green-200 text-green-700'
-              : theme === 'dark'
-                ? 'bg-red-900/20 border-red-500/30 text-red-400'
-                : 'bg-red-50 border-red-200 text-red-700'
-          }`}>
-            <p className="text-sm text-center font-medium">{saveMessage}</p>
+        {saveMessage && currentView !== 'account' && (
+          <div className="absolute bottom-4 left-4 right-4">
+            <div className={`p-3 rounded-2xl text-center ${
+              saveMessage.includes('successfully')
+                ? 'bg-green-500/20 border border-green-500/30'
+                : 'bg-red-500/20 border border-red-500/30'
+            }`}>
+              <p className={`ios-caption font-medium ${
+                saveMessage.includes('successfully') ? 'text-green-400' : 'text-red-400'
+              }`}>{saveMessage}</p>
+            </div>
           </div>
         )}
       </div>

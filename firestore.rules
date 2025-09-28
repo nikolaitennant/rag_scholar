@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow authenticated users to read and write their own user documents
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow authenticated users to write feedback (but not read others' feedback)
+    match /feedback/{feedbackId} {
+      allow create: if request.auth != null;
+      // Only allow admins to read feedback (you can modify this for your admin setup)
+      allow read: if request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Allow authenticated users to read and write their own sessions
+    match /sessions/{sessionId} {
+      allow read, write: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // Allow authenticated users to read and write their own documents
+    match /user_documents/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow authenticated users to read and write their own classes
+    match /user_classes/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Default deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

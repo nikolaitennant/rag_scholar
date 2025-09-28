@@ -27,50 +27,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   });
   const [currentView, setCurrentView] = useState<'main' | 'account' | 'appearance' | 'api' | 'timezone' | 'advanced' | 'help' | 'profile'>('main');
 
-  // Lightweight touch handling for swipe back
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [currentTranslateX, setCurrentTranslateX] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (currentView === 'main') return;
-    setTouchStartX(e.touches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchStartX || currentView === 'main') return;
-
-    const currentX = e.touches[0].clientX;
-    const deltaX = currentX - touchStartX;
-
-    if (deltaX > 0) { // Only allow rightward swipe
-      const clampedDelta = Math.min(deltaX, 300);
-      setCurrentTranslateX(clampedDelta);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStartX || currentView === 'main') return;
-
-    if (currentTranslateX > 120) {
-      // Complete the transition
-      setIsTransitioning(true);
-      setCurrentView('main');
-    } else {
-      // Snap back
-      setCurrentTranslateX(0);
-    }
-
-    setTouchStartX(null);
-  };
-
-  // Reset translate when view changes
-  useEffect(() => {
-    if (isTransitioning) {
-      setCurrentTranslateX(0);
-      setIsTransitioning(false);
-    }
-  }, [currentView]);
   const [showProfileImageModal, setShowProfileImageModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -426,6 +382,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             </div>
             <ChevronRight className="w-5 h-5 text-white/40" />
           </button>
+
+          {/* Logout Button - Below Help with extra spacing */}
+          <div className="px-4 pt-12 pb-4 flex justify-center">
+            <button
+              onClick={() => {
+                logout();
+                onClose();
+              }}
+              className="rounded-full px-6 py-3 active:scale-98 transition-all duration-200"
+              style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+              }}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <LogOut className="w-5 h-5 text-red-400" />
+                <span className="text-red-400 text-base font-medium">Log Out</span>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -436,76 +414,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     <div className="p-4 space-y-6" style={{ paddingTop: '16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="space-y-4">
 
-        <div className="ios-list-item p-4"
-          style={{
-            background: 'rgba(255, 255, 255, 0.08)',
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          }}>
-          <div>
-            <p className="ios-body text-white font-medium">Email</p>
+        <div>
+          <p className="ios-body text-white font-medium mb-2">Email</p>
+          <div className="rounded-full p-4"
+            style={{
+              background: 'rgba(255, 255, 255, 0.08)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            }}>
             <p className="ios-caption text-white/60">{user?.email}</p>
           </div>
         </div>
 
-        <div className="flex space-x-3">
+        <div className="text-center">
           {!isResetPasswordMode && (
             <button
               onClick={() => setIsResetPasswordMode(true)}
-              className="flex-1 ios-list-item p-3 active:scale-98 transition-all duration-200"
-              style={{
-                background: 'rgba(168, 85, 247, 0.15)',
-                backdropFilter: 'blur(20px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                border: '1px solid rgba(168, 85, 247, 0.3)',
-              }}
+              className="text-purple-400 text-sm font-medium hover:text-purple-300 transition-colors"
             >
-              <div className="flex items-center justify-center space-x-2">
-                <Key className="w-4 h-4 text-purple-400" />
-                <span className="ios-caption text-purple-400 font-medium">Reset Password</span>
-              </div>
+              Reset Password
             </button>
           )}
-
-          <button
-            onClick={() => {
-              logout();
-              onClose();
-            }}
-            className="flex-1 ios-list-item p-3 active:scale-98 transition-all duration-200"
-            style={{
-              background: 'rgba(239, 68, 68, 0.15)',
-              backdropFilter: 'blur(20px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-            }}
-          >
-            <div className="flex items-center justify-center space-x-2">
-              <LogOut className="w-4 h-4 text-red-400" />
-              <span className="ios-caption text-red-400 font-medium">Log Out</span>
-            </div>
-          </button>
         </div>
 
         {isResetPasswordMode && (
           <div className="space-y-4">
-            <div className="ios-list-item p-4"
-              style={{
-                background: 'rgba(255, 255, 255, 0.08)',
-                backdropFilter: 'blur(20px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-              }}>
-              <div className="text-center">
-                <h4 className="ios-body text-white font-medium mb-2">Reset Password</h4>
-                <p className="ios-caption text-white/60">Send password reset email to your account</p>
-              </div>
+            <div className="text-center">
+              <p className="ios-caption text-white/60">Send password reset email to your account</p>
             </div>
 
             {saveMessage && (
-              <div className={`ios-list-item p-4 text-center ${
+              <div className={`rounded-full p-4 text-center ${
                 saveMessage.includes('sent')
-                  ? 'bg-green-500/20 border-green-500/30'
-                  : 'bg-red-500/20 border-red-500/30'
+                  ? 'bg-green-500/20 border border-green-500/30'
+                  : 'bg-red-500/20 border border-red-500/30'
               }`}>
                 <p className={`ios-caption ${
                   saveMessage.includes('sent') ? 'text-green-400' : 'text-red-400'
@@ -513,7 +455,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               </div>
             )}
 
-            <div className="flex space-x-3">
+            <div className="flex justify-center gap-3">
               <button
                 onClick={async () => {
                   if (user?.email) {
@@ -531,7 +473,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                   }
                 }}
                 disabled={isLoading}
-                className="flex-1 ios-list-item p-3 active:scale-98 transition-all duration-200 disabled:opacity-50"
+                className="rounded-full px-4 py-2 active:scale-98 transition-all duration-200 disabled:opacity-50"
                 style={{
                   background: 'rgba(168, 85, 247, 0.15)',
                   backdropFilter: 'blur(20px) saturate(180%)',
@@ -549,9 +491,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                   setIsResetPasswordMode(false);
                   setSaveMessage(null);
                 }}
-                className="flex-1 ios-button-secondary"
+                className="rounded-full px-4 py-2 bg-white/10 hover:bg-white/15 text-white transition-all duration-200"
               >
-                Cancel
+                <span className="ios-caption font-medium">Cancel</span>
               </button>
             </div>
           </div>
@@ -1037,7 +979,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                   onClose(); // Close settings modal when opening feedback
                 }
               }}
-              className="ios-list-item p-3 px-6 active:scale-98 transition-all duration-200"
+              className="rounded-full p-3 px-4 active:scale-98 transition-all duration-200"
               style={{
                 background: 'rgba(168, 85, 247, 0.15)',
                 backdropFilter: 'blur(20px) saturate(180%)',
@@ -1139,41 +1081,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden relative">
-          {/* Background Main View (visible during drag) */}
-          {currentView !== 'main' && currentTranslateX > 0 && (
-            <div
-              className="absolute inset-0 overflow-y-auto scrollbar-none"
-              style={{
-                opacity: Math.min(currentTranslateX / 150, 1)
-              }}
-            >
-              {renderMainView()}
-            </div>
-          )}
-
-          {/* Current View */}
-          <div
-            className="absolute inset-0 overflow-y-auto scrollbar-none transition-transform duration-300 ease-out"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            style={{
-              transform: `translateX(${currentTranslateX}px) scale(${currentTranslateX > 0 ? 0.95 + (0.05 * (1 - currentTranslateX / 300)) : 1})`,
-              boxShadow: currentTranslateX > 0 ? '0 0 20px rgba(0, 0, 0, 0.3)' : 'none',
-              borderRadius: currentTranslateX > 0 ? '12px' : '0px',
-              transitionProperty: isTransitioning ? 'transform, box-shadow, border-radius' : 'none'
-            }}
-          >
-            {currentView === 'main' && renderMainView()}
-            {currentView === 'account' && renderAccountView()}
-            {currentView === 'appearance' && renderAppearanceView()}
-            {currentView === 'api' && renderApiView()}
-            {currentView === 'timezone' && renderTimezoneView()}
-            {currentView === 'advanced' && renderAdvancedView()}
-            {currentView === 'help' && renderHelpView()}
-            {currentView === 'profile' && <ProfilePage onBack={() => setCurrentView('main')} />}
-          </div>
+        <div className="flex-1 overflow-y-auto scrollbar-none">
+          {currentView === 'main' && renderMainView()}
+          {currentView === 'account' && renderAccountView()}
+          {currentView === 'appearance' && renderAppearanceView()}
+          {currentView === 'api' && renderApiView()}
+          {currentView === 'timezone' && renderTimezoneView()}
+          {currentView === 'advanced' && renderAdvancedView()}
+          {currentView === 'help' && renderHelpView()}
+          {currentView === 'profile' && <ProfilePage onBack={() => setCurrentView('main')} />}
         </div>
 
         {/* Save Message */}

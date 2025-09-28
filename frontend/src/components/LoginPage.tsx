@@ -180,7 +180,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
                     required
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className={`w-full pl-12 pr-4 py-3 rounded-full border-0 focus:ring-2 focus:ring-purple-500 focus:outline-none transition-colors ${
+                    className={`login-input w-full pl-12 pr-4 py-3 rounded-full border-0 focus:ring-2 focus:ring-violet-500 focus:bg-violet-500/10 focus:outline-none transition-colors ${
                       theme === 'dark'
                         ? 'bg-white/10 text-white placeholder-white/50'
                         : 'bg-black/5 text-black placeholder-black/50'
@@ -202,7 +202,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
                   required
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className={`w-full pl-12 pr-4 py-3 rounded-full border-0 focus:ring-2 focus:ring-purple-500 focus:outline-none transition-colors ${
+                  className={`login-input w-full pl-12 pr-4 py-3 rounded-full border-0 focus:ring-2 focus:ring-violet-500 focus:bg-violet-500/10 focus:outline-none transition-colors ${
                     theme === 'dark'
                       ? 'bg-white/10 text-white placeholder-white/50'
                       : 'bg-black/5 text-black placeholder-black/50'
@@ -224,7 +224,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
                     required
                     value={formData.password}
                     onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                    className={`w-full pl-12 pr-12 py-3 rounded-full border-0 focus:ring-2 focus:ring-purple-500 focus:outline-none transition-colors ${
+                    className={`login-input w-full pl-12 pr-12 py-3 rounded-full border-0 focus:ring-2 focus:ring-violet-500 focus:bg-violet-500/10 focus:outline-none transition-colors ${
                       theme === 'dark'
                         ? 'bg-white/10 text-white placeholder-white/50'
                         : 'bg-black/5 text-black placeholder-black/50'

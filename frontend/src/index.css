@@ -456,15 +456,16 @@
   /* iOS Keyboard Focus and Background Fixes */
   .ios-input:focus {
     background: rgba(255, 255, 255, 0.12) !important;
-    outline: none;
-    border: none;
+  }
 
-    /* Prevent iOS zoom on focus */
-    font-size: 16px;
-
-    /* Override any system focus styles */
-    -webkit-appearance: none;
-    -webkit-tap-highlight-color: transparent;
+  /* Override webkit autofill blue background after form submission - make it purple */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: inset 0 0 0 1000px rgba(139, 92, 246, 0.2) !important; /* violet-500 with 20% opacity */
+    -webkit-text-fill-color: white !important;
+    transition: background-color 5000s ease-in-out 0s;
   }
 
   /* iOS PWA Keyboard Background Override */

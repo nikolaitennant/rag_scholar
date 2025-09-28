@@ -216,6 +216,9 @@
     @apply bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors;
   }
 
+  /* ===== MOBILE CHAT INTERFACE STYLES ===== */
+
+  /* Chat Bubbles */
   .chat-bubble-user {
     @apply bg-primary-500 text-white rounded-2xl rounded-br-md px-4 py-3 ml-auto max-w-xs;
   }
@@ -223,6 +226,133 @@
   .chat-bubble-assistant {
     @apply bg-gray-100 text-gray-800 rounded-2xl rounded-bl-md px-4 py-3 mr-auto max-w-xs;
   }
+
+  /* iOS Input System for Mobile Chat */
+  .ios-input {
+    @apply border-none outline-none bg-transparent;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 12px 14px;
+    color: var(--ios-text-primary);
+  }
+
+  .ios-input:focus {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .ios-input::placeholder {
+    color: #8E8E93;
+  }
+
+  /* iOS Typography for Mobile Chat */
+  .ios-title {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.29;
+    letter-spacing: -0.01em;
+  }
+
+  .ios-caption {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.38;
+    letter-spacing: -0.008em;
+  }
+
+  /* Mobile Chat Container & Keyboard Handling */
+  @media screen and (max-width: 768px) {
+    /* Chat container fixes for keyboard overlay */
+    .chat-container {
+      height: 100vh !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+    }
+
+    /* Ensure messages don't overlap input area */
+    .chat-container .flex-1.overflow-y-auto {
+      max-height: calc(100vh - 272px) !important;
+    }
+
+    /* iOS Input Focus and Background Fixes */
+    .ios-input:focus {
+      background: rgba(255, 255, 255, 0.12) !important;
+    }
+
+    /* Target mobile devices specifically */
+    .ios-input-container {
+      position: relative;
+      background-color: #1C1C1E;
+
+      /* Ensure dark background extends beyond input */
+      &::before {
+        content: '';
+        position: absolute;
+        top: -50px;
+        left: -50px;
+        right: -50px;
+        bottom: -50px;
+        background-color: #1C1C1E;
+        z-index: -1;
+        pointer-events: none;
+      }
+    }
+
+    /* Override system input background on iOS */
+    input[type="text"]:focus {
+      background-color: rgba(255, 255, 255, 0.08) !important;
+      caret-color: #A855F7;
+
+      /* Prevent white keyboard background */
+      -webkit-user-modify: read-write-plaintext-only;
+    }
+
+    /* Prevent iOS keyboard white space */
+    body.keyboard-open {
+      background-color: #1C1C1E !important;
+      overflow: hidden;
+      height: 100vh !important;
+      position: fixed !important;
+      width: 100% !important;
+    }
+
+    /* iOS keyboard viewport fix */
+    .keyboard-spacer {
+      height: env(keyboard-inset-height, 0px);
+      background-color: #1C1C1E;
+      transition: height 0.3s ease-in-out;
+    }
+
+    /* Hide white input accessory bar above keyboard */
+    input:focus {
+      caret-color: #A855F7 !important;
+      background-color: rgba(255, 255, 255, 0.08) !important;
+      -webkit-user-modify: read-write-plaintext-only;
+      -webkit-user-select: text;
+      -webkit-appearance: none;
+      outline: none !important;
+      border: none !important;
+    }
+
+    /* Cover any potential white gaps with dark background */
+    body.keyboard-open::after {
+      content: '';
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 50px;
+      background-color: #1C1C1E;
+      z-index: 9999;
+      pointer-events: none;
+    }
+  }
+
+  /* ===== END MOBILE CHAT INTERFACE STYLES ===== */
 }
 
 @layer utilities {
@@ -308,14 +438,6 @@
     letter-spacing: -0.022em;
   }
 
-  .ios-title {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-    font-size: 17px;
-    font-weight: 600;
-    line-height: 1.29;
-    letter-spacing: -0.01em;
-  }
-
   .ios-body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
     font-size: 15px;
@@ -331,14 +453,6 @@
     line-height: 1.33;
     letter-spacing: -0.01em;
     opacity: 0.7;
-  }
-
-  .ios-caption {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-    font-size: 13px;
-    font-weight: 400;
-    line-height: 1.38;
-    letter-spacing: -0.008em;
   }
 
   .ios-list-item {
@@ -422,22 +536,6 @@
     -webkit-backdrop-filter: blur(20px);
   }
 
-  .ios-input {
-    @apply border-none outline-none bg-transparent;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 32px;
-    padding: 12px 16px;
-    color: var(--ios-text-primary);
-  }
-
-  .ios-input:focus {
-    background: rgba(255, 255, 255, 0.12);
-  }
-
-  .ios-input::placeholder {
-    color: #8E8E93;
-  }
-
   /* Prevent emoji from breaking onto separate lines */
   .name-with-emoji {
     word-break: keep-all;
@@ -453,10 +551,6 @@
   }
 
 
-  /* iOS Keyboard Focus and Background Fixes */
-  .ios-input:focus {
-    background: rgba(255, 255, 255, 0.12) !important;
-  }
 
   /* Override webkit autofill blue background after form submission - make it purple */
   input:-webkit-autofill,
@@ -468,91 +562,6 @@
     transition: background-color 5000s ease-in-out 0s;
   }
 
-  /* iOS PWA Keyboard Background Override */
-  @media screen and (max-width: 768px) {
-    /* Target mobile devices specifically */
-    .ios-input-container {
-      position: relative;
-      background-color: #1C1C1E;
-
-      /* Ensure dark background extends beyond input */
-      &::before {
-        content: '';
-        position: absolute;
-        top: -50px;
-        left: -50px;
-        right: -50px;
-        bottom: -50px;
-        background-color: #1C1C1E;
-        z-index: -1;
-        pointer-events: none;
-      }
-    }
-
-    /* Override system input background on iOS */
-    input[type="text"]:focus {
-      background-color: rgba(255, 255, 255, 0.08) !important;
-      caret-color: #A855F7;
-
-      /* Prevent white keyboard background */
-      -webkit-user-modify: read-write-plaintext-only;
-    }
-
-    /* Prevent iOS keyboard white space */
-    body.keyboard-open {
-      background-color: #1C1C1E !important;
-      overflow: hidden;
-    }
-
-    /* iOS keyboard viewport fix */
-    .keyboard-spacer {
-      height: env(keyboard-inset-height, 0px);
-      background-color: #1C1C1E;
-      transition: height 0.3s ease-in-out;
-    }
-
-    /* Prevent viewport resize on keyboard open - force overlay behavior */
-    body.keyboard-open {
-      height: 100vh !important;
-      overflow: hidden !important;
-      position: fixed !important;
-      width: 100% !important;
-    }
-
-    /* Chat container fixes for keyboard overlay */
-    .chat-container {
-      height: 100vh !important;
-      position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      bottom: 0 !important;
-    }
-
-    /* Hide white input accessory bar above keyboard */
-    input:focus {
-      caret-color: #A855F7 !important;
-      background-color: rgba(255, 255, 255, 0.08) !important;
-      -webkit-user-modify: read-write-plaintext-only;
-      -webkit-user-select: text;
-      -webkit-appearance: none;
-      outline: none !important;
-      border: none !important;
-    }
-
-    /* Cover any potential white gaps with dark background */
-    body.keyboard-open::after {
-      content: '';
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 50px;
-      background-color: #1C1C1E;
-      z-index: 9999;
-      pointer-events: none;
-    }
-  }
 
   /* Shimmer animation for splash screen */
   .animate-shimmer {

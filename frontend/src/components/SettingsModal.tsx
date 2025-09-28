@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
 import { apiService } from '../services/api';
+import { ProfilePage } from './ProfilePage';
+import { ProfileImageModal } from './ProfileImageModal';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -23,7 +25,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   const [timezone, setTimezone] = useState(() => {
     return localStorage.getItem('userTimezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
   });
-  const [currentView, setCurrentView] = useState<'main' | 'account' | 'appearance' | 'api' | 'timezone' | 'advanced' | 'help'>('main');
+  const [currentView, setCurrentView] = useState<'main' | 'account' | 'appearance' | 'api' | 'timezone' | 'advanced' | 'help' | 'profile'>('main');
+  const [showProfileImageModal, setShowProfileImageModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
@@ -269,38 +272,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
       {/* User Profile Section */}
       <div className="px-6 py-8 border-b border-white/10">
         <div className="flex items-center space-x-4">
-          <div className="relative">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploadingImage}
-              className="w-16 h-16 rounded-full overflow-hidden bg-gray-300 hover:opacity-80 transition-opacity relative group"
-            >
-              <img
-                src={(user as any)?.profile_image || user?.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face"}
-                alt="Profile"
-                className="w-full h-full object-cover"
-                key={(user as any)?.profile_image || user?.photoURL}
-              />
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <User className="w-6 h-6 text-white" />
-              </div>
-              {isUploadingImage && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              )}
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
+          {/* Profile Image - Click to expand */}
+          <button
+            onClick={() => setShowProfileImageModal(true)}
+            className="w-16 h-16 rounded-full overflow-hidden bg-gray-300 hover:opacity-80 transition-opacity"
+          >
+            <img
+              src={userProfile?.profile?.profile_image || user?.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face"}
+              alt="Profile"
+              className="w-full h-full object-cover"
+              key={userProfile?.profile?.profile_image || user?.photoURL}
             />
-          </div>
-          <div>
-            <h3 className="text-white text-xl font-semibold">{user?.displayName || 'User'}</h3>
-            <p className="text-white/60 text-sm">Click image to change</p>
+          </button>
+
+          {/* Name - Click to go to profile */}
+          <div className="flex-1">
+            <button
+              onClick={() => setCurrentView('profile')}
+              className="text-left group"
+            >
+              <h3 className="text-white text-xl font-semibold group-hover:text-[#A855F7] transition-colors">
+                {user?.displayName || user?.email || 'User'}
+              </h3>
+              <p className="text-white/60 text-sm">View & edit profile</p>
+            </button>
           </div>
         </div>
       </div>
@@ -393,23 +388,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   );
 
   const renderAccountView = () => (
-    <div className="p-4 space-y-6" style={{ paddingTop: '8px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div className="p-4 space-y-6" style={{ paddingTop: '16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="space-y-4">
-        <div>
-          <label className="block ios-caption text-white/70 mb-2 ml-1">
-            Display Name
-          </label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full border-none outline-none bg-transparent rounded-full px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 transition-all duration-200"
-            style={{
-              fontSize: '16px',
-              background: 'rgba(255, 255, 255, 0.08)',
-            }}
-          />
-        </div>
 
         <div className="ios-list-item p-4"
           style={{
@@ -536,7 +516,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   );
 
   const renderAppearanceView = () => (
-    <div className="p-4 space-y-6" style={{ paddingTop: '8px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div className="p-4 space-y-6" style={{ paddingTop: '16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="space-y-4">
         <button
           onClick={toggleTheme}
@@ -562,7 +542,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               </div>
             </div>
             <div className={`w-12 h-6 rounded-full transition-colors duration-200 ${
-              theme === 'dark' ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-gray-300'
+              theme === 'dark' ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-gray-300'
             }`}>
               <div className={`w-5 h-5 mt-0.5 rounded-full bg-white transition-transform duration-200 ${
                 theme === 'dark' ? 'translate-x-6' : 'translate-x-0.5'
@@ -621,7 +601,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   );
 
   const renderApiView = () => (
-    <div className="p-4 space-y-6" style={{ paddingTop: '8px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div className="p-4 space-y-6" style={{ paddingTop: '16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="space-y-4">
         <div>
           <label className="block ios-caption text-white/70 mb-2 ml-1">
@@ -670,7 +650,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   );
 
   const renderTimezoneView = () => (
-    <div className="p-4 space-y-6" style={{ paddingTop: '8px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div className="p-4 space-y-6" style={{ paddingTop: '16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="space-y-4">
         <div>
           <label className="block ios-caption text-white/70 mb-2 ml-1">
@@ -790,7 +770,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   );
 
   const renderAdvancedView = () => (
-    <div className="p-4 space-y-6" style={{ paddingTop: '8px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div className="p-4 space-y-6" style={{ paddingTop: '16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h4 className="ios-title text-white">Model Parameters</h4>
@@ -881,7 +861,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 value={apiSettings.temperature}
                 onChange={(e) => setApiSettings(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
                 disabled={isLoadingSettings}
-                className="w-full h-2 rounded-full appearance-none cursor-pointer bg-white/20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-purple-500 [&::-webkit-slider-thumb]:to-pink-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/20 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-200 hover:[&::-webkit-slider-thumb]:scale-110"
+                className="w-full h-2 rounded-full appearance-none cursor-pointer bg-white/20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-blue-500 [&::-webkit-slider-thumb]:to-purple-600 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/20 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-200 hover:[&::-webkit-slider-thumb]:scale-110"
               />
               <div className="flex justify-between ios-caption text-white/50 mt-1">
                 <span>Focused</span>
@@ -901,7 +881,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 value={apiSettings.maxTokens}
                 onChange={(e) => setApiSettings(prev => ({ ...prev, maxTokens: parseInt(e.target.value) }))}
                 disabled={isLoadingSettings}
-                className="w-full h-2 rounded-full appearance-none cursor-pointer bg-white/20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-purple-500 [&::-webkit-slider-thumb]:to-pink-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/20 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-200 hover:[&::-webkit-slider-thumb]:scale-110"
+                className="w-full h-2 rounded-full appearance-none cursor-pointer bg-white/20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-blue-500 [&::-webkit-slider-thumb]:to-purple-600 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/20 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-200 hover:[&::-webkit-slider-thumb]:scale-110"
               />
               <div className="flex justify-between ios-caption text-white/50 mt-1">
                 <span>100</span>
@@ -914,7 +894,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   );
 
   const renderHelpView = () => (
-    <div className="p-4 space-y-6" style={{ paddingTop: '8px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div className="p-4 space-y-6" style={{ paddingTop: '16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="space-y-6">
         {/* Getting Started */}
         <div className="ios-list-item p-4"
@@ -1004,7 +984,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           }}>
           <h4 className="ios-caption text-white font-medium mb-3">Need Help?</h4>
 
-          <div className="space-y-3">
+          <div className="space-y-3 flex flex-col items-center">
             <button
               onClick={() => {
                 if (onOpenFeedback) {
@@ -1012,7 +992,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                   onClose(); // Close settings modal when opening feedback
                 }
               }}
-              className="w-full ios-list-item p-3 active:scale-98 transition-all duration-200"
+              className="ios-list-item p-3 px-6 active:scale-98 transition-all duration-200"
               style={{
                 background: 'rgba(168, 85, 247, 0.15)',
                 backdropFilter: 'blur(20px) saturate(180%)',
@@ -1020,7 +1000,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 border: '1px solid rgba(168, 85, 247, 0.3)',
               }}
             >
-              <div className="flex items-center justify-center space-x-2">
+              <div className="flex items-center justify-center space-x-2 whitespace-nowrap">
                 <Mail className="w-4 h-4 text-purple-400" />
                 <span className="ios-caption text-purple-400 font-medium">Send Feedback</span>
               </div>
@@ -1036,7 +1016,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   );
 
   return (
-    <div className={`fixed z-[40] ${isMobile ? 'inset-0' : 'inset-0 flex items-center justify-center'}`}>
+    <div
+      className={`fixed z-[40] ${isMobile ? 'inset-0' : 'inset-0 flex items-center justify-center'}`}
+      style={{
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif'
+      }}
+    >
       {/* Backdrop */}
       <div
         className={`absolute inset-0 ${isMobile ? 'bg-black/40' : 'bg-black/60 backdrop-blur-lg'}`}
@@ -1076,26 +1061,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         key={background}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2" style={{
-          paddingTop: isMobile ? 'max(8px, env(safe-area-inset-top))' : '8px'
+        <div className="flex items-center justify-between px-4 py-4" style={{
+          paddingTop: currentView !== 'main'
+            ? (isMobile ? 'max(64px, env(safe-area-inset-top))' : '64px')
+            : (isMobile ? 'max(48px, env(safe-area-inset-top))' : '48px')
         }}>
           {currentView !== 'main' && (
             <button
               onClick={() => setCurrentView('main')}
               className="p-2 rounded-full active:scale-90 transition-all duration-200 text-white/60"
+              style={{ marginTop: '36px' }}
             >
               <ChevronRight className="w-5 h-5 rotate-180" />
             </button>
           )}
 
           {currentView !== 'main' && (
-            <h2 className="text-white text-xl font-semibold flex-1 text-left ml-2">
+            <h2 className="text-white text-xl font-semibold flex-1 text-left ml-2" style={{ marginTop: '36px' }}>
               {currentView === 'account' ? 'Account' :
                currentView === 'appearance' ? 'Appearance' :
                currentView === 'api' ? 'AI Configuration' :
                currentView === 'timezone' ? 'Timezone' :
                currentView === 'advanced' ? 'Advanced' :
-               currentView === 'help' ? 'Help' : 'Settings'}
+               currentView === 'help' ? 'Help' :
+               currentView === 'profile' ? 'Profile' : 'Settings'}
             </h2>
           )}
 
@@ -1105,7 +1094,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto scrollbar-none">
           {currentView === 'main' && renderMainView()}
           {currentView === 'account' && renderAccountView()}
           {currentView === 'appearance' && renderAppearanceView()}
@@ -1113,6 +1102,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           {currentView === 'timezone' && renderTimezoneView()}
           {currentView === 'advanced' && renderAdvancedView()}
           {currentView === 'help' && renderHelpView()}
+          {currentView === 'profile' && <ProfilePage onBack={() => setCurrentView('main')} />}
         </div>
 
         {/* Save Message */}
@@ -1129,6 +1119,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             </div>
           </div>
         )}
+
+        {/* Profile Image Modal */}
+        <ProfileImageModal
+          isOpen={showProfileImageModal}
+          onClose={() => setShowProfileImageModal(false)}
+          imageUrl={userProfile?.profile?.profile_image || user?.photoURL || ''}
+          userName={user?.displayName || user?.email || 'User'}
+          showChangeButton={false}
+        />
       </div>
     </div>
   );

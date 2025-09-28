@@ -1364,8 +1364,8 @@ const AppContent: React.FC = () => {
                   if (hour < 12) return `Good morning, ${userName}`;
                   if (hour < 17) return `Good afternoon, ${userName}`;
                   return `Good evening, ${userName}`;
-                })()}
-                <Heart className="w-6 h-6 text-[#AF52DE] animate-pulse inline-block ml-3" style={{ verticalAlign: 'middle', transform: 'translateY(-2px)' }} />
+                })()}&nbsp;
+                <Heart className="w-6 h-6 text-[#AF52DE] animate-pulse inline-block ml-1" style={{ verticalAlign: 'middle', transform: 'translateY(-2px)' }} />
               </h1>
               <p className="text-sm text-gray-400/90 mt-1">
                 Ready to explore your documents?
@@ -3050,218 +3050,132 @@ const AppContent: React.FC = () => {
 
       {/* Feedback Modal */}
       {showFeedbackModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
+        <div className="fixed inset-0 z-[110] flex items-center justify-center">
+          {/* Frosted glass backdrop */}
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-lg"
+            className="absolute inset-0 bg-white/10"
             onClick={() => setShowFeedbackModal(false)}
+            style={{
+              backdropFilter: 'blur(60px) saturate(180%) brightness(0.3)',
+              WebkitBackdropFilter: 'blur(60px) saturate(180%) brightness(0.3)'
+            }}
           />
 
           {/* Modal */}
-          <div className={`relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden ${
-            theme === 'dark'
-              ? 'bg-white/5 border border-white/20'
-              : 'bg-black/5 border border-black/20'
-          }`}>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-lg font-semibold ${
-                  theme === 'dark' ? 'text-white' : 'text-black'
-                }`}>
-                  Send Feedback
-                </h3>
-                <button
-                  onClick={() => setShowFeedbackModal(false)}
-                  className={`p-1 rounded-lg transition-colors ${
-                    theme === 'dark'
-                      ? 'hover:bg-gray-700 text-gray-400'
-                      : 'hover:bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  ✕
-                </button>
-              </div>
+          <div
+            className="relative rounded-3xl w-full max-w-sm mx-4 overflow-hidden shadow-2xl"
+            style={{
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+              background: 'rgba(28, 28, 30, 0.85)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+            }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <h3 className="text-lg font-medium text-white">Send Feedback</h3>
+              <button
+                onClick={() => setShowFeedbackModal(false)}
+                className="p-1 hover:bg-white/10 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-white/70" />
+              </button>
+            </div>
 
-              <div className="space-y-4">
-                {/* Feedback Type */}
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Type
-                  </label>
-                  <div className="relative">
-                    <button
-                      ref={feedbackDropdownButtonRef}
-                      onClick={() => {
-                        if (!feedbackDropdownOpen && feedbackDropdownButtonRef.current) {
-                          const rect = feedbackDropdownButtonRef.current.getBoundingClientRect();
-                          setFeedbackDropdownPosition({
-                            top: rect.bottom + window.scrollY,
-                            left: rect.left + window.scrollX,
-                            width: rect.width
-                          });
-                        }
-                        setFeedbackDropdownOpen(!feedbackDropdownOpen);
-                      }}
-                      className={`w-full px-4 py-2.5 text-sm text-left flex items-center justify-between transition-all duration-200 rounded-2xl border focus:outline-none ${
-                        theme === 'dark'
-                          ? 'bg-white/5 border-white/20 text-white/90 placeholder-gray-400 focus:border-violet-400 hover:bg-white/10'
-                          : 'bg-black/5 border-gray-300/50 text-gray-900 placeholder-gray-500 focus:border-violet-500 hover:bg-black/10'
-                      }`}
-                    >
-                      <span className="truncate">
-                        {feedbackForm.type === 'general' ? 'General Feedback' :
-                         feedbackForm.type === 'bug' ? 'Bug Report' : 'Feature Request'}
-                      </span>
-                      <ChevronRight className={`w-4 h-4 transition-transform ${
-                        feedbackDropdownOpen ? 'rotate-90' : 'rotate-0'
-                      } ${
-                        theme === 'dark' ? 'text-white/50' : 'text-gray-400'
-                      }`} />
-                    </button>
-
-                    {feedbackDropdownOpen && feedbackDropdownPosition && createPortal(
-                      <>
-                        <div
-                          className="fixed inset-0 z-[9998]"
-                          onClick={() => setFeedbackDropdownOpen(false)}
-                        />
-                        <div className={`dropdown-container fixed rounded-2xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl ${
-                        theme === 'dark'
-                          ? 'bg-black/30 border-white/20'
-                          : 'bg-white/10 border-black/20'
-                      }`} style={{
-                        top: feedbackDropdownPosition.top + 2,
-                        left: feedbackDropdownPosition.left,
-                        width: feedbackDropdownPosition.width,
-                        backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
-                        WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
-                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-                      }}>
-                        <div className="relative z-10">
-                          <button
-                            onClick={() => {
-                              setFeedbackForm(prev => ({ ...prev, type: 'general' }));
-                              setFeedbackDropdownOpen(false);
-                            }}
-                            className={`w-full px-4 py-3 text-sm text-left transition-colors ${
-                              theme === 'dark'
-                                ? 'text-white/90 hover:bg-black/20'
-                                : 'text-gray-900/90 hover:bg-white/20'
-                            }`}
-                          >
-                            General Feedback
-                          </button>
-                          <button
-                            onClick={() => {
-                              setFeedbackForm(prev => ({ ...prev, type: 'bug' }));
-                              setFeedbackDropdownOpen(false);
-                            }}
-                            className={`w-full px-4 py-3 text-sm text-left transition-colors ${
-                              theme === 'dark'
-                                ? 'text-white/90 hover:bg-black/20'
-                                : 'text-gray-900/90 hover:bg-white/20'
-                            }`}
-                          >
-                            Bug Report
-                          </button>
-                          <button
-                            onClick={() => {
-                              setFeedbackForm(prev => ({ ...prev, type: 'feature' }));
-                              setFeedbackDropdownOpen(false);
-                            }}
-                            className={`w-full px-4 py-3 text-sm text-left transition-colors ${
-                              theme === 'dark'
-                                ? 'text-white/90 hover:bg-black/20'
-                                : 'text-gray-900/90 hover:bg-white/20'
-                            }`}
-                          >
-                            Feature Request
-                          </button>
-                        </div>
-                      </div>
-                      </>,
-                      document.body
-                    )}
-                  </div>
-                </div>
-
-                {/* Message */}
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Message *
-                  </label>
-                  <textarea
-                    value={feedbackForm.message}
-                    onChange={(e) => setFeedbackForm(prev => ({
-                      ...prev,
-                      message: e.target.value
-                    }))}
-                    placeholder="Tell us about your experience, report a bug, or suggest a feature..."
-                    rows={4}
-                    className={`w-full px-4 py-2.5 rounded-2xl border transition-all duration-200 resize-none ${
-                      theme === 'dark'
-                        ? 'bg-black/30 border-white/20 text-white/90 placeholder-gray-400 focus:border-violet-400 hover:bg-black/40'
-                        : 'bg-black/10 border-gray-300/50 text-gray-900 placeholder-gray-500 focus:border-violet-500 hover:bg-white/25'
-                    } focus:outline-none`}
-                  />
-                </div>
-
-                {/* Email (optional) */}
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Email (optional)
-                  </label>
-                  <input
-                    type="email"
-                    value={feedbackForm.email}
-                    onChange={(e) => setFeedbackForm(prev => ({
-                      ...prev,
-                      email: e.target.value
-                    }))}
-                    placeholder="your@email.com"
-                    className={`w-full px-4 py-2.5 rounded-2xl border transition-all duration-200 ${
-                      theme === 'dark'
-                        ? 'bg-black/30 border-white/20 text-white/90 placeholder-gray-400 focus:border-violet-400 hover:bg-black/40'
-                        : 'bg-black/10 border-gray-300/50 text-gray-900 placeholder-gray-500 focus:border-violet-500 hover:bg-white/25'
-                    } focus:outline-none`}
-                  />
-                  <p className={`text-xs mt-1 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                  }`}>
-                    We'll only use this to follow up on your feedback
-                  </p>
+            <div className="p-4 space-y-4">
+              {/* Feedback Type - Pill Buttons */}
+              <div>
+                <label className="block ios-caption text-white/70 mb-2 ml-1">
+                  Type
+                </label>
+                <div className="flex gap-2 flex-wrap justify-center">
+                  {[
+                    { id: 'general', name: 'General' },
+                    { id: 'bug', name: 'Bug Report' },
+                    { id: 'feature', name: 'Feature Request' }
+                  ].map((option) => {
+                    const isSelected = feedbackForm.type === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        onClick={() => setFeedbackForm(prev => ({ ...prev, type: option.id as any }))}
+                        className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200 ${
+                          isSelected
+                            ? 'bg-gradient-to-r from-blue-500/20 to-purple-600/20 border-purple-500/50 text-purple-300'
+                            : 'border-white/20 text-white/70 hover:border-purple-500/30 hover:text-purple-300'
+                        }`}
+                      >
+                        {option.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowFeedbackModal(false)}
-                  className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
-                    theme === 'dark'
-                      ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                      : 'bg-gray-200 hover:bg-gray-300 text-black'
-                  }`}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmitFeedback}
-                  disabled={!feedbackForm.message.trim() || isFeedbackLoading}
-                  className={`flex-1 px-4 py-2 rounded-2xl transition-all duration-200 font-medium ${
-                    !feedbackForm.message.trim() || isFeedbackLoading
-                      ? 'bg-gray-400 cursor-not-allowed text-gray-200'
-                      : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
-                  }`}
-                >
-                  {isFeedbackLoading ? 'Sending...' : 'Send Feedback'}
-                </button>
+              {/* Message */}
+              <div>
+                <label className="block ios-caption text-white/70 mb-2 ml-1">
+                  Message *
+                </label>
+                <textarea
+                  value={feedbackForm.message}
+                  onChange={(e) => setFeedbackForm(prev => ({
+                    ...prev,
+                    message: e.target.value
+                  }))}
+                  placeholder="Tell us about your experience, report a bug, or suggest a feature..."
+                  rows={4}
+                  className="w-full ios-input resize-none"
+                  style={{
+                    fontSize: '16px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                  }}
+                />
               </div>
+
+              {/* Email (optional) */}
+              <div>
+                <label className="block ios-caption text-white/70 mb-2 ml-1">
+                  Email (optional)
+                </label>
+                <input
+                  type="email"
+                  value={feedbackForm.email}
+                  onChange={(e) => setFeedbackForm(prev => ({
+                    ...prev,
+                    email: e.target.value
+                  }))}
+                  placeholder="your@email.com"
+                  className="w-full ios-input"
+                  style={{
+                    fontSize: '16px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                  }}
+                />
+                <p className="ios-caption text-white/50 mt-1 ml-1">
+                  We'll only use this to follow up on your feedback
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 p-4 border-t border-white/10">
+              <button
+                onClick={() => setShowFeedbackModal(false)}
+                className="flex-1 py-2.5 px-4 bg-white/10 hover:bg-white/15 text-white rounded-full transition-all duration-200 text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitFeedback}
+                disabled={!feedbackForm.message.trim() || isFeedbackLoading}
+                className="flex-1 py-2.5 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 text-white rounded-full transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium"
+              >
+                {isFeedbackLoading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : null}
+                {isFeedbackLoading ? 'Sending...' : 'Send Feedback'}
+              </button>
             </div>
           </div>
         </div>

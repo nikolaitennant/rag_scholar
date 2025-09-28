@@ -89,6 +89,7 @@ export interface UserProfile {
     bio?: string;
     research_interests?: string[];
     preferred_domains?: string[];
+    profile_image?: string;
   };
   stats?: {
     total_points?: number;

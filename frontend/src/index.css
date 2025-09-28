@@ -172,6 +172,39 @@
     }
   }
 
+  /* Gentle shimmer animation for splash screen text */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 50%;
+    }
+    100% {
+      background-position: 200% 50%;
+    }
+  }
+
+  /* Text shimmer that actually works with bg-clip-text */
+  @keyframes textShimmer {
+    0% {
+      background-position: -100% 50%;
+    }
+    100% {
+      background-position: 200% 50%;
+    }
+  }
+
+  /* Cycling dots animation */
+  @keyframes dotCycle {
+    0%, 20% {
+      opacity: 0.2;
+    }
+    50% {
+      opacity: 1;
+    }
+    80%, 100% {
+      opacity: 0.2;
+    }
+  }
+
 }
 
 @layer components {
@@ -405,6 +438,20 @@
     color: #8E8E93;
   }
 
+  /* Prevent emoji from breaking onto separate lines */
+  .name-with-emoji {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    white-space: nowrap;
+  }
+
+  /* For responsive name wrapping with emoji protection */
+  .name-text-wrap {
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    hyphens: none;
+  }
+
   /* iOS Keyboard Focus and Background Fixes */
   .ios-input:focus {
     background: rgba(255, 255, 255, 0.12) !important;
@@ -503,6 +550,34 @@
       z-index: 9999;
       pointer-events: none;
     }
+  }
+
+  /* Shimmer animation for splash screen */
+  .animate-shimmer {
+    background-size: 200% 100%;
+    animation: shimmer 2s ease-in-out infinite;
+  }
+
+  /* Text shimmer animation that works with gradient text */
+  .animate-text-shimmer {
+    background-size: 300% 100%;
+    animation: textShimmer 2.5s ease-in-out infinite;
+  }
+
+  /* Cycling dots animation */
+  .animate-dot-1 {
+    animation: dotCycle 1.4s ease-in-out infinite;
+    animation-delay: 0s;
+  }
+
+  .animate-dot-2 {
+    animation: dotCycle 1.4s ease-in-out infinite;
+    animation-delay: 0.2s;
+  }
+
+  .animate-dot-3 {
+    animation: dotCycle 1.4s ease-in-out infinite;
+    animation-delay: 0.4s;
   }
 
   /* Hide all scrollbars by default */

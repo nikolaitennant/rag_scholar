@@ -74,8 +74,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
 
   return (
     <div className={`min-h-screen flex relative overflow-hidden ${
-      theme === 'dark' 
-        ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900'
+      theme === 'dark'
+        ? 'bg-[#1C1C1E]'
         : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'
     }`}>
 
@@ -109,8 +109,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
 
           <div className="space-y-6">
             <div className={`backdrop-blur-sm rounded-xl p-6 border ${
-              theme === 'dark' 
-                ? 'bg-white/5 border-white/10' 
+              theme === 'dark'
+                ? 'bg-white/5 border-white/10'
                 : 'bg-black/5 border-black/10'
             }`}>
               <div className="flex items-center gap-3 mb-3">
@@ -126,38 +126,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
               </p>
             </div>
 
-            <div className={`backdrop-blur-sm rounded-xl p-6 border ${
-              theme === 'dark' 
-                ? 'bg-white/5 border-white/10' 
-                : 'bg-black/5 border-black/10'
-            }`}>
+            <div className="backdrop-blur-sm rounded-xl p-6 border bg-white/5 border-white/10">
               <div className="flex items-center gap-3 mb-3">
                 <Zap className="w-5 h-5 text-yellow-400" />
-                <h3 className={`font-semibold ${
-                  theme === 'dark' ? 'text-white' : 'text-black'
-                }`}>Achievement System</h3>
+                <h3 className="font-semibold text-white">Achievement System</h3>
               </div>
-              <p className={`text-sm ${
-                theme === 'dark' ? 'text-white/70' : 'text-black/70'
-              }`}>
+              <p className="text-sm text-white/70">
                 Earn points and unlock achievements as you research
               </p>
             </div>
 
-            <div className={`backdrop-blur-sm rounded-xl p-6 border ${
-              theme === 'dark' 
-                ? 'bg-white/5 border-white/10' 
-                : 'bg-black/5 border-black/10'
-            }`}>
+            <div className="backdrop-blur-sm rounded-xl p-6 border bg-white/5 border-white/10">
               <div className="flex items-center gap-3 mb-3">
                 <Heart className="w-5 h-5 text-pink-400" />
-                <h3 className={`font-semibold ${
-                  theme === 'dark' ? 'text-white' : 'text-black'
-                }`}>Personalized Experience</h3>
+                <h3 className="font-semibold text-white">Personalized Experience</h3>
               </div>
-              <p className={`text-sm ${
-                theme === 'dark' ? 'text-white/70' : 'text-black/70'
-              }`}>
+              <p className="text-sm text-white/70">
                 Custom classes, personal greetings, and tailored AI responses
               </p>
             </div>
@@ -169,18 +153,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
       <div className="flex-1 flex flex-col justify-center items-center px-8 sm:px-12 lg:px-16 relative">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <h2 className={`text-3xl font-bold mb-2 ${
-              theme === 'dark' ? 'text-white' : 'text-black'
-            }`}>
+            <h2 className="text-3xl font-bold mb-2 text-white">
               {isForgotPassword ? 'Reset Password' : isSignUp ? 'Create Account' : 'Welcome Back'}
             </h2>
-            <p className={`text-sm ${
-              theme === 'dark' ? 'text-white/60' : 'text-black/60'
-            }`}>
+            <p className="text-sm text-white/60">
               {isForgotPassword
                 ? 'Enter your email to receive a password reset link'
                 : isSignUp
-                ? 'Get started with your AI research assistant'
+                ? 'Get started with your AI study assistant'
                 : 'Sign in to continue your AI-powered study journey'
               }
             </p>
@@ -189,25 +169,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
           <form onSubmit={handleSubmit} className="space-y-6">
             {isSignUp && !isForgotPassword && (
               <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === 'dark' ? 'text-white/80' : 'text-black/80'
-                }`}>
+                <label className="block text-sm font-medium mb-2 text-white/80">
                   Full Name
                 </label>
                 <div className="relative">
-                  <User className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
-                    theme === 'dark' ? 'text-white/40' : 'text-black/40'
-                  }`} />
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/40" />
                   <input
                     ref={nameInputRef}
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className={`w-full pl-12 pr-4 py-3 rounded-xl border focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors ${
+                    className={`w-full pl-12 pr-4 py-3 rounded-full border-0 focus:ring-2 focus:ring-purple-500 focus:outline-none transition-colors ${
                       theme === 'dark'
-                        ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
-                        : 'bg-black/5 border-black/20 text-black placeholder-black/50'
+                        ? 'bg-white/10 text-white placeholder-white/50'
+                        : 'bg-black/5 text-black placeholder-black/50'
                     }`}
                     placeholder="Enter your full name"
                   />
@@ -216,24 +192,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
             )}
 
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                theme === 'dark' ? 'text-white/80' : 'text-black/80'
-              }`}>
+              <label className="block text-sm font-medium mb-2 text-white/80">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
-                  theme === 'dark' ? 'text-white/40' : 'text-black/40'
-                }`} />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/40" />
                 <input
                   type="email"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className={`w-full pl-12 pr-4 py-3 rounded-xl border focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors ${
+                  className={`w-full pl-12 pr-4 py-3 rounded-full border-0 focus:ring-2 focus:ring-purple-500 focus:outline-none transition-colors ${
                     theme === 'dark'
-                      ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
-                      : 'bg-black/5 border-black/20 text-black placeholder-black/50'
+                      ? 'bg-white/10 text-white placeholder-white/50'
+                      : 'bg-black/5 text-black placeholder-black/50'
                   }`}
                   placeholder="Enter your email"
                 />
@@ -242,33 +214,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
 
             {!isForgotPassword && (
               <div className="space-y-2">
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === 'dark' ? 'text-white/80' : 'text-black/80'
-                }`}>
+                <label className="block text-sm font-medium mb-2 text-white/80">
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
-                    theme === 'dark' ? 'text-white/40' : 'text-black/40'
-                  }`} />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/40" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
                     value={formData.password}
                     onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                    className={`w-full pl-12 pr-12 py-3 rounded-xl border focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors ${
+                    className={`w-full pl-12 pr-12 py-3 rounded-full border-0 focus:ring-2 focus:ring-purple-500 focus:outline-none transition-colors ${
                       theme === 'dark'
-                        ? 'bg-white/10 border-white/20 text-white placeholder-white/50'
-                        : 'bg-black/5 border-black/20 text-black placeholder-black/50'
+                        ? 'bg-white/10 text-white placeholder-white/50'
+                        : 'bg-black/5 text-black placeholder-black/50'
                     }`}
                     placeholder="Enter your password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
-                      theme === 'dark' ? 'text-white/40 hover:text-white/60' : 'text-black/40 hover:text-black/60'
-                    }`}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/40 hover:text-white/60"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -278,9 +244,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
                     <button
                       type="button"
                       onClick={() => setIsForgotPassword(true)}
-                      className={`text-sm hover:underline ${
-                        theme === 'dark' ? 'text-white/60 hover:text-white' : 'text-black/60 hover:text-black'
-                      }`}
+                      className="text-sm hover:underline text-white/60 hover:text-white"
                     >
                       Forgot your password?
                     </button>
@@ -290,30 +254,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
             )}
 
             {error && (
-              <div className={`p-3 rounded-xl border ${
-                theme === 'dark'
-                  ? 'bg-red-900/20 border-red-500/30 text-red-400'
-                  : 'bg-red-50 border-red-200 text-red-600'
-              }`}>
+              <div className="p-3 rounded-xl border bg-red-900/20 border-red-500/30 text-red-400">
                 <p className="text-sm text-center">{error}</p>
               </div>
             )}
 
             {successMessage && (
-              <div className={`p-3 rounded-xl border ${
-                theme === 'dark'
-                  ? 'bg-green-900/20 border-green-500/30 text-green-400'
-                  : 'bg-green-50 border-green-200 text-green-600'
-              }`}>
+              <div className="p-3 rounded-xl border bg-green-900/20 border-green-500/30 text-green-400">
                 <p className="text-sm text-center">{successMessage}</p>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <div className="flex justify-center">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-full transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+              >
               {isLoading ? (
                 <div className="flex items-center justify-center">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
@@ -322,7 +279,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
               ) : (
                 isForgotPassword ? 'Send Reset Email' : isSignUp ? 'Create Account' : 'Sign In'
               )}
-            </button>
+              </button>
+            </div>
           </form>
 
           <div className="mt-6 text-center space-y-3">
@@ -338,9 +296,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSignUp, onReset
                   setSuccessMessage(null);
                 }
               }}
-              className={`text-sm hover:underline ${
-                theme === 'dark' ? 'text-white/60 hover:text-white' : 'text-black/60 hover:text-black'
-              }`}
+              className="text-sm hover:underline text-white/60 hover:text-white"
             >
               {isForgotPassword
                 ? 'Back to sign in'

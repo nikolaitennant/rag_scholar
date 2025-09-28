@@ -452,6 +452,7 @@
     hyphens: none;
   }
 
+
   /* iOS Keyboard Focus and Background Fixes */
   .ios-input:focus {
     background: rgba(255, 255, 255, 0.12) !important;

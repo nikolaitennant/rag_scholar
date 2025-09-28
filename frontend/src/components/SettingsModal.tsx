@@ -26,6 +26,51 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     return localStorage.getItem('userTimezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
   });
   const [currentView, setCurrentView] = useState<'main' | 'account' | 'appearance' | 'api' | 'timezone' | 'advanced' | 'help' | 'profile'>('main');
+
+  // Lightweight touch handling for swipe back
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [currentTranslateX, setCurrentTranslateX] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (currentView === 'main') return;
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartX || currentView === 'main') return;
+
+    const currentX = e.touches[0].clientX;
+    const deltaX = currentX - touchStartX;
+
+    if (deltaX > 0) { // Only allow rightward swipe
+      const clampedDelta = Math.min(deltaX, 300);
+      setCurrentTranslateX(clampedDelta);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX || currentView === 'main') return;
+
+    if (currentTranslateX > 120) {
+      // Complete the transition
+      setIsTransitioning(true);
+      setCurrentView('main');
+    } else {
+      // Snap back
+      setCurrentTranslateX(0);
+    }
+
+    setTouchStartX(null);
+  };
+
+  // Reset translate when view changes
+  useEffect(() => {
+    if (isTransitioning) {
+      setCurrentTranslateX(0);
+      setIsTransitioning(false);
+    }
+  }, [currentView]);
   const [showProfileImageModal, setShowProfileImageModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -1094,15 +1139,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto scrollbar-none">
-          {currentView === 'main' && renderMainView()}
-          {currentView === 'account' && renderAccountView()}
-          {currentView === 'appearance' && renderAppearanceView()}
-          {currentView === 'api' && renderApiView()}
-          {currentView === 'timezone' && renderTimezoneView()}
-          {currentView === 'advanced' && renderAdvancedView()}
-          {currentView === 'help' && renderHelpView()}
-          {currentView === 'profile' && <ProfilePage onBack={() => setCurrentView('main')} />}
+        <div className="flex-1 overflow-hidden relative">
+          {/* Background Main View (visible during drag) */}
+          {currentView !== 'main' && currentTranslateX > 0 && (
+            <div
+              className="absolute inset-0 overflow-y-auto scrollbar-none"
+              style={{
+                opacity: Math.min(currentTranslateX / 150, 1)
+              }}
+            >
+              {renderMainView()}
+            </div>
+          )}
+
+          {/* Current View */}
+          <div
+            className="absolute inset-0 overflow-y-auto scrollbar-none transition-transform duration-300 ease-out"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{
+              transform: `translateX(${currentTranslateX}px) scale(${currentTranslateX > 0 ? 0.95 + (0.05 * (1 - currentTranslateX / 300)) : 1})`,
+              boxShadow: currentTranslateX > 0 ? '0 0 20px rgba(0, 0, 0, 0.3)' : 'none',
+              borderRadius: currentTranslateX > 0 ? '12px' : '0px',
+              transitionProperty: isTransitioning ? 'transform, box-shadow, border-radius' : 'none'
+            }}
+          >
+            {currentView === 'main' && renderMainView()}
+            {currentView === 'account' && renderAccountView()}
+            {currentView === 'appearance' && renderAppearanceView()}
+            {currentView === 'api' && renderApiView()}
+            {currentView === 'timezone' && renderTimezoneView()}
+            {currentView === 'advanced' && renderAdvancedView()}
+            {currentView === 'help' && renderHelpView()}
+            {currentView === 'profile' && <ProfilePage onBack={() => setCurrentView('main')} />}
+          </div>
         </div>
 
         {/* Save Message */}

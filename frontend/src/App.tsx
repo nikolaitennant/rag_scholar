@@ -3082,13 +3082,13 @@ const AppContent: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-4 space-y-4">
-              {/* Feedback Type - Pill Buttons */}
+            <div className="p-6 space-y-6">
+              {/* Feedback Type - Improved Pills */}
               <div>
-                <label className="block ios-caption text-white/70 mb-2 ml-1">
-                  Type
+                <label className="block text-sm font-medium text-white/80 mb-3">
+                  Feedback Type
                 </label>
-                <div className="flex gap-2 flex-wrap justify-center">
+                <div className="flex gap-2 flex-wrap">
                   {[
                     { id: 'general', name: 'General' },
                     { id: 'bug', name: 'Bug Report' },
@@ -3099,10 +3099,10 @@ const AppContent: React.FC = () => {
                       <button
                         key={option.id}
                         onClick={() => setFeedbackForm(prev => ({ ...prev, type: option.id as any }))}
-                        className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200 ${
+                        className={`px-4 py-2 text-sm rounded-full border transition-all duration-200 ${
                           isSelected
-                            ? 'bg-gradient-to-r from-blue-500/20 to-purple-600/20 border-purple-500/50 text-purple-300'
-                            : 'border-white/20 text-white/70 hover:border-purple-500/30 hover:text-purple-300'
+                            ? 'bg-gradient-to-r from-blue-500/20 to-purple-600/20 border-purple-500/60 text-purple-300 shadow-lg'
+                            : 'border-white/20 text-white/70 hover:border-purple-500/40 hover:text-purple-300 hover:bg-white/5'
                         }`}
                       >
                         {option.name}
@@ -3114,7 +3114,7 @@ const AppContent: React.FC = () => {
 
               {/* Message */}
               <div>
-                <label className="block ios-caption text-white/70 mb-2 ml-1">
+                <label className="block text-sm font-medium text-white/80 mb-3">
                   Message *
                 </label>
                 <textarea
@@ -3125,17 +3125,16 @@ const AppContent: React.FC = () => {
                   }))}
                   placeholder="Tell us about your experience, report a bug, or suggest a feature..."
                   rows={4}
-                  className="w-full ios-input resize-none"
+                  className="w-full rounded-2xl border-0 bg-white/10 text-white placeholder-white/50 p-4 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all duration-200"
                   style={{
                     fontSize: '16px',
-                    background: 'rgba(255, 255, 255, 0.08)',
                   }}
                 />
               </div>
 
               {/* Email (optional) */}
               <div>
-                <label className="block ios-caption text-white/70 mb-2 ml-1">
+                <label className="block text-sm font-medium text-white/80 mb-3">
                   Email (optional)
                 </label>
                 <input
@@ -3146,13 +3145,12 @@ const AppContent: React.FC = () => {
                     email: e.target.value
                   }))}
                   placeholder="your@email.com"
-                  className="w-full ios-input"
+                  className="w-full rounded-full border-0 bg-white/10 text-white placeholder-white/50 p-4 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all duration-200"
                   style={{
                     fontSize: '16px',
-                    background: 'rgba(255, 255, 255, 0.08)',
                   }}
                 />
-                <p className="ios-caption text-white/50 mt-1 ml-1">
+                <p className="text-xs text-white/50 mt-2">
                   We'll only use this to follow up on your feedback
                 </p>
               </div>

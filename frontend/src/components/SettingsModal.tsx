@@ -290,7 +290,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
 
   const renderMainView = () => (
-    <div className="flex flex-col h-full" style={{ minHeight: '120vh' }}>
+    <div className="flex flex-col h-full">
       {/* User Profile Section */}
       <div className="px-6 py-6 border-b border-white/10">
         <button
@@ -327,7 +327,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         <div className="space-y-0">
           <button
             onClick={() => setCurrentView('account')}
-            className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/8 active:bg-white/5 transition-colors rounded-full"
           >
             <div className="flex items-center space-x-4">
               <div className="w-6 h-6 text-white/70">
@@ -340,7 +340,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
           <button
             onClick={() => setCurrentView('appearance')}
-            className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/8 active:bg-white/5 transition-colors rounded-full"
           >
             <div className="flex items-center space-x-4">
               <div className="w-6 h-6 text-white/70">
@@ -353,7 +353,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
           <button
             onClick={() => setCurrentView('api')}
-            className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/8 active:bg-white/5 transition-colors rounded-full"
           >
             <div className="flex items-center space-x-4">
               <div className="w-6 h-6 text-white/70">
@@ -367,7 +367,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
           <button
             onClick={() => setCurrentView('timezone')}
-            className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/8 active:bg-white/5 transition-colors rounded-full"
           >
             <div className="flex items-center space-x-4">
               <div className="w-6 h-6 text-white/70">
@@ -380,7 +380,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
           <button
             onClick={() => setCurrentView('advanced')}
-            className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/8 active:bg-white/5 transition-colors rounded-full"
           >
             <div className="flex items-center space-x-4">
               <div className="w-6 h-6 text-white/70">
@@ -393,7 +393,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
           <button
             onClick={() => setCurrentView('help')}
-            className="w-full flex items-center justify-between px-4 py-4 active:bg-white/5 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/8 active:bg-white/5 transition-colors rounded-full"
           >
             <div className="flex items-center space-x-4">
               <div className="w-6 h-6 text-white/70">
@@ -1120,17 +1120,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto scrollbar-none" style={{
-          WebkitOverflowScrolling: 'touch'
+        <div className="flex-1 overflow-y-scroll" style={{
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'auto',
+          scrollSnapType: 'y mandatory',
+          mask: 'linear-gradient(to bottom, transparent 0px, black 40px, black 100%)',
+          WebkitMask: 'linear-gradient(to bottom, transparent 0px, black 40px, black 100%)'
         }}>
-          {currentView === 'main' && renderMainView()}
-          {currentView === 'account' && renderAccountView()}
-          {currentView === 'appearance' && renderAppearanceView()}
-          {currentView === 'api' && renderApiView()}
-          {currentView === 'timezone' && renderTimezoneView()}
-          {currentView === 'advanced' && renderAdvancedView()}
-          {currentView === 'help' && renderHelpView()}
-          {currentView === 'profile' && <ProfilePage onBack={() => setCurrentView('main')} />}
+          {/* Content with scroll snap for perfect return */}
+          <div style={{
+            minHeight: 'calc(100% + 40px)',
+            paddingBottom: '40px'
+          }}>
+            {/* Invisible snap point at the very top */}
+            <div style={{
+              scrollSnapAlign: 'start',
+              scrollSnapStop: 'always',
+              height: '1px',
+              marginBottom: '-1px'
+            }} />
+
+            {/* Actual content */}
+            <div style={{ scrollSnapAlign: 'start' }}>
+              {currentView === 'main' && renderMainView()}
+              {currentView === 'account' && renderAccountView()}
+              {currentView === 'appearance' && renderAppearanceView()}
+              {currentView === 'api' && renderApiView()}
+              {currentView === 'timezone' && renderTimezoneView()}
+              {currentView === 'advanced' && renderAdvancedView()}
+              {currentView === 'help' && renderHelpView()}
+              {currentView === 'profile' && <ProfilePage onBack={() => setCurrentView('main')} />}
+            </div>
+          </div>
         </div>
 
         {/* Save Message */}

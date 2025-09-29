@@ -134,12 +134,13 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
           <div
             className="pointer-events-none fixed left-0 right-0"
             style={{
-              height: '85px',
+              height: '123px',
               bottom: isKeyboardOpen
                 ? 'calc(max(env(safe-area-inset-bottom), 4px) + 57px)'
                 : 'calc(60px + max(env(safe-area-inset-bottom), 0px) - 10px)',
-              background: 'linear-gradient(to top, rgba(28, 28, 30, 0.8) 0%, rgba(28, 28, 30, 0.5) 40%, rgba(28, 28, 30, 0.2) 70%, rgba(28, 28, 30, 0) 100%)',
-              
+              background: 'linear-gradient(to top, rgba(28, 28, 30, 0.8) 0%, rgba(28, 28, 30, 0.6) 25%, rgba(28, 28, 30, 0.3) 50%, rgba(28, 28, 30, 0.1) 75%, rgba(28, 28, 30, 0.05) 85%, rgba(28, 28, 30, 0.01) 95%, rgba(28, 28, 30, 0) 100%)',
+              maskImage: 'radial-gradient(ellipse 100% 80% at 50% 100%, black 0%, black 80%, transparent 100%)',
+              WebkitMaskImage: 'radial-gradient(ellipse 100% 80% at 50% 100%, black 0%, black 80%, transparent 100%)',
               backdropFilter: 'blur(6px)',
               WebkitBackdropFilter: 'blur(.5px)',
               zIndex: 45
@@ -149,7 +150,7 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
 
         {/* Fixed Bottom Input - iOS Style */}
         <div
-          className="fixed left-0 right-0 px-8 py-2 z-50"
+          className="fixed left-0 right-0 px-8 py-1 z-50"
           style={{
             bottom: isKeyboardOpen
               ? 'max(env(safe-area-inset-bottom), 4px)'

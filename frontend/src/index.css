@@ -232,7 +232,7 @@
     @apply border-none outline-none bg-transparent;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 24px;
-    padding: 12px 14px;
+    padding: 10px 14px;
     color: var(--ios-text-primary);
   }
 

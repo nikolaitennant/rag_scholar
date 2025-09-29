@@ -136,8 +136,8 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
             style={{
               height: '30px',
               bottom: isKeyboardOpen
-                ? 'calc(max(env(safe-area-inset-bottom), 4px) + 50px)'
-                : 'calc(60px + max(env(safe-area-inset-bottom), 0px) + 57itpx)',
+                ? 'calc(max(env(safe-area-inset-bottom), 4px) + 57px)'
+                : 'calc(60px + max(env(safe-area-inset-bottom), 0px) + 57px)',
               background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%)',
               backdropFilter: 'blur(6px)',
               WebkitBackdropFilter: 'blur(.5px)',

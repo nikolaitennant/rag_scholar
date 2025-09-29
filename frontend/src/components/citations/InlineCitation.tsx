@@ -42,6 +42,11 @@ export const InlineCitation: React.FC<InlineCitationProps> = ({
     setShowCard(!showCard);
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // On mobile, show tooltip on touch
+    handleMouseEnter(e as any);
+  };
+
   // Close card when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -88,6 +93,7 @@ export const InlineCitation: React.FC<InlineCitationProps> = ({
         aria-label={`Citation: ${citation.source}${citation.page ? `, Page ${citation.page}` : ''}`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
         onClick={handleClick}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {

@@ -1,18 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Citation } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
-import { InlineCitation } from './InlineCitation';
-import { CitationTooltip } from './CitationTooltip';
-import { Calendar, Hash, FileText } from 'lucide-react';
+import { MobileCitationTooltip } from './MobileCitationTooltip';
 
-interface CitationGroupProps {
+interface MobileCitationGroupProps {
   citations: Citation[];
   citationNumbers: number[];
   messageIndex: number;
   maxVisible?: number;
 }
 
-export const CitationGroup: React.FC<CitationGroupProps> = ({
+export const MobileCitationGroup: React.FC<MobileCitationGroupProps> = ({
   citations,
   citationNumbers,
   messageIndex,
@@ -25,38 +23,53 @@ export const CitationGroup: React.FC<CitationGroupProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleMouseEnter = () => {
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
     }
 
     const rect = groupRef.current?.getBoundingClientRect();
     if (rect) {
-      const tooltipWidth = 280;
+      const tooltipWidth = Math.min(320, window.innerWidth - 32); // Mobile-responsive width
       setTooltipPosition({
-        x: rect.left + rect.width / 2 - tooltipWidth / 2,
+        x: Math.max(16, Math.min(rect.left + rect.width / 2 - tooltipWidth / 2, window.innerWidth - tooltipWidth - 16)),
         y: rect.bottom + 8
       });
     }
     setShowTooltip(true);
   };
 
-  const handleMouseLeave = () => {
-    hoverTimeoutRef.current = setTimeout(() => {
+  const handleClick = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    if (showTooltip) {
       setShowTooltip(false);
-    }, 500);
-  };
-
-  const handleContainerMouseEnter = () => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
+    } else {
+      handleTouchStart(e as React.TouchEvent);
     }
-    setShowTooltip(true);
   };
 
-  const handleContainerMouseLeave = () => {
+  const handleContainerTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation();
+  };
+
+  const handleOutsideTouch = () => {
     setShowTooltip(false);
   };
+
+  useEffect(() => {
+    if (showTooltip) {
+      const handleTouchOutside = (event: TouchEvent) => {
+        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+          setShowTooltip(false);
+        }
+      };
+
+      document.addEventListener('touchstart', handleTouchOutside);
+      return () => document.removeEventListener('touchstart', handleTouchOutside);
+    }
+  }, [showTooltip]);
 
   useEffect(() => {
     return () => {
@@ -66,15 +79,6 @@ export const CitationGroup: React.FC<CitationGroupProps> = ({
     };
   }, []);
 
-  const handleClick = () => {
-    console.log('Citation group clicked:', citations);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    // On mobile, treat touch as hover for citation tooltips
-    handleMouseEnter();
-  };
-
   const firstCitation = citations[0];
   const additionalCount = citations.length - 1;
 
@@ -82,38 +86,38 @@ export const CitationGroup: React.FC<CitationGroupProps> = ({
     <div
       ref={containerRef}
       className="relative inline-block"
-      onMouseEnter={handleContainerMouseEnter}
-      onMouseLeave={handleContainerMouseLeave}
+      onTouchStart={handleContainerTouchStart}
     >
       <span
         ref={groupRef}
-        className={`cursor-pointer select-none transition-all duration-200 text-xs px-1 py-0 rounded-full inline-block ${
+        className={`cursor-pointer select-none transition-all duration-200 text-sm px-2 py-1 rounded-full inline-block touch-manipulation ${
           theme === 'dark'
-            ? 'text-gray-200 bg-gray-600/60 hover:bg-gray-500/80'
-            : 'text-gray-600 bg-gray-200/60 hover:bg-gray-300/80'
+            ? 'text-gray-200 bg-gray-600/60 hover:bg-gray-500/80 active:bg-gray-400/80'
+            : 'text-gray-600 bg-gray-200/60 hover:bg-gray-300/80 active:bg-gray-400/80'
         } ${showTooltip ? 'ring-2 ring-blue-400/30' : ''}`}
         style={{
-          fontSize: '7px',
+          fontSize: '10px',
           fontWeight: 'normal',
           verticalAlign: 'baseline',
           userSelect: 'none',
           WebkitUserSelect: 'none',
           MozUserSelect: 'none',
-          msUserSelect: 'none'
+          msUserSelect: 'none',
+          minHeight: '24px',
+          minWidth: '24px',
+          WebkitTapHighlightColor: 'transparent'
         }}
         tabIndex={0}
         role="button"
         aria-haspopup="true"
         aria-expanded={showTooltip}
         aria-label={`Citation: ${firstCitation.source}${additionalCount > 0 ? ` and ${additionalCount} more` : ''}`}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         onTouchStart={handleTouchStart}
         onClick={handleClick}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            handleClick();
+            handleClick(e as any);
           }
         }}
       >
@@ -121,33 +125,19 @@ export const CitationGroup: React.FC<CitationGroupProps> = ({
       </span>
 
       {showTooltip && (
-        <>
-          <div
-            className="fixed z-[99]"
-            style={{
-              left: tooltipPosition.x,
-              top: tooltipPosition.y - 8,
-              width: '280px',
-              height: '16px'
-            }}
+        <div
+          className="fixed z-[100]"
+          style={{
+            left: tooltipPosition.x,
+            top: tooltipPosition.y
+          }}
+        >
+          <MobileCitationTooltip
+            citations={citations}
+            visible={showTooltip}
+            onClose={() => setShowTooltip(false)}
           />
-
-          <div
-            className="fixed z-[100]"
-            style={{
-              left: tooltipPosition.x,
-              top: tooltipPosition.y
-            }}
-          >
-            <CitationTooltip
-              citations={citations}
-              visible={showTooltip}
-              onClose={() => setShowTooltip(false)}
-              onMouseEnter={handleContainerMouseEnter}
-              onMouseLeave={handleContainerMouseLeave}
-            />
-          </div>
-        </>
+        </div>
       )}
     </div>
   );

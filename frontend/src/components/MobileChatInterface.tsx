@@ -5,6 +5,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { CommandSuggestions } from './CommandSuggestions';
 import { getCommandSuggestions } from '../utils/commandParser';
 import { DOMAIN_TYPE_INFO } from '../constants/domains';
+import { MobileCitationRenderer } from './citations/MobileCitationRenderer';
+import ReactMarkdown from 'react-markdown';
 
 interface MobileChatInterfaceProps {
   messages: Message[];
@@ -104,15 +106,63 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
                     className={`${message.role === 'user' ? 'max-w-[85%]' : 'w-full'} ${
                       message.role === 'user'
                         ? `px-4 py-2 rounded-full overflow-hidden backdrop-blur-2xl ${theme === 'dark' ? 'bg-white/15 text-white' : 'bg-white/10 text-black'}`
-                        : `px-0 py-0 bg-transparent ${theme === 'dark' ? 'text-white' : 'text-black'}`
+                        : `px-0 py-0 bg-transparent border-0 shadow-none ${theme === 'dark' ? 'text-white' : 'text-black'}`
                     }`}
                     style={message.role === 'user' ? {
                       backdropFilter: 'blur(20px) saturate(120%) brightness(0.9)',
                       WebkitBackdropFilter: 'blur(20px) saturate(120%) brightness(0.9)'
                     } : {}}
                   >
-                    <div className="prose prose-sm max-w-none text-base prose-invert">
-                      {message.content}
+                    <div className={`prose prose-base max-w-none text-base ${
+                      message.role === 'user' || theme === 'dark' ? 'prose-invert' : ''
+                    }`}>
+                      {message.role === 'assistant' ? (
+                        <MobileCitationRenderer
+                          content={message.content}
+                          citations={message.citations || []}
+                          messageIndex={index}
+                        />
+                      ) : (
+                        <ReactMarkdown
+                          components={{
+                            code: ({ node, className, children, ...props }) => {
+                              const match = /language-(\w+)/.exec(className || '');
+                              const isInline = !className;
+                              return !isInline && match ? (
+                                <pre className={`rounded-lg p-3 overflow-x-auto border ${
+                                  theme === 'dark'
+                                    ? 'bg-black/20 border-white/10'
+                                    : 'bg-white/20 border-black/10'
+                                }`}>
+                                  <code className={className} {...props}>
+                                    {children}
+                                  </code>
+                                </pre>
+                              ) : (
+                                <code className={`px-1.5 py-0.5 rounded text-base border ${
+                                  theme === 'dark'
+                                    ? 'bg-black/20 border-white/10'
+                                    : 'bg-white/20 border-black/10'
+                                }`} {...props}>
+                                  {children}
+                                </code>
+                              );
+                            },
+                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
+                            ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
+                            blockquote: ({ children }) => (
+                              <blockquote className={`border-l-2 pl-3 italic opacity-80 ${
+                                theme === 'dark'
+                                  ? 'border-white/30'
+                                  : 'border-black/30'
+                              }`}>{children}</blockquote>
+                            ),
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                      )}
                     </div>
                   </div>
                 </div>

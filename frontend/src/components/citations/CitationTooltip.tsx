@@ -90,6 +90,10 @@ export const CitationTooltip: React.FC<CitationTooltipProps> = ({
         e.stopPropagation();
         onMouseLeave?.();
       }}
+      onTouchStart={(e) => {
+        e.stopPropagation();
+        onMouseEnter?.();
+      }}
     >
       {/* Header with navigation */}
       <div className="flex items-center justify-between mb-2">

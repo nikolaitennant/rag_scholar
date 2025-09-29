@@ -271,38 +271,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   const renderMainView = () => (
     <div className="flex flex-col h-full">
       {/* User Profile Section */}
-      <div className="px-6 py-8 border-b border-white/10">
-        <div className="flex items-center space-x-4">
-          {/* Profile Image - Click to expand */}
-          <button
-            onClick={() => setShowProfileImageModal(true)}
-            className="w-16 h-16 rounded-full overflow-hidden bg-gray-300 hover:opacity-80 transition-opacity"
-          >
-            <img
-              src={userProfile?.profile?.profile_image || user?.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face"}
-              alt="Profile"
-              className="w-full h-full object-cover"
-              key={userProfile?.profile?.profile_image || user?.photoURL}
-            />
-          </button>
+      <div className="px-6 py-6 border-b border-white/10">
+        <button
+          onClick={() => setCurrentView('profile')}
+          className="w-full flex items-center justify-between space-x-4 active:bg-white/5 transition-colors rounded-xl p-2 -m-2"
+        >
+          <div className="flex items-center space-x-4">
+            {/* Profile Image */}
+            <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-300">
+              <img
+                src={userProfile?.profile?.profile_image || user?.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face"}
+                alt="Profile"
+                className="w-full h-full object-cover"
+                key={userProfile?.profile?.profile_image || user?.photoURL}
+              />
+            </div>
 
-          {/* Name - Click to go to profile */}
-          <div className="flex-1">
-            <button
-              onClick={() => setCurrentView('profile')}
-              className="text-left group"
-            >
-              <h3 className="text-white text-xl font-semibold group-hover:text-[#A855F7] transition-colors">
+            {/* Name and subtitle */}
+            <div className="flex-1 text-left">
+              <h3 className="text-white text-xl font-semibold">
                 {user?.displayName || user?.email || 'User'}
               </h3>
-              <p className="text-white/60 text-sm">View & edit profile</p>
-            </button>
+              <p className="text-white/60 text-sm">View profile</p>
+            </div>
           </div>
-        </div>
+
+          {/* Arrow */}
+          <ChevronRight className="w-5 h-5 text-white/40" />
+        </button>
       </div>
 
       {/* Settings List */}
-      <div className="flex-1 px-4 py-2">
+      <div className="flex-1 px-4 py-1">
         <div className="space-y-0">
           <button
             onClick={() => setCurrentView('account')}
@@ -384,7 +384,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           </button>
 
           {/* Logout Button - Below Help with extra spacing */}
-          <div className="px-4 pt-12 pb-4 flex justify-center">
+          <div className="px-4 pt-20 pb-4 flex justify-center">
             <button
               onClick={() => {
                 logout();
@@ -392,16 +392,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               }}
               className="rounded-full px-6 py-3 active:scale-98 transition-all duration-200"
               style={{
-                background: 'rgba(239, 68, 68, 0.15)',
+                background: 'linear-gradient(to right, #3B82F6, #8B5CF6)',
                 backdropFilter: 'blur(20px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
               }}
             >
-              <div className="flex items-center justify-center space-x-2">
-                <LogOut className="w-5 h-5 text-red-400" />
-                <span className="text-red-400 text-base font-medium">Log Out</span>
-              </div>
+              <span className="text-white text-base font-bold">Log Out</span>
             </button>
           </div>
         </div>
@@ -687,7 +683,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                   background: 'rgba(28, 28, 30, 0.85)',
                   backdropFilter: 'blur(20px) saturate(180%)',
                   WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
                   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
                 }}>
                 <div className="space-y-0">
@@ -808,7 +803,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                     background: 'rgba(28, 28, 30, 0.85)',
                     backdropFilter: 'blur(20px) saturate(180%)',
                     WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
                     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
                   }}>
                   <div className="space-y-0">

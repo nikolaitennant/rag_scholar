@@ -230,7 +230,7 @@
   /* iOS Input System for Mobile Chat */
   .ios-input {
     @apply border-none outline-none bg-transparent;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.15);
     border-radius: 24px;
     padding: 10px 14px;
     color: var(--ios-text-primary);
@@ -275,7 +275,7 @@
 
     /* Ensure messages don't overlap input area */
     .chat-container .flex-1.overflow-y-auto {
-      max-height: calc(100vh - 272px) !important;
+      max-height: calc(100vh - 265px) !important;
     }
 
     /* iOS Input Focus and Background Fixes */

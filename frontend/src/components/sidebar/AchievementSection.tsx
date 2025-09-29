@@ -79,7 +79,7 @@ export const AchievementSection: React.FC<AchievementSectionProps> = ({ userProf
             theme === 'dark'
               ? 'bg-gradient-to-r from-yellow-400/20 to-orange-400/20'
               : 'bg-gradient-to-r from-yellow-300/40 to-amber-400/40'
-          }`} />
+          }`} style={{ animationDuration: '1s' }} />
         )}
 
         <div className="relative">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Message, UserClass } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
@@ -32,6 +32,7 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
   handleSendMessage,
 }) => {
   const { theme } = useTheme();
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   return (
     <div className="h-full chat-container" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -73,12 +74,12 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
       <div className="flex-1 min-h-0 flex flex-col relative">
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-4" style={{
-          paddingBottom: isKeyboardOpen ? '50px' : '130px'
+          paddingBottom: isKeyboardOpen ? '40px' : '100px'
         }}>
           {messages.length === 0 && !mobileInput.trim() ? (
-            /* Mobile welcome state - fades out when typing */
+            /* Mobile welcome state - fades out when typing or focused */
             <div className={`flex flex-col justify-center h-full text-center transition-opacity duration-300 ${
-              mobileInput.trim() ? 'opacity-0' : 'opacity-100'
+              mobileInput.trim() || isInputFocused ? 'opacity-0' : 'opacity-100'
             }`}>
               <div className={`mb-8 ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
                 <h2 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
@@ -102,7 +103,7 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
                   <div
                     className={`${message.role === 'user' ? 'max-w-[85%]' : 'w-full'} ${
                       message.role === 'user'
-                        ? `px-4 py-2 rounded-full overflow-hidden backdrop-blur-2xl ${theme === 'dark' ? 'bg-black/10 text-white' : 'bg-white/10 text-black'}`
+                        ? `px-4 py-2 rounded-full overflow-hidden backdrop-blur-2xl ${theme === 'dark' ? 'bg-white/15 text-white' : 'bg-white/10 text-black'}`
                         : `px-0 py-0 bg-transparent ${theme === 'dark' ? 'text-white' : 'text-black'}`
                     }`}
                     style={message.role === 'user' ? {
@@ -134,15 +135,14 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
           <div
             className="pointer-events-none fixed left-0 right-0"
             style={{
-              height: '123px',
+              height: '110px',
               bottom: isKeyboardOpen
                 ? 'calc(max(env(safe-area-inset-bottom), 4px) + 57px)'
                 : 'calc(60px + max(env(safe-area-inset-bottom), 0px) - 10px)',
-              background: 'linear-gradient(to top, rgba(28, 28, 30, 0.8) 0%, rgba(28, 28, 30, 0.6) 25%, rgba(28, 28, 30, 0.3) 50%, rgba(28, 28, 30, 0.1) 75%, rgba(28, 28, 30, 0.05) 85%, rgba(28, 28, 30, 0.01) 95%, rgba(28, 28, 30, 0) 100%)',
               maskImage: 'radial-gradient(ellipse 100% 80% at 50% 100%, black 0%, black 80%, transparent 100%)',
               WebkitMaskImage: 'radial-gradient(ellipse 100% 80% at 50% 100%, black 0%, black 80%, transparent 100%)',
               backdropFilter: 'blur(6px)',
-              WebkitBackdropFilter: 'blur(.5px)',
+              WebkitBackdropFilter: 'blur(.55px)',
               zIndex: 45
             }}
           />
@@ -150,7 +150,7 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
 
         {/* Fixed Bottom Input - iOS Style */}
         <div
-          className="fixed left-0 right-0 px-8 py-1 z-50"
+          className="fixed left-0 right-0 px-6 py-1 z-50"
           style={{
             bottom: isKeyboardOpen
               ? 'max(env(safe-area-inset-bottom), 4px)'
@@ -197,6 +197,10 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
                 onFocus={(e) => {
                   // Prevent default scroll behavior for iOS overlay keyboard
                   e.preventDefault();
+                  setIsInputFocused(true);
+                }}
+                onBlur={() => {
+                  setIsInputFocused(false);
                 }}
               />
             </form>

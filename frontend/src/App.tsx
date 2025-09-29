@@ -211,6 +211,7 @@ const AppContent: React.FC = () => {
     localStorage.setItem('userTimezone', timezone);
   }, [timezone]);
 
+
   useEffect(() => {
     localStorage.setItem('api_key', apiSettings.apiKey);
     localStorage.setItem('preferred_model', apiSettings.model);
@@ -260,7 +261,6 @@ const AppContent: React.FC = () => {
       // Reset form and close modal
       setFeedbackForm({ type: 'general', message: '', email: '' });
       setShowFeedbackModal(false);
-
       // Show success message
       alert('Feedback sent successfully! Thank you for your input.');
     } catch (error) {
@@ -1975,7 +1975,7 @@ const AppContent: React.FC = () => {
                         }
                         setMobileFilterDropdownOpen(!mobileFilterDropdownOpen);
                       }}
-                      className="w-full px-5 py-3.5 rounded-full text-sm bg-[#1C1C1E]/30 backdrop-blur-md border border-white/10 text-white focus:outline-none focus:bg-[#1C1C1E]/40 transition-all duration-150 flex items-center justify-between active:scale-[0.97] hover:bg-[#1C1C1E]/35 ios-body"
+                      className="w-full px-5 py-3.5 rounded-full text-sm bg-[#1C1C1E]/30 backdrop-blur-md text-white focus:outline-none focus:bg-[#1C1C1E]/40 transition-all duration-150 flex items-center justify-between active:scale-[0.97] hover:bg-[#1C1C1E]/35 ios-body"
                       style={{
                         WebkitTapHighlightColor: 'transparent',
                         fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
@@ -1999,7 +1999,7 @@ const AppContent: React.FC = () => {
                           className="fixed inset-0 z-[9998]"
                           onClick={() => setMobileFilterDropdownOpen(false)}
                         />
-                        <div className="dropdown-container fixed rounded-3xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl bg-[#1C1C1E]/40 border border-white/10 animate-slide-in-bottom" style={{
+                        <div className="dropdown-container fixed rounded-3xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-2xl bg-[#1C1C1E]/40 animate-slide-in-bottom" style={{
                           top: mobileDropdownPosition.top + 2,
                           left: mobileDropdownPosition.left,
                           width: mobileDropdownPosition.width,

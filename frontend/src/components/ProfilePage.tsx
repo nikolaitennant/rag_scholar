@@ -114,11 +114,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
               <UserIcon className="w-12 h-12 text-white/40" />
             </div>
           )}
-          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <div 
+          className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <Camera className="w-8 h-8 text-white" />
           </div>
         </button>
-        <p className="ios-caption text-white/60 mt-3">Tap to view photo</p>
+        <p className="ios-caption text-/60 mt-3">Edit</p>
       </div>
 
       {/* Display Name */}
@@ -143,7 +144,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
         <textarea
           value={formData.bio}
           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-          placeholder="Tell others about yourself..."
+          placeholder="Add bio..."
           rows={4}
           className="w-full border-none outline-none bg-transparent rounded-2xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 transition-all duration-200 resize-none"
           style={{

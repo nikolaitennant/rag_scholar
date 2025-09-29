@@ -428,7 +428,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   );
 
   const renderAccountView = () => (
-    <div className="p-4 space-y-6" style={{ paddingTop: '16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div className="p-4 space-y-6" style={{ paddingTop: '40px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="space-y-4">
 
         <div>
@@ -520,7 +520,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   );
 
   const renderAppearanceView = () => (
-    <div className="p-4 space-y-6" style={{ paddingTop: '16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div className="p-4 space-y-6" style={{ paddingTop: '40px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="space-y-4">
         <button
           onClick={toggleTheme}
@@ -605,7 +605,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   );
 
   const renderApiView = () => (
-    <div className="p-4 space-y-6" style={{ paddingTop: '16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div className="p-4 space-y-6" style={{ paddingTop: '40px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="space-y-4">
         <div>
           <label className="block ios-caption text-white/70 mb-2 ml-1">
@@ -654,7 +654,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   );
 
   const renderTimezoneView = () => (
-    <div className="p-4 space-y-6" style={{ paddingTop: '16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div className="p-4 space-y-6" style={{ paddingTop: '40px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="space-y-4">
         <div>
           <label className="block ios-caption text-white/70 mb-2 ml-1">
@@ -773,7 +773,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   );
 
   const renderAdvancedView = () => (
-    <div className="p-4 space-y-6" style={{ paddingTop: '16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div className="p-4 space-y-6" style={{ paddingTop: '40px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h4 className="ios-title text-white">Model Parameters</h4>
@@ -896,7 +896,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   );
 
   const renderHelpView = () => (
-    <div className="p-4 space-y-6" style={{ paddingTop: '16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div className="p-4 space-y-6" style={{ paddingTop: '40px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="space-y-6">
         {/* Getting Started */}
         <div className="ios-list-item p-4"
@@ -1013,6 +1013,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             </div>
           </div>
         </div>
+
+        {/* Additional Help Content for Scrolling */}
+        <div className="ios-list-item p-4"
+          style={{
+            background: 'rgba(255, 255, 255, 0.08)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          }}>
+          <h4 className="ios-caption text-white font-medium mb-3">Tips & Tricks</h4>
+
+          <div className="space-y-2">
+            <div className="ios-caption text-white/70">
+              • Use AI Configuration to customize your chat experience
+            </div>
+            <div className="ios-caption text-white/70">
+              • Upload documents in PDF or text format for best results
+            </div>
+            <div className="ios-caption text-white/70">
+              • Create classes to organize your documents by subject
+            </div>
+            <div className="ios-caption text-white/70">
+              • Citations provide sources for all AI responses
+            </div>
+          </div>
+        </div>
+
+        {/* Extra spacing for scroll testing */}
+        <div style={{ height: '100px' }} />
       </div>
     </div>
   );
@@ -1089,7 +1117,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 flex-shrink-0" style={{
           paddingTop: currentView !== 'main'
-            ? (isMobile ? 'max(64px, env(safe-area-inset-top))' : '64px')
+            ? (isMobile ? 'max(72px, env(safe-area-inset-top))' : '72px')
             : (isMobile ? 'max(48px, env(safe-area-inset-top))' : '48px')
         }}>
           {currentView !== 'main' && (

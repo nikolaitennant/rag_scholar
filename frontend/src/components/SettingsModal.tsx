@@ -80,6 +80,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     }
   }, [isOpen, user]);
 
+  // Don't prevent body scroll - allow background to scroll
+
   const loadApiSettings = async () => {
     try {
       setIsLoadingSettings(true);
@@ -288,7 +290,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
 
   const renderMainView = () => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" style={{ minHeight: '120vh' }}>
       {/* User Profile Section */}
       <div className="px-6 py-6 border-b border-white/10">
         <button
@@ -1019,7 +1021,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     <div
       className={`fixed z-[40] ${isMobile ? 'inset-0' : 'inset-0 flex items-center justify-center'}`}
       style={{
-        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif'
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+        overflow: 'hidden'
       }}
     >
       {/* Backdrop */}
@@ -1036,12 +1039,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         />
       )}
 
-      {/* Modal */}
-      <div className={`relative shadow-2xl overflow-hidden flex flex-col ${
-        isMobile
-          ? 'w-full h-full'
-          : 'w-full max-w-md mx-4 h-[85vh] rounded-3xl'
-      }`}
+      {/* COMPLETELY SEPARATE Frosted Glass Container - FIXED POSITION */}
+      <div
+        className={`fixed pointer-events-none ${
+          isMobile
+            ? 'inset-0 w-full h-full'
+            : 'w-full max-w-md h-[85vh] rounded-3xl'
+        }`}
         style={{
           background: isMobile ? (
             background === 'classic' ? 'rgb(35, 35, 37)' :
@@ -1055,13 +1059,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           backdropFilter: isMobile ? 'none' : 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: isMobile ? 'none' : 'blur(20px) saturate(180%)',
           border: isMobile ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-          paddingBottom: isMobile ? '80px' : '0',
-          transition: 'background 0.3s ease-out'
+          transition: 'background 0.3s ease-out',
+          left: isMobile ? '0' : '50%',
+          transform: isMobile ? 'none' : 'translateX(-50%)',
+          top: isMobile ? '0' : '50%',
+          marginTop: isMobile ? '0' : '-42.5vh',
+          zIndex: 50
         }}
-        key={background}>
+        key={`frosted-${background}`}
+      />
+
+      {/* Modal Content Container - Fixed Position, No Background */}
+      <div className={`fixed shadow-2xl flex flex-col ${
+        isMobile
+          ? 'inset-0 w-full h-full'
+          : 'w-full max-w-md h-[85vh] rounded-3xl'
+      }`}
+        style={{
+          paddingBottom: isMobile ? '80px' : '0',
+          backgroundColor: 'transparent',
+          left: isMobile ? '0' : '50%',
+          transform: isMobile ? 'none' : 'translateX(-50%)',
+          top: isMobile ? '0' : '50%',
+          marginTop: isMobile ? '0' : '-42.5vh',
+          zIndex: 51,
+          overflow: 'hidden'
+        }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-4" style={{
+        <div className="flex items-center justify-between px-4 py-4 flex-shrink-0" style={{
           paddingTop: currentView !== 'main'
             ? (isMobile ? 'max(64px, env(safe-area-inset-top))' : '64px')
             : (isMobile ? 'max(48px, env(safe-area-inset-top))' : '48px')
@@ -1094,7 +1120,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto scrollbar-none">
+        <div className="flex-1 overflow-y-auto scrollbar-none" style={{
+          WebkitOverflowScrolling: 'touch'
+        }}>
           {currentView === 'main' && renderMainView()}
           {currentView === 'account' && renderAccountView()}
           {currentView === 'appearance' && renderAppearanceView()}
@@ -1128,7 +1156,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           userName={user?.displayName || user?.email || 'User'}
           showChangeButton={false}
         />
-      </div>
+      </div> {/* End Modal Content Container */}
     </div>
   );
 };

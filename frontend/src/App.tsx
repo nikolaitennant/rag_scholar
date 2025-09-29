@@ -2821,20 +2821,7 @@ const AppContent: React.FC = () => {
 
       case 'settings':
         return (
-          <div className="overflow-y-scroll pb-40 relative" style={{
-            height: '100vh',
-            minHeight: '100vh',
-            paddingTop: `env(safe-area-inset-top)`, // Background covers notch area
-            WebkitOverflowScrolling: 'touch',
-            overscrollBehavior: 'auto',
-            zIndex: 10,
-            transform: `translateY(-62px)` // Move entire container up to match other pages
-          }}>
-            {/* Content wrapper with extra height to enable bounce scrolling */}
-            <div style={{ minHeight: 'calc(100vh + 200px)' }}>
-              <SettingsModal isOpen={true} onClose={() => setMobilePage('home')} onOpenFeedback={() => setShowFeedbackModal(true)} />
-            </div>
-          </div>
+          <SettingsModal isOpen={true} onClose={() => setMobilePage('home')} onOpenFeedback={() => setShowFeedbackModal(true)} />
         );
 
       default:

@@ -134,11 +134,12 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
           <div
             className="pointer-events-none fixed left-0 right-0"
             style={{
-              height: '30px',
+              height: '85px',
               bottom: isKeyboardOpen
                 ? 'calc(max(env(safe-area-inset-bottom), 4px) + 57px)'
-                : 'calc(60px + max(env(safe-area-inset-bottom), 0px) + 57px)',
-              background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%)',
+                : 'calc(60px + max(env(safe-area-inset-bottom), 0px) - 10px)',
+              background: 'linear-gradient(to top, rgba(28, 28, 30, 0.8) 0%, rgba(28, 28, 30, 0.5) 40%, rgba(28, 28, 30, 0.2) 70%, rgba(28, 28, 30, 0) 100%)',
+              
               backdropFilter: 'blur(6px)',
               WebkitBackdropFilter: 'blur(.5px)',
               zIndex: 45

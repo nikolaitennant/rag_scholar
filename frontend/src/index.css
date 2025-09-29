@@ -16,7 +16,7 @@
 
     /* Force dark color scheme for iOS PWA */
     color-scheme: dark;
-    /* background-color: #1C1C1E; */
+  
 
     /* Prevent iOS white background flash */
     -webkit-user-select: none;

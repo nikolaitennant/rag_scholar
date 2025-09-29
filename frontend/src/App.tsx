@@ -1235,27 +1235,38 @@ const AppContent: React.FC = () => {
 
       case 'home':
         return (
-          <div className="h-full overflow-y-scroll pb-20" style={{
-            paddingTop: `calc(env(safe-area-inset-top) - 22px)`,
-            WebkitOverflowScrolling: 'touch'
+          <div className="overflow-y-auto pb-20 relative" style={{
+            height: '100vh',
+            minHeight: '100vh',
+            paddingTop: `env(safe-area-inset-top)`, // Background covers notch area
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'auto',
+            zIndex: 10,
+            transform: `translateY(-62px)` // Move entire container up
           }}>
-            {/* iOS-Native Header */}
-            <div className="px-5" style={{
+            {/* iOS-Style Large Title Header */}
+            <div className="relative px-0 z-10" style={{
+              marginTop: `calc(-1 * env(safe-area-inset-top))`, // Pull content up into notch area
+              paddingTop: `calc(env(safe-area-inset-top) - 6px)`, // Raised by 5px for better positioning
               paddingBottom: '20px'
             }}>
-              <h1 className="text-[28px] font-semibold tracking-tight text-white">
-                {(() => {
-                  const hour = new Date().getHours();
-                  const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
-                  if (hour < 12) return `Good morning, ${userName}`;
-                  if (hour < 17) return `Good afternoon, ${userName}`;
-                  return `Good evening, ${userName}`;
-                })()}&nbsp;
-                <Heart className="w-6 h-6 text-[#AF52DE] animate-pulse inline-block ml-1" style={{ verticalAlign: 'middle', transform: 'translateY(-2px)' }} />
-              </h1>
-              <p className="text-sm text-gray-400/90 mt-1">
-                Ready to explore your documents?
-              </p>
+              <div className="px-5">
+                <h1 className="text-[28px] font-semibold tracking-tight text-white" style={{
+                  lineHeight: '1.1'
+                }}>
+                  {(() => {
+                    const hour = new Date().getHours();
+                    const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
+                    if (hour < 12) return `Good morning, ${userName}`;
+                    if (hour < 17) return `Good afternoon, ${userName}`;
+                    return `Good evening, ${userName}`;
+                  })()}&nbsp;
+                  <Heart className="w-6 h-6 text-[#AF52DE] animate-pulse inline-block ml-1" style={{ verticalAlign: 'middle', transform: 'translateY(-2px)' }} />
+                </h1>
+                <p className="text-sm text-gray-400/90 mt-1">
+                  Ready to explore your documents?
+                </p>
+              </div>
             </div>
 
             <div className="space-y-4 px-5">
@@ -1923,7 +1934,12 @@ const AppContent: React.FC = () => {
 
       case 'docs':
         return (
-          <div className="h-full overflow-y-auto pb-20">
+          <div className="h-full overflow-y-auto pb-20 relative" style={{
+            zIndex: 10,
+            transform: `translateY(-50px)`, // Move entire container up to match home page
+            overscrollBehavior: 'auto',
+            WebkitOverflowScrolling: 'touch'
+          }}>
             {/* iOS-Style Mobile Header - In Safe Area */}
             <div
               className="px-5 flex items-center justify-between"
@@ -2292,7 +2308,10 @@ const AppContent: React.FC = () => {
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto pb-20">
+            <div className="flex-1 overflow-y-auto pb-20" style={{
+              overscrollBehavior: 'auto',
+              WebkitOverflowScrolling: 'touch'
+            }}>
               <div className="px-5 space-y-4">
               {mobileRewardsTab === 'achievements' ? (
                 <div
@@ -2841,7 +2860,7 @@ const AppContent: React.FC = () => {
       </div>
 
       {/* Mobile Layout */}
-      <div className="md:hidden w-full">
+      <div className="md:hidden w-full h-screen relative">
         {renderMobilePage()}
 
         {/* Real WhatsApp-style Bottom Navigation Dock */}

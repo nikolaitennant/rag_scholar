@@ -3,7 +3,11 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.ragscholar.app',
   appName: 'RAG Scholar',
-  webDir: 'build'
+  webDir: 'build',
+  server: {
+    url: 'http://192.168.1.175:3000',
+    cleartext: true
+  }
 };
 
 export default config;

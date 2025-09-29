@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Message, UserClass } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
@@ -15,7 +15,6 @@ interface MobileChatInterfaceProps {
   showCommandSuggestions: boolean;
   setShowCommandSuggestions: (show: boolean) => void;
   isChatLoading: boolean;
-  isKeyboardOpen: boolean;
   activeClass: UserClass | null;
   handleNewChat: () => void;
   handleSendMessage: (message: string) => void;
@@ -28,16 +27,14 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
   showCommandSuggestions,
   setShowCommandSuggestions,
   isChatLoading,
-  isKeyboardOpen,
   activeClass,
   handleNewChat,
   handleSendMessage,
 }) => {
   const { theme } = useTheme();
-  const [isInputFocused, setIsInputFocused] = useState(false);
 
   return (
-    <div className="h-full chat-container" style={{ display: 'flex', flexDirection: 'column' }}>
+    <div className="chat-container h-screen flex flex-col overflow-hidden">
       {/* iOS-Style Mobile Chat Header with Dock-like Frosted Glass Effect */}
       <div
         className="px-4 flex items-center justify-between relative"
@@ -75,17 +72,13 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
       {/* Mobile Chat Interface - Chat Container */}
       <div className="flex-1 min-h-0 flex flex-col relative">
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4" style={{
-          paddingBottom: isKeyboardOpen ? '40px' : '100px'
-        }}>
+        <div className="flex-1 overflow-y-auto p-4 pb-24">
           {messages.length === 0 && !mobileInput.trim() ? (
             /* Mobile welcome state - fades out when typing or focused */
-            <div className={`flex flex-col justify-center h-full text-center transition-opacity duration-300 ${
-              mobileInput.trim() || isInputFocused ? 'opacity-0' : 'opacity-100'
-            }`}>
+            <div className="flex flex-col justify-center h-full text-center">
               <div className={`mb-8 ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
                 <h2 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                  Welcome to RAG Scholar!
+                  Welcome to RAG Scholar
                 </h2>
                 <p className={`text-sm ${theme === 'dark' ? 'text-white/60' : 'text-black/60'}`}>
                   Ask questions about your documents
@@ -186,9 +179,7 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
             className="pointer-events-none fixed left-0 right-0"
             style={{
               height: '110px',
-              bottom: isKeyboardOpen
-                ? 'calc(max(env(safe-area-inset-bottom), 4px) + 57px)'
-                : 'calc(60px + max(env(safe-area-inset-bottom), 0px) - 10px)',
+              bottom: 'calc(60px + max(env(safe-area-inset-bottom), 0px) - 10px)',
               maskImage: 'radial-gradient(ellipse 100% 80% at 50% 100%, black 0%, black 80%, transparent 100%)',
               WebkitMaskImage: 'radial-gradient(ellipse 100% 80% at 50% 100%, black 0%, black 80%, transparent 100%)',
               backdropFilter: 'blur(6px)',
@@ -200,13 +191,13 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
 
         {/* Fixed Bottom Input - iOS Style */}
         <div
-          className="fixed left-0 right-0 px-6 py-1 z-50"
+          className="px-6 py-1 z-50"
           style={{
-            bottom: isKeyboardOpen
-              ? 'max(env(safe-area-inset-bottom), 4px)'
-              : 'calc(60px + max(env(safe-area-inset-bottom), 0px))',
-            background: 'transparent',
-            transition: 'bottom 0.3s ease-in-out'
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: 'calc(60px + max(env(safe-area-inset-bottom), 0px))',
+            background: 'transparent'
           }}
         >
           <div className="relative">
@@ -244,14 +235,6 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
                   boxShadow: 'none'
                 }}
                 disabled={isChatLoading}
-                onFocus={(e) => {
-                  // Prevent default scroll behavior for iOS overlay keyboard
-                  e.preventDefault();
-                  setIsInputFocused(true);
-                }}
-                onBlur={() => {
-                  setIsInputFocused(false);
-                }}
               />
             </form>
           </div>

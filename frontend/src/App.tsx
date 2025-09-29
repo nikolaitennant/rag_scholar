@@ -40,7 +40,6 @@ const AppContent: React.FC = () => {
   const [isDocumentLoading, setIsDocumentLoading] = useState(false);
   const [loadingDocuments, setLoadingDocuments] = useState<Set<string>>(new Set());
   const [apiError, setApiError] = useState<string | null>(null);
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   // Comprehensive app loading state (ChatGPT style)
   const [appLoading, setAppLoading] = useState(true);
@@ -434,40 +433,6 @@ const AppContent: React.FC = () => {
     return () => clearTimeout(timer);
   }, []); // Only run once on mount
 
-  // Keyboard detection for iOS to hide dock when keyboard opens
-  useEffect(() => {
-    const initialViewportHeight = window.visualViewport?.height || window.innerHeight;
-
-    const handleViewportChange = () => {
-      const currentHeight = window.visualViewport?.height || window.innerHeight;
-      const heightDifference = initialViewportHeight - currentHeight;
-
-      // Consider keyboard open if viewport shrunk by more than 150px
-      const keyboardOpen = heightDifference > 150;
-      setIsKeyboardOpen(keyboardOpen);
-
-      // Add/remove body class to prevent viewport resize
-      if (keyboardOpen) {
-        document.body.classList.add('keyboard-open');
-      } else {
-        document.body.classList.remove('keyboard-open');
-      }
-    };
-
-    // Use visualViewport API for better keyboard detection on iOS
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleViewportChange);
-      return () => {
-        window.visualViewport?.removeEventListener('resize', handleViewportChange);
-      };
-    } else {
-      // Fallback for browsers without visualViewport
-      window.addEventListener('resize', handleViewportChange);
-      return () => {
-        window.removeEventListener('resize', handleViewportChange);
-      };
-    }
-  }, []);
 
   // Show theme toggle on hover and hide after 200ms of no interaction
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -1208,7 +1173,6 @@ const AppContent: React.FC = () => {
             showCommandSuggestions={showCommandSuggestions}
             setShowCommandSuggestions={setShowCommandSuggestions}
             isChatLoading={isChatLoading}
-            isKeyboardOpen={isKeyboardOpen}
             activeClass={activeClass}
             handleNewChat={handleNewChat}
             handleSendMessage={handleSendMessage}
@@ -2836,9 +2800,9 @@ const AppContent: React.FC = () => {
             backdropFilter: 'blur(22px) saturate(160%)',
             WebkitBackdropFilter: 'blur(22px) saturate(160%)',
             borderTop: '0.5px solid rgba(255, 255, 255, 0.1)',
-            transform: isKeyboardOpen ? 'translateY(100%)' : 'translateY(0)',
+            transform: 'translateY(0)',
             transition: 'transform 0.3s ease-out',
-            pointerEvents: isKeyboardOpen ? 'none' : 'auto'
+            pointerEvents: 'auto'
           }}
         >
           <div

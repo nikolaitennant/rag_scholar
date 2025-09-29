@@ -220,10 +220,33 @@ const AppContent: React.FC = () => {
     localStorage.setItem('max_tokens', apiSettings.maxTokens.toString());
   }, [apiSettings]);
 
-  // Update iOS status bar style to always be transparent
+  // Configure Capacitor StatusBar for fullscreen appearance
   useEffect(() => {
-    const statusBarMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-    if (statusBarMeta) statusBarMeta.setAttribute('content', 'black-translucent');
+    const configureStatusBar = async () => {
+      try {
+        const { StatusBar, Style } = await import('@capacitor/status-bar');
+
+        // Set status bar style to light content (white text/icons)
+        await StatusBar.setStyle({ style: Style.Light });
+
+        // Make status bar background transparent so gradient shows through
+        await StatusBar.setBackgroundColor({ color: '#00000000' });
+
+        // Ensure status bar overlays the webview for fullscreen effect
+        await StatusBar.setOverlaysWebView({ overlay: true });
+
+        console.log('StatusBar configured for fullscreen appearance');
+      } catch (error) {
+        // StatusBar plugin not available (likely in web environment)
+        console.log('StatusBar plugin not available, using web fallback');
+
+        // Fallback for web - update meta tag
+        const statusBarMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+        if (statusBarMeta) statusBarMeta.setAttribute('content', 'black-translucent');
+      }
+    };
+
+    configureStatusBar();
   }, []);
 
   // Configure Capacitor Keyboard
@@ -277,6 +300,7 @@ const AppContent: React.FC = () => {
 
     configureKeyboard();
   }, [theme]);
+
 
   // Auto-save profile changes
   useEffect(() => {
@@ -1235,14 +1259,16 @@ const AppContent: React.FC = () => {
 
       case 'home':
         return (
-          <div className="overflow-y-auto pb-20 relative" style={{
+          <div className="overflow-y-auto pb-40 relative" style={{
             height: '100vh',
             minHeight: '100vh',
             paddingTop: `env(safe-area-inset-top)`, // Background covers notch area
             WebkitOverflowScrolling: 'touch',
             overscrollBehavior: 'auto',
+            mask: 'linear-gradient(to bottom, transparent 0px, black 60px, black 100%)',
+            WebkitMask: 'linear-gradient(to bottom, transparent 0px, black 60px, black 100%)',
             zIndex: 10,
-            transform: `translateY(-62px)` // Move entire container up
+            transform: `translateY(-13px)` // Move entire container up
           }}>
             {/* iOS-Style Large Title Header */}
             <div className="relative px-0 z-10" style={{
@@ -1934,22 +1960,24 @@ const AppContent: React.FC = () => {
 
       case 'docs':
         return (
-          <div className="h-full overflow-y-auto pb-20 relative" style={{
+          <div className="relative" style={{
+            height: '100vh',
+            paddingTop: `env(safe-area-inset-top)`, // Background covers notch area
             zIndex: 10,
-            transform: `translateY(-50px)`, // Move entire container up to match home page
-            overscrollBehavior: 'auto',
-            WebkitOverflowScrolling: 'touch'
+            transform: `translateY(-18px)` // Move entire container up to match home page
           }}>
-            {/* iOS-Style Mobile Header - In Safe Area */}
+            {/* Fixed Header - doesn't move */}
             <div
               className="px-5 flex items-center justify-between"
               style={{
-                paddingTop: 'calc(env(safe-area-inset-top) - 20px)',
+                paddingTop: 'calc(env(safe-area-inset-top) - 2px)',
                 paddingBottom: '16px',
                 background: 'transparent',
-                position: 'sticky',
+                position: 'absolute',
                 top: 0,
-                zIndex: 10
+                left: 0,
+                right: 0,
+                zIndex: 20
               }}>
               <div>
                 <h2 className="ios-large-title text-white">
@@ -1961,7 +1989,6 @@ const AppContent: React.FC = () => {
                       ? documents.filter(doc => doc.assigned_classes?.includes(mobileDocumentFilter)).length
                       : documents.length;
                     const totalCount = documents.length;
-
                     if (mobileDocumentFilter && filteredCount !== totalCount) {
                       return `${filteredCount} of ${totalCount} documents`;
                     }
@@ -1969,7 +1996,6 @@ const AppContent: React.FC = () => {
                   })()}
                 </p>
               </div>
-
               {/* iOS-Style Upload Button */}
               <label className="w-12 h-12 rounded-full bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/30 flex items-center justify-center cursor-pointer transition-all duration-150 hover:scale-105 active:scale-[0.92] hover:shadow-purple-500/40"
                 style={{
@@ -1992,6 +2018,29 @@ const AppContent: React.FC = () => {
               </label>
             </div>
 
+
+            {/* Scrollable Documents Area */}
+            <div
+              className="overflow-y-scroll"
+              style={{
+                height: '100%',
+                paddingTop: '120px', // Space for fixed header
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehavior: 'auto',
+                scrollSnapType: 'y mandatory',
+                mask: 'linear-gradient(to bottom, transparent 0px, black 40px, black 100%)',
+                WebkitMask: 'linear-gradient(to bottom, transparent 0px, black 40px, black 100%)'
+              }}>
+              {/* Content with scroll snap for perfect return */}
+              <div style={{
+                minHeight: 'calc(100% + 40px)',
+                paddingBottom: '40px',
+                scrollSnapAlign: 'start'
+              }}>
+              {/* Documents Content Area */}
+              <div className="px-5">
+            </div>
+
             <div className="space-y-4 px-5">
               {/* Class Filter - Clean */}
               {userClasses.length > 0 && (
@@ -2009,7 +2058,7 @@ const AppContent: React.FC = () => {
                         }
                         setMobileFilterDropdownOpen(!mobileFilterDropdownOpen);
                       }}
-                      className="w-full px-5 py-3.5 rounded-full text-sm bg-[#1C1C1E]/30 backdrop-blur-md text-white focus:outline-none focus:bg-[#1C1C1E]/40 transition-all duration-150 flex items-center justify-between active:scale-[0.97] hover:bg-[#1C1C1E]/35 ios-body"
+                      className="w-full px-5 py-3.5 rounded-full text-sm bg-[#1C1C1E]/30 backdrop-blur-md border border-white/10 text-white focus:outline-none focus:bg-[#1C1C1E]/40 transition-all duration-150 flex items-center justify-between active:scale-[0.97] hover:bg-[#1C1C1E]/35 ios-body"
                       style={{
                         WebkitTapHighlightColor: 'transparent',
                         fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
@@ -2137,12 +2186,51 @@ const AppContent: React.FC = () => {
                     .map((doc, index) => (
                     <div
                       key={doc.id}
-                      className="p-4 rounded-2xl transition-all duration-300 active:scale-[0.98] bg-[#1C1C1E]/40 backdrop-blur-md border border-white/5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] animate-fade-in"
+                      className="p-4 transition-transform duration-150 ease-out rounded-2xl bg-[#1C1C1E]/40 backdrop-blur-md border border-white/5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] hover:bg-[#1C1C1E]/50 cursor-pointer"
                       style={{
                         WebkitTapHighlightColor: 'transparent',
-                        touchAction: 'manipulation',
-                        animationDelay: `${index * 0.05}s`,
-                        animationFillMode: 'both'
+                        touchAction: 'manipulation'
+                      }}
+                      onTouchStart={(e) => {
+                        // Don't spring if touching interactive elements
+                        const target = e.target as HTMLElement;
+                        if (target.closest('button, input, [contenteditable]')) {
+                          return;
+                        }
+                        const element = e.currentTarget;
+                        element.style.transform = 'scale(0.98)';
+                      }}
+                      onTouchEnd={(e) => {
+                        const element = e.currentTarget;
+                        element.style.transform = 'scale(1)';
+                      }}
+                      onTouchCancel={(e) => {
+                        const element = e.currentTarget;
+                        element.style.transform = 'scale(1)';
+                      }}
+                      onMouseDown={(e) => {
+                        // Don't spring if clicking interactive elements
+                        const target = e.target as HTMLElement;
+                        if (target.closest('button, input, [contenteditable]')) {
+                          return;
+                        }
+                        const element = e.currentTarget;
+                        element.style.transform = 'scale(0.98)';
+                      }}
+                      onMouseUp={(e) => {
+                        const element = e.currentTarget;
+                        element.style.transform = 'scale(1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        const element = e.currentTarget;
+                        element.style.transform = 'scale(1)';
+                      }}
+                      onClick={(e) => {
+                        // Only trigger if not clicking on interactive elements
+                        const target = e.target as HTMLElement;
+                        if (!target.closest('button, input, [contenteditable]')) {
+                          console.log(`Clicked document: ${doc.filename}`);
+                        }
                       }}>
                       <div className="flex items-start justify-between">
                         {editingDocumentId === doc.id ? (
@@ -2246,9 +2334,10 @@ const AppContent: React.FC = () => {
                 </div>
               )}
             </div>
+            </div>
+            </div>
           </div>
         );
-
 
       case 'rewards':
         return (
@@ -2308,11 +2397,16 @@ const AppContent: React.FC = () => {
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto pb-20" style={{
-              overscrollBehavior: 'auto',
-              WebkitOverflowScrolling: 'touch'
-            }}>
-              <div className="px-5 space-y-4">
+            <div
+              className="flex-1 overflow-y-auto"
+              style={{
+                overscrollBehavior: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                mask: 'linear-gradient(to bottom, transparent 0px, black 20px, black 100%)',
+                WebkitMask: 'linear-gradient(to bottom, transparent 0px, black 20px, black 100%)'
+              }}
+            >
+              <div className="px-5 space-y-4 pt-4 pb-40">
               {mobileRewardsTab === 'achievements' ? (
                 <div
                   key="achievements-content"
@@ -2323,7 +2417,7 @@ const AppContent: React.FC = () => {
                   }>
               {/* In Progress Section */}
               {achievements.filter(a => a.unlocked_at === null).length > 0 && (
-                <div className="space-y-3 mt-6">
+                <div className="space-y-3 mt-2">
                   <div className="flex items-center gap-2">
                     <Target className="w-4 h-4 text-blue-400" />
                     <h4 className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
@@ -2726,7 +2820,22 @@ const AppContent: React.FC = () => {
         );
 
       case 'settings':
-        return <SettingsModal isOpen={true} onClose={() => setMobilePage('home')} onOpenFeedback={() => setShowFeedbackModal(true)} />;
+        return (
+          <div className="overflow-y-scroll pb-40 relative" style={{
+            height: '100vh',
+            minHeight: '100vh',
+            paddingTop: `env(safe-area-inset-top)`, // Background covers notch area
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'auto',
+            zIndex: 10,
+            transform: `translateY(-62px)` // Move entire container up to match other pages
+          }}>
+            {/* Content wrapper with extra height to enable bounce scrolling */}
+            <div style={{ minHeight: 'calc(100vh + 200px)' }}>
+              <SettingsModal isOpen={true} onClose={() => setMobilePage('home')} onOpenFeedback={() => setShowFeedbackModal(true)} />
+            </div>
+          </div>
+        );
 
       default:
         return null;
@@ -2751,13 +2860,13 @@ const AppContent: React.FC = () => {
   // Show main UI immediately, with loading states in sidebar and chat
 
   return (
-    <div className={`min-h-screen ${getBackgroundClass()}`}>
-      <div className="h-screen flex" style={{
-        paddingTop: 'env(safe-area-inset-top)',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        paddingLeft: 'env(safe-area-inset-left)',
-        paddingRight: 'env(safe-area-inset-right)'
-      }}>
+    <div className={`min-h-screen ${getBackgroundClass()}`} style={{
+      paddingTop: 'env(safe-area-inset-top)',
+      paddingBottom: 'env(safe-area-inset-bottom)',
+      paddingLeft: 'env(safe-area-inset-left)',
+      paddingRight: 'env(safe-area-inset-right)'
+    }}>
+      <div className="h-screen flex">
       {/* API Error Banner */}
       {apiError && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white p-2 text-center text-sm">
@@ -2860,7 +2969,7 @@ const AppContent: React.FC = () => {
       </div>
 
       {/* Mobile Layout */}
-      <div className="md:hidden w-full h-screen relative">
+      <div className="md:hidden w-full h-screen relative bg-transparent">
         {renderMobilePage()}
 
         {/* Real WhatsApp-style Bottom Navigation Dock */}

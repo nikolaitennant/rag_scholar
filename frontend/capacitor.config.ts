@@ -7,6 +7,13 @@ const config: CapacitorConfig = {
   server: {
     url: 'http://192.168.4.175:3000',
     cleartext: true
+  },
+  plugins: {
+    StatusBar: {
+      style: 'dark',
+      backgroundColor: 'transparent',
+      overlaysWebView: true
+    }
   }
 };
 

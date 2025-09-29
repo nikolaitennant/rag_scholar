@@ -7,6 +7,7 @@
     "@capacitor/core": "^7.4.3",
     "@capacitor/ios": "^7.4.3",
     "@capacitor/keyboard": "^7.0.3",
+    "@capacitor/status-bar": "^7.0.3",
     "@craco/craco": "^7.1.0",
     "@tailwindcss/forms": "^0.5.10",
     "@testing-library/dom": "^10.4.1",

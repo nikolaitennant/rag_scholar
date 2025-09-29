@@ -52,6 +52,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     temperature: 0.0,
     maxTokens: 2000,
   });
+  const [initialApiSettings, setInitialApiSettings] = useState({
+    apiKey: '',
+    model: 'gpt-5-mini',
+    temperature: 0.0,
+    maxTokens: 2000,
+  });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
 
@@ -78,12 +84,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     try {
       setIsLoadingSettings(true);
       const settings = await apiService.getAPISettings();
-      setApiSettings({
+      const loadedSettings = {
         apiKey: settings.api_key || '',
         model: settings.preferred_model || 'gpt-5-mini',
         temperature: settings.temperature || 0.0,
         maxTokens: settings.max_tokens || 2000,
-      });
+      };
+      setApiSettings(loadedSettings);
+      setInitialApiSettings(loadedSettings); // Store initial state
       setHasLoadedSettings(true);
     } catch (error) {
       console.error('Failed to load API settings:', error);
@@ -104,6 +112,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         max_tokens: apiSettings.maxTokens,
         timezone: timezone
       });
+      // Update initial state to match current state after successful save
+      setInitialApiSettings({ ...apiSettings });
       setSaveMessage('API settings saved successfully');
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
@@ -138,13 +148,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
   // Auto-save API settings to cloud when they change (with debounce)
   useEffect(() => {
     if (!isLoadingSettings && user && hasLoadedSettings) {
-      const timer = setTimeout(() => {
-        saveApiSettings();
-      }, 1000); // Auto-save after 1 second of no changes
+      // Check if settings have actually changed
+      const hasChanged =
+        apiSettings.apiKey !== initialApiSettings.apiKey ||
+        apiSettings.model !== initialApiSettings.model ||
+        apiSettings.temperature !== initialApiSettings.temperature ||
+        apiSettings.maxTokens !== initialApiSettings.maxTokens;
 
-      return () => clearTimeout(timer);
+      if (hasChanged) {
+        const timer = setTimeout(() => {
+          saveApiSettings();
+        }, 1000); // Auto-save after 1 second of no changes
+
+        return () => clearTimeout(timer);
+      }
     }
-  }, [apiSettings, isLoadingSettings, user]);
+  }, [apiSettings, isLoadingSettings, user, hasLoadedSettings, initialApiSettings]);
 
   // Detect provider and get available models based on API key format
   const getProviderAndModels = () => {
@@ -384,7 +403,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           </button>
 
           {/* Logout Button - Below Help with extra spacing */}
-          <div className="px-4 pt-20 pb-4 flex justify-center">
+          <div className="px-4 pt-24 pb-4 flex justify-center">
             <button
               onClick={() => {
                 logout();
@@ -1088,8 +1107,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
         {/* Save Message */}
         {saveMessage && currentView !== 'account' && (
-          <div className="absolute bottom-4 left-4 right-4">
-            <div className={`p-3 rounded-2xl text-center ${
+          <div className="absolute bottom-[150px] left-1/2 transform -translate-x-1/2">
+            <div className={`px-4 py-2 rounded-full text-center whitespace-nowrap ${
               saveMessage.includes('successfully')
                 ? 'bg-green-500/20 border border-green-500/30'
                 : 'bg-red-500/20 border border-red-500/30'

@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'RAG Scholar',
   webDir: 'build',
   server: {
-    url: 'http://192.168.1.175:3000',
+    url: 'http://192.168.4.175:3000',
     cleartext: true
   }
 };

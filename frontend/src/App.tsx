@@ -19,6 +19,8 @@ import { Message, DomainType, Document, UserClass } from './types';
 import { DOMAIN_TYPE_INFO } from './constants/domains';
 import { SwipeableList, SwipeableListItem, SwipeAction, TrailingActions } from 'react-swipeable-list';
 import 'react-swipeable-list/dist/styles.css';
+import { Keyboard, KeyboardResize, KeyboardStyle } from '@capacitor/keyboard';
+
 
 const AppContent: React.FC = () => {
   const { theme, themeMode, background, toggleTheme, setBackground, getBackgroundClass } = useTheme();
@@ -223,6 +225,58 @@ const AppContent: React.FC = () => {
     const statusBarMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
     if (statusBarMeta) statusBarMeta.setAttribute('content', 'black-translucent');
   }, []);
+
+  // Configure Capacitor Keyboard
+  useEffect(() => {
+    const configureKeyboard = async () => {
+      try {
+        const { Keyboard } = await import('@capacitor/keyboard');
+
+        // 1. Stop WKWebView from resizing abruptly
+        await Keyboard.setResizeMode({ mode: KeyboardResize.None });
+
+        // 2. Hide that annoying accessory bar (arrows/check)
+        await Keyboard.setAccessoryBarVisible({ isVisible: false });
+
+        // 3. Set keyboard style to match app theme (dark mode for frosted glass effect)
+        await Keyboard.setStyle({ style: theme === 'dark' ? KeyboardStyle.Dark : KeyboardStyle.Light });
+
+        // 4. Track keyboard height for smooth motion and hide/show dock
+        const keyboardWillShow = (info: any) => {
+          document.body.style.setProperty('--keyboard-height', `${info.keyboardHeight}px`);
+
+          // Hide dock when keyboard appears
+          const dockElement = document.querySelector('div[style*="bottom: -10px"]');
+          if (dockElement) {
+            (dockElement as HTMLElement).style.display = 'none';
+          }
+        };
+
+        const keyboardWillHide = () => {
+          document.body.style.setProperty('--keyboard-height', '0px');
+
+          // Show dock when keyboard disappears
+          const dockElement = document.querySelector('div[style*="bottom: -10px"]');
+          if (dockElement) {
+            (dockElement as HTMLElement).style.display = 'block';
+          }
+        };
+
+        await Keyboard.addListener('keyboardWillShow', keyboardWillShow);
+        await Keyboard.addListener('keyboardWillHide', keyboardWillHide);
+
+        // Cleanup function
+        return () => {
+          Keyboard.removeAllListeners();
+        };
+      } catch (error) {
+        // Keyboard plugin not available (likely in web environment)
+        console.log('Keyboard plugin not available:', error);
+      }
+    };
+
+    configureKeyboard();
+  }, [theme]);
 
   // Auto-save profile changes
   useEffect(() => {

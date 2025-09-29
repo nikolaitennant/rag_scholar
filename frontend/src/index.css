@@ -8,14 +8,15 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
-    height: 100vh;
+    padding: 0;
+    height: 100%;
     overflow: hidden;
     scrollbar-width: none;
     -ms-overflow-style: none;
 
     /* Force dark color scheme for iOS PWA */
     color-scheme: dark;
-    background-color: #1C1C1E;
+    /* background-color: #1C1C1E; */
 
     /* Prevent iOS white background flash */
     -webkit-user-select: none;
@@ -42,17 +43,23 @@
     display: none;
   }
 
+  
+  /* Chat input or bottom bar */
+  .chat-input {
+    position: fixed;
+    bottom: var(--keyboard-height, 0px);
+    width: 100%;
+    transition: bottom 0.25s ease; /* this makes it fluid */
+    z-index: 1000;
+    background: #111;
+  }
+
   #root {
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
+    position: relative;
     background-color: #1C1C1E;
 
-    /* iOS PWA specific fixes */
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
   }
 
   /* iOS PWA Keyboard and Background Fixes */

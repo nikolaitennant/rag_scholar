@@ -1259,24 +1259,20 @@ const AppContent: React.FC = () => {
 
       case 'home':
         return (
-          <div className="overflow-y-auto pb-40 relative" style={{
+          <div className="relative" style={{
             height: '100vh',
             minHeight: '100vh',
-            paddingTop: `env(safe-area-inset-top)`, // Background covers notch area
-            WebkitOverflowScrolling: 'touch',
-            overscrollBehavior: 'auto',
-            mask: 'linear-gradient(to bottom, transparent 0px, black 60px, black 100%)',
-            WebkitMask: 'linear-gradient(to bottom, transparent 0px, black 60px, black 100%)',
             zIndex: 10,
             transform: `translateY(-13px)` // Move entire container up
           }}>
-            {/* iOS-Style Large Title Header */}
-            <div className="relative px-0 z-10" style={{
-              marginTop: `calc(-1 * env(safe-area-inset-top))`, // Pull content up into notch area
-              paddingTop: `calc(env(safe-area-inset-top) - 6px)`, // Raised by 5px for better positioning
-              paddingBottom: '20px'
+            {/* Fixed Header - Only exists on home page */}
+            <div className="fixed top-0 left-0 right-0 z-20 px-0" style={{
+              paddingTop: `env(safe-area-inset-top)`,
+              paddingBottom: '20px',
+              background: 'transparent',
+              transform: `translateY(-160px)` // Move header up
             }}>
-              <div className="px-5">
+              <div className="px-5" style={{ paddingTop: '10px' }}>
                 <h1 className="text-[28px] font-semibold tracking-tight text-white" style={{
                   lineHeight: '1.1'
                 }}>
@@ -1295,7 +1291,32 @@ const AppContent: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-4 px-5">
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto pb-40 relative" style={{
+              height: `calc(100vh - env(safe-area-inset-top) - ${(() => {
+                const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
+                const isLongName = userName.length > 12;
+                return isLongName ? '140px' : '120px';
+              })()})`,
+              minHeight: `calc(100vh - env(safe-area-inset-top) - ${(() => {
+                const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
+                const isLongName = userName.length > 12;
+                return isLongName ? '140px' : '120px';
+              })()})`,
+              marginTop: `calc(env(safe-area-inset-top) + ${(() => {
+                const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
+                const isLongName = userName.length > 12;
+                return isLongName ? '100px' : '80px';
+              })()})`,
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain',
+              zIndex: 10,
+              paddingTop: '60px',
+              mask: 'linear-gradient(to bottom, transparent 0px, black 20px, black 100%)',
+              WebkitMask: 'linear-gradient(to bottom, transparent 0px, black 20px, black 100%)'
+            }}>
+
+              <div className="space-y-4 px-5">
               {/* Learning Progress Card */}
               <button
                 className="w-full px-4 py-3 animate-slide-in-bottom bg-[#1C1C1E]/50 backdrop-blur-xl border border-white/10 rounded-2xl text-left transition-all duration-200 active:scale-[0.98] shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
@@ -1956,8 +1977,8 @@ const AppContent: React.FC = () => {
 
             </div>
           </div>
+          </div>
         );
-
       case 'docs':
         return (
           <div className="relative" style={{
@@ -2038,10 +2059,7 @@ const AppContent: React.FC = () => {
                 scrollSnapAlign: 'start'
               }}>
               {/* Documents Content Area */}
-              <div className="px-5">
-            </div>
-
-            <div className="space-y-4 px-5">
+              <div className="space-y-4 px-5">
               {/* Class Filter - Clean */}
               {userClasses.length > 0 && (
                 <div className="relative" ref={mobileFilterRef}>
@@ -2816,7 +2834,7 @@ const AppContent: React.FC = () => {
               )}
               </div>
             </div>
-          </div>
+            </div>
         );
 
       case 'settings':

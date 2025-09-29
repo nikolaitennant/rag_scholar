@@ -1270,7 +1270,7 @@ const AppContent: React.FC = () => {
               paddingTop: `env(safe-area-inset-top)`,
               paddingBottom: '20px',
               background: 'transparent',
-              transform: `translateY(-160px)` // Move header up
+              transform: `translateY(-140px)` // Move header down
             }}>
               <div className="px-5" style={{ paddingTop: '10px' }}>
                 <h1 className="text-[28px] font-semibold tracking-tight text-white" style={{
@@ -1306,14 +1306,14 @@ const AppContent: React.FC = () => {
               marginTop: `calc(env(safe-area-inset-top) + ${(() => {
                 const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
                 const isLongName = userName.length > 12;
-                return isLongName ? '100px' : '80px';
+                return isLongName ? '80px' : '60px';
               })()})`,
               WebkitOverflowScrolling: 'touch',
               overscrollBehavior: 'contain',
               zIndex: 10,
-              paddingTop: '60px',
-              mask: 'linear-gradient(to bottom, transparent 0px, black 20px, black 100%)',
-              WebkitMask: 'linear-gradient(to bottom, transparent 0px, black 20px, black 100%)'
+              paddingTop: '20px',
+              mask: 'linear-gradient(to bottom, transparent 0px, black 15px, black 100%)',
+              WebkitMask: 'linear-gradient(to bottom, transparent 0px, black 15px, black 100%)'
             }}>
 
               <div className="space-y-4 px-5">

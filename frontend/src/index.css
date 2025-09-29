@@ -352,6 +352,22 @@
     }
   }
 
+  /* Chat input bar with gradient fade */
+
+  .chat-fade-overlay {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 10px;
+    pointer-events: none;
+    background: linear-gradient(to top,
+      rgba(0,0,0,0.6) 0%,
+      rgba(0,0,0,0.0) 100%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 5; /* between messages and input bar */
+  }
+
   /* ===== END MOBILE CHAT INTERFACE STYLES ===== */
 }
 

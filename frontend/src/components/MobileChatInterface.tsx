@@ -69,11 +69,11 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
         </button>
       </div>
 
-      {/* Mobile Chat Interface */}
-      <div className="flex-1 min-h-0 flex flex-col">
+      {/* Mobile Chat Interface - Chat Container */}
+      <div className="flex-1 min-h-0 flex flex-col relative">
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-4" style={{
-          paddingBottom: isKeyboardOpen ? '20px' : '100px'
+          paddingBottom: isKeyboardOpen ? '50px' : '130px'
         }}>
           {messages.length === 0 && !mobileInput.trim() ? (
             /* Mobile welcome state - fades out when typing */
@@ -129,23 +129,19 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
           )}
         </div>
 
-        {/* ChatGPT-style fade overlay above input - Only show when there are messages */}
+        {/* Chat Fade Overlay */}
         {messages.length > 0 && (
           <div
-            className="fixed left-0 right-0 pointer-events-none z-40"
+            className="pointer-events-none fixed left-0 right-0"
             style={{
-              height: '10px',
+              height: '30px',
               bottom: isKeyboardOpen
-                ? 'calc(max(env(safe-area-inset-bottom), 8px) + 55px)'
-                : 'calc(76px + max(env(safe-area-inset-bottom), 4px) + 55px)',
-              background: `linear-gradient(to bottom, transparent 0%, ${
-                theme === 'dark'
-                  ? 'rgba(0, 0, 0, 0.1) 30%, rgba(0, 0, 0, 0.5) 100%'
-                  : 'rgba(0, 0, 0, 0.1) 30%, rgba(0, 0, 0, 0.5) 100%'
-              })`,
-              backdropFilter: 'blur(2px)',
-              WebkitBackdropFilter: 'blur(2px)',
-              transition: 'bottom 0.3s ease-in-out'
+                ? 'calc(max(env(safe-area-inset-bottom), 4px) + 50px)'
+                : 'calc(60px + max(env(safe-area-inset-bottom), 0px) + 57itpx)',
+              background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%)',
+              backdropFilter: 'blur(6px)',
+              WebkitBackdropFilter: 'blur(.5px)',
+              zIndex: 45
             }}
           />
         )}

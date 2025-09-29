@@ -1014,30 +1014,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           </div>
         </div>
 
-        {/* Additional Help Content for Scrolling */}
-        <div className="ios-list-item p-4"
-          style={{
-            background: 'rgba(255, 255, 255, 0.08)',
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          }}>
-          <h4 className="ios-caption text-white font-medium mb-3">Tips & Tricks</h4>
-
-          <div className="space-y-2">
-            <div className="ios-caption text-white/70">
-              • Use AI Configuration to customize your chat experience
-            </div>
-            <div className="ios-caption text-white/70">
-              • Upload documents in PDF or text format for best results
-            </div>
-            <div className="ios-caption text-white/70">
-              • Create classes to organize your documents by subject
-            </div>
-            <div className="ios-caption text-white/70">
-              • Citations provide sources for all AI responses
-            </div>
-          </div>
-        </div>
+      
 
         {/* Extra spacing for scroll testing */}
         <div style={{ height: '100px' }} />
@@ -1157,8 +1134,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         }}>
           {/* Content with scroll snap for perfect return */}
           <div style={{
-            minHeight: 'calc(100% + 40px)',
-            paddingBottom: '40px'
+            minHeight: currentView === 'help' ? '100%' : 'calc(100% + 40px)',
+            paddingBottom: currentView === 'help' ? '0px' : '40px'
           }}>
             {/* Invisible snap point at the very top */}
             <div style={{

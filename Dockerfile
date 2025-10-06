@@ -17,8 +17,9 @@ COPY pyproject.toml ./
 COPY src/ ./src/
 
 # Install Python dependencies (can cache if pyproject.toml unchanged)
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip && \
+    pip install .
 
 # Stage 2: Runtime
 FROM python:3.11-slim

@@ -125,3 +125,10 @@ secrets/
 
 # ngrok
 ngrok.yml
+
+# IDE
+.vscode/
+.claude/
+
+# Firebase cache
+.firebase/

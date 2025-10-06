@@ -1,0 +1,11 @@
+version: "2"
+authtoken: ${NGROK_AUTHTOKEN}
+tunnels:
+  app:
+    proto: http
+    addr: frontend:3000
+    domain: ragscholar.ngrok.app
+  backend:
+    proto: http
+    addr: backend:8000
+    domain: ragscholar-api.ngrok.app

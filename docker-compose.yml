@@ -57,3 +57,5 @@ services:
     depends_on:
       - frontend
       - backend
+
+      

@@ -50,6 +50,8 @@ services:
   ngrok:
     image: ngrok/ngrok:latest
     command: start --all --config /etc/ngrok.yml
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
     volumes:
       - ./ngrok.yml:/etc/ngrok.yml
     ports:

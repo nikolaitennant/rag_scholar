@@ -985,6 +985,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             WebkitBackdropFilter: 'blur(20px) saturate(180%)',
           }}>
           <h4 className="ios-caption text-white font-medium mb-3">Need Help?</h4>
+          <div className="ios-caption text-white/60 text-left">
+  
+              Found a bug or have a suggestion?
+            </div>
 
           <div className="space-y-3 flex flex-col items-center">
             <button
@@ -994,12 +998,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                   onClose(); // Close settings modal when opening feedback
                 }
               }}
-              className="rounded-full p-3 px-4 active:scale-98 transition-all duration-200"
+              className="rounded-full p-3 px-3 active:scale-98 transition-all duration-200"
               style={{
                 background: 'rgba(168, 85, 247, 0.15)',
                 backdropFilter: 'blur(20px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                border: '1px solid rgba(168, 85, 247, 0.3)',
+
+                marginTop: '12px',
               }}
             >
               <div className="flex items-center justify-center space-x-2 whitespace-nowrap">
@@ -1007,14 +1012,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                 <span className="ios-caption text-purple-400 font-medium">Send Feedback</span>
               </div>
             </button>
-
-            <div className="ios-caption text-white/60 text-center">
-              Questions or suggestions? We'd love to hear from you!
-            </div>
           </div>
         </div>
-
-      
 
         {/* Extra spacing for scroll testing */}
         <div style={{ height: '100px' }} />

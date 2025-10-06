@@ -30,7 +30,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_API_URL=http://192.168.4.175:8000/api/v1
+      - REACT_APP_API_URL=http://backend:8000/api/v1
+
       # Doppler configuration for secure secret management
       - DOPPLER_PROJECT=rag-scholar
       - DOPPLER_CONFIG=dev
@@ -46,3 +47,14 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    command: start --all --config /etc/ngrok.yml
+    volumes:
+      - ./ngrok.yml:/etc/ngrok.yml
+    ports:
+      - "4040:4040"
+    depends_on:
+      - frontend
+      - backend

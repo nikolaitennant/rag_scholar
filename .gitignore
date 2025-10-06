@@ -67,6 +67,11 @@ venv.bak/
 .project
 .pydevproject
 
+# Xcode
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+
 # OS generated files
 .DS_Store
 .DS_Store?
@@ -115,3 +120,6 @@ secrets/
 
 # Doppler CLI
 .doppler/
+
+# ngrok
+ngrok.yml

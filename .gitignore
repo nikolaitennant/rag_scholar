@@ -91,6 +91,7 @@ Thumbs.db
 # Linting & Type checking
 .ruff_cache/
 .mypy_cache/
+bandit-report.json
 
 # Docker
 .dockerignore

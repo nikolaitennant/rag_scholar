@@ -172,7 +172,7 @@ async def chat(
             await user_service.update_user_stats(current_user["id"], "citations_received", sources_count)
     except Exception as e:
         # Don't fail the chat if achievement tracking fails
-        pass
+        logger.warning(f"Achievement tracking failed: {str(e)}")
 
     return ChatResponse(**result)
 

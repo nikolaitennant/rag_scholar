@@ -30,9 +30,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_API_URL=/api/v1
-
-      # Doppler configuration for secure secret management
+      - REACT_APP_API_URL=https://ragscholar-api.ngrok.app/api/v1
+      - DANGEROUSLY_DISABLE_HOST_CHECK=true
       - DOPPLER_PROJECT=rag-scholar
       - DOPPLER_CONFIG=dev
       - DOPPLER_TOKEN=${DOPPLER_TOKEN}

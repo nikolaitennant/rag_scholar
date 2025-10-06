@@ -66,14 +66,13 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            "http://localhost:3001",  # In case frontend runs on different port
-            "http://127.0.0.1:3001",
-            "http://192.168.4.175:3000",  # Network IP for iPhone testing
-            "https://symptomatic-underscrupulously-verlie.ngrok-free.dev",  # ngrok tunnel for development
+            "https://ragscholar.ngrok.app",  # ngrok tunnel for development
+            "https://ragscholar-api.ngrok.app",  # ngrok API tunnel
             "https://ragscholarai.firebaseapp.com",  # Production frontend
             "https://ragscholarai.web.app"  # Alternative Firebase domain
+            "http://localhost:3000", # Localhost
+            "http://127.0.0.1:3000", # Localhost
+            "http://192.168.4.175:3000", # Glebe Place IP
         ],
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],

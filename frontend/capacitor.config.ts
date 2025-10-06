@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'RAG Scholar',
   webDir: 'build',
   server: {
-    url: 'https://symptomatic-underscrupulously-verlie.ngrok-free.dev',
+    url: 'https://ragscholar.ngrok.app',
     cleartext: true
   },
   plugins: {

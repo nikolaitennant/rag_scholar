@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import UniformTypeIdentifiers
+internal import UIKit
 
 @MainActor
 class DocumentManager: ObservableObject {
@@ -53,7 +54,7 @@ class DocumentManager: ObservableObject {
 
             // Simulate progress (real implementation would track actual upload)
             uploadProgress = 0.3
-            HapticManager.shared.lightTap()
+            HapticManager.shared.impact(.light)
 
             let document = try await apiService.uploadDocument(file: data, filename: filename)
 

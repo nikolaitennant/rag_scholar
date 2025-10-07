@@ -127,6 +127,25 @@ struct ChatView: View {
 struct MessageBubble: View {
     let message: Message
 
+    private var userGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color(red: 0.43, green: 0.37, blue: 0.99),
+                Color(red: 0.62, green: 0.47, blue: 1)
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+
+    private var assistantGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color.white.opacity(0.1), Color.white.opacity(0.08)],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             if message.role == .user {
@@ -141,20 +160,9 @@ struct MessageBubble: View {
                     .padding(16)
                     .background(
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(message.role == .user
-                                  ? LinearGradient(
-                                    colors: [Color(red: 0.43, green: 0.37, blue: 0.99), Color(red: 0.62, green: 0.47, blue: 1)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                  )
-                                  : LinearGradient(
-                                    colors: [Color.white.opacity(0.1), Color.white.opacity(0.08)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                  )
-                            )
+                            .fill(message.role == .user ? userGradient : assistantGradient)
                     )
-                    .frame(maxWidth: UIScreen.main.bounds.width * 0.75, alignment: message.role == .user ? .trailing : .leading)
+                    .frame(maxWidth: 300, alignment: message.role == .user ? .trailing : .leading)
 
                 // Timestamp
                 Text(formatTimestamp(message.timestamp))
@@ -201,12 +209,12 @@ struct CitationsView: View {
                         withAnimation {
                             expandedCitation = expandedCitation == citation.id ? nil : citation.id
                         }
-                        HapticManager.shared.lightTap()
+                        HapticManager.shared.impact(.light)
                     }
                 )
             }
         }
-        .frame(maxWidth: UIScreen.main.bounds.width * 0.75)
+        .frame(maxWidth: 300) // Simplified from UIScreen.main.bounds.width * 0.75
     }
 }
 

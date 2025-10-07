@@ -7,7 +7,7 @@
 
 import Foundation
 import Combine
-import UIKit
+internal import UIKit
 
 @MainActor
 class NavigationManager: ObservableObject {

@@ -49,7 +49,7 @@ struct HomeView: View {
                         .padding(.horizontal)
                         .onTapGesture {
                             navigationManager.selectedTab = .rewards
-                            HapticManager.shared.lightTap()
+                            HapticManager.shared.impact(.light)
                         }
                 }
 
@@ -71,6 +71,7 @@ struct HomeView: View {
                         Button(action: {
                             chatManager.startNewChat()
                             navigationManager.selectedTab = .chat
+                            HapticManager.shared.impact(.light)
                         }) {
                             HStack(spacing: 4) {
                                 Image(systemName: "plus")
@@ -82,7 +83,10 @@ struct HomeView: View {
                             .padding(.vertical, 8)
                             .background(
                                 LinearGradient(
-                                    colors: [Color(red: 0.43, green: 0.37, blue: 0.99), Color(red: 0.62, green: 0.47, blue: 1)],
+                                    colors: [
+                                        Color(red: 0.43, green: 0.37, blue: 0.99),
+                                        Color(red: 0.62, green: 0.47, blue: 1)
+                                    ],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )

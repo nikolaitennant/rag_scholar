@@ -16,7 +16,7 @@ struct Achievement: Codable, Identifiable, Hashable {
     let target: Int
     var progress: Int
     var isUnlocked: Bool
-    let unlockedAt: Date?
+    var unlockedAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id

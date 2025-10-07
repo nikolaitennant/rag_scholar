@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+internal import UIKit
 
 @MainActor
 class ChatManager: ObservableObject {
@@ -88,7 +89,7 @@ class ChatManager: ObservableObject {
     func startNewChat() {
         currentSession = nil
         messages = []
-        HapticManager.shared.lightTap()
+        HapticManager.shared.impact(.light)
     }
 
     // MARK: - Message Handling

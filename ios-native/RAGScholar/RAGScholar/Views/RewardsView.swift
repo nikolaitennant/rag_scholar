@@ -40,6 +40,7 @@ struct RewardsView: View {
             }
             .padding(.bottom, 100)
         }
+        .background(Color(red: 0.11, green: 0.11, blue: 0.11)) // ChatGPT-like greyish black
         .onAppear {
             Task {
                 await rewardsManager.fetchAchievements()

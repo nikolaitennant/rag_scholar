@@ -5,7 +5,7 @@
 //  Manages haptic feedback throughout the app
 //
 
-internal import UIKit
+import UIKit
 
 class HapticManager {
     static let shared = HapticManager()

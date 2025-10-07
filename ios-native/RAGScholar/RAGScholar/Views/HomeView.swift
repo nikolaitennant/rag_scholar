@@ -20,25 +20,21 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 // Greeting with heart icon
-                HStack(alignment: .top, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(greetingText)
-                            .font(.system(size: 34, weight: .bold))
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text(greetingTextWithUsername)
+                            .font(.system(size: 28, weight: .semibold, design: .default))
                             .foregroundColor(.white)
-
-                        if let userName = getUserName() {
-                            Text(userName)
-                                .font(.system(size: 28, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.8))
-                        }
+                        
+                        Image(systemName: "suit.heart")
+                            .font(.system(size: 22, weight: .medium))
+                            .foregroundColor(Color(red: 0.4, green: 0.2, blue: 0.8)) // Dark violet
+                            .baselineOffset(1)
                     }
-
-                    Spacer()
-
-                    Image(systemName: "heart.fill")
-                        .font(.title)
-                        .foregroundColor(.pink)
-                        .symbolEffect(.pulse)
+                    
+                    Text("Ready to explore your documents?")
+                        .font(.system(size: 15, weight: .regular, design: .default))
+                        .foregroundColor(.white.opacity(0.55))
                 }
                 .padding(.horizontal)
                 .padding(.top, 8)
@@ -59,12 +55,6 @@ struct HomeView: View {
                         Text("Recent Chats")
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
-
-                        if let activeClass = classManager.activeClass {
-                            Text("- \(activeClass.name)")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.white.opacity(0.6))
-                        }
 
                         Spacer()
 
@@ -136,6 +126,7 @@ struct HomeView: View {
             }
             .padding(.vertical)
         }
+        .background(Color(red: 0.11, green: 0.11, blue: 0.11)) // Same as header - slightly lighter
         .onAppear {
             Task {
                 await rewardsManager.fetchUserStats()
@@ -144,6 +135,24 @@ struct HomeView: View {
         }
     }
 
+    private var greetingTextWithUsername: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        let greeting: String
+        if hour < 12 {
+            greeting = "Good morning"
+        } else if hour < 17 {
+            greeting = "Good afternoon"  
+        } else {
+            greeting = "Good evening"
+        }
+        
+        if let userName = getUserName() {
+            return "\(greeting), \(userName)"
+        } else {
+            return greeting
+        }
+    }
+    
     private var greetingText: String {
         let hour = Calendar.current.component(.hour, from: Date())
         if hour < 12 {
@@ -168,80 +177,83 @@ struct LearningProgressCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // Header with title and star/points in top right
             HStack {
-                Image(systemName: "star.fill")
-                    .font(.title)
-                    .foregroundColor(.yellow)
-                    .symbolEffect(.pulse)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(stats.totalPoints) points")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
-
-                    Text("\(stats.achievementsUnlocked) of \(stats.totalAchievements) achievements")
-                        .font(.system(size: 14))
-                        .foregroundColor(.white.opacity(0.7))
-                }
-
+                Text("Learning Progress")
+                    .font(.system(size: 17, weight: .semibold, design: .default))
+                    .foregroundColor(.white)
+                
                 Spacer()
-
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.white.opacity(0.5))
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Progress to next achievement")
-                        .font(.system(size: 13))
-                        .foregroundColor(.white.opacity(0.7))
-
-                    Spacer()
-
-                    Text("\(stats.totalPoints) / \(stats.nextMilestonePoints)")
-                        .font(.system(size: 13, weight: .semibold))
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.yellow)
+                        .shadow(color: .yellow.opacity(0.6), radius: 4, x: 0, y: 0) // Yellow glow
+                    
+                    Text("\(stats.totalPoints) pts")
+                        .font(.system(size: 15, weight: .semibold, design: .default))
                         .foregroundColor(.white)
                 }
-
+            }
+            
+            // Next achievement and progress
+            VStack(alignment: .leading, spacing: 8) {
+                // Next achievement line with progress on far right
+                HStack {
+                    Text("Next: \(getNextAchievementName())")
+                        .font(.system(size: 14, weight: .regular, design: .default))
+                        .foregroundColor(.white.opacity(0.65))
+                    
+                    Spacer()
+                    
+                    Text("(\(stats.achievementsUnlocked)/\(stats.totalAchievements))")
+                        .font(.system(size: 14, weight: .regular, design: .default))
+                        .foregroundColor(.white.opacity(0.65))
+                }
+                
+                // Progress Bar
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.white.opacity(0.2))
-                            .frame(height: 8)
-
-                        RoundedRectangle(cornerRadius: 4)
+                        // Track
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color(red: 0.16, green: 0.16, blue: 0.18)) // #2A2A2D
+                            .frame(height: 6)
+                        
+                        // Progress Fill - blueish to purple gradient
+                        RoundedRectangle(cornerRadius: 3)
                             .fill(
                                 LinearGradient(
-                                    colors: [Color.yellow, Color.orange],
+                                    colors: [
+                                        Color(red: 0.3, green: 0.6, blue: 1.0), // Light blue
+                                        Color(red: 0.6, green: 0.4, blue: 1.0)  // Light purple
+                                    ],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: geometry.size.width * stats.progressToNextMilestone, height: 8)
-                            .animation(.easeInOut, value: stats.progressToNextMilestone)
+                            .frame(width: geometry.size.width * stats.progressToNextMilestone, height: 6)
+                            .animation(.easeInOut(duration: 0.3), value: stats.progressToNextMilestone)
                     }
                 }
-                .frame(height: 8)
+                .frame(height: 6)
             }
         }
         .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.43, green: 0.37, blue: 0.99).opacity(0.3),
-                            Color(red: 0.62, green: 0.47, blue: 1).opacity(0.3)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                )
+        .background(Color(red: 0.11, green: 0.11, blue: 0.12)) // #1C1C1E
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1) // Light grey faint border
         )
+        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4) // Depth effect - outer shadow
+        .shadow(color: .white.opacity(0.02), radius: 1, x: 0, y: -1) // Depth effect - inner highlight
+    }
+    
+    private func getNextAchievementName() -> String {
+        // This should be populated from backend data
+        // For now, return a placeholder that indicates it should be dynamic
+        return "Consistent Researcher"
     }
 }
 

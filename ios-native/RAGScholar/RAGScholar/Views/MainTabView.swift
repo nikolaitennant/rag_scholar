@@ -10,97 +10,120 @@ import SwiftUI
 struct MainTabView: View {
     @EnvironmentObject var navigationManager: NavigationManager
     @EnvironmentObject var classManager: ClassManager
+    @State private var keyboardVisible = false
 
     var body: some View {
-        ZStack {
-            // Background gradient
+        VStack(spacing: 0) {
+            // Top Navigation Bar for workspace-level class management
+            TopNavigationBar()
+            
+            TabView(selection: $navigationManager.selectedTab) {
+                HomeView()
+                    .tabItem {
+                        Image(systemName: NavigationManager.Tab.home.icon)
+                        Text(NavigationManager.Tab.home.rawValue)
+                    }
+                    .tag(NavigationManager.Tab.home)
+
+                ChatView()
+                    .tabItem {
+                        Image(systemName: NavigationManager.Tab.chat.icon)
+                        Text(NavigationManager.Tab.chat.rawValue)
+                    }
+                    .tag(NavigationManager.Tab.chat)
+                    .onAppear {
+                        // Force keyboard to be ready when chat appears
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            // This helps ensure the view is ready for keyboard input
+                        }
+                    }
+
+                DocumentsView()
+                    .tabItem {
+                        Image(systemName: NavigationManager.Tab.docs.icon)
+                        Text(NavigationManager.Tab.docs.rawValue)
+                    }
+                    .tag(NavigationManager.Tab.docs)
+
+                RewardsView()
+                    .tabItem {
+                        Image(systemName: NavigationManager.Tab.rewards.icon)
+                        Text(NavigationManager.Tab.rewards.rawValue)
+                    }
+                    .tag(NavigationManager.Tab.rewards)
+            }
+            .tint(Color(red: 0.61, green: 0.42, blue: 1.0)) // #9C6BFF accent color
+        }
+        .background(
             LinearGradient(
                 colors: [
-                    Color(red: 0.1, green: 0.1, blue: 0.18),
-                    Color(red: 0.09, green: 0.13, blue: 0.25),
-                    Color(red: 0.06, green: 0.2, blue: 0.38)
+                    Color(red: 0.05, green: 0.05, blue: 0.05), // #0D0D0D
+                    Color(red: 0.08, green: 0.08, blue: 0.08)  // #141414
                 ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                startPoint: .top,
+                endPoint: .bottom
             )
-            .ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                // Custom Top Navigation Bar
-                TopNavigationBar()
-
-                // Content based on selected tab
-                TabView(selection: $navigationManager.selectedTab) {
-                    HomeView()
-                        .tag(NavigationManager.Tab.home)
-
-                    ChatView()
-                        .tag(NavigationManager.Tab.chat)
-
-                    DocumentsView()
-                        .tag(NavigationManager.Tab.docs)
-
-                    RewardsView()
-                        .tag(NavigationManager.Tab.rewards)
-                }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-            }
-
-            // Custom Tab Bar
-            VStack {
-                Spacer()
-                CustomTabBar()
-            }
-        }
-        .sheet(isPresented: $navigationManager.showClassSwitcher) {
-            ClassSwitcherView()
-        }
-        .sheet(isPresented: $navigationManager.showGlobalSearch) {
-            GlobalSearchView()
-        }
-    }
-}
-
-// MARK: - Custom Tab Bar
-
-struct CustomTabBar: View {
-    @EnvironmentObject var navigationManager: NavigationManager
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(NavigationManager.Tab.allCases, id: \.self) { tab in
-                Button {
-                    navigationManager.selectTab(tab)
-                } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 24))
-                            .foregroundColor(
-                                navigationManager.selectedTab == tab ? .white : Color.white.opacity(0.5)
-                            )
-
-                        Text(tab.rawValue)
-                            .font(.system(size: 10, weight: navigationManager.selectedTab == tab ? .medium : .regular))
-                            .foregroundColor(
-                                navigationManager.selectedTab == tab ? .white : Color.white.opacity(0.5)
-                            )
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.bottom, 8)
-        .background(
-            .ultraThinMaterial
-                .opacity(0.6)
         )
+        .preferredColorScheme(.dark)
+        .toolbar(keyboardVisible ? .hidden : .visible, for: .tabBar)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            keyboardVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardVisible = false
+        }
+        // TODO: Add GlobalSearchView when it's implemented
+        // .overlay(
+        //     // Global search modal overlay with slide-up animation
+        //     Group {
+        //         if navigationManager.showGlobalSearch {
+        //             ZStack {
+        //                 // Dimmed background
+        //                 Color.black.opacity(0.4)
+        //                     .ignoresSafeArea()
+        //                     .onTapGesture {
+        //                         withAnimation(.easeInOut(duration: 0.3)) {
+        //                             navigationManager.showGlobalSearch = false
+        //                         }
+        //                     }
+        //                 
+        //                 // Modal content that slides up from bottom
+        //                 VStack {
+        //                     Spacer()
+        //                     GlobalSearchView()
+        //                         .transition(.move(edge: .bottom).combined(with: .opacity))
+        //                 }
+        //             }
+        //         }
+        //     }
+        // )
         .overlay(
-            Rectangle()
-                .fill(Color.white.opacity(0.1))
-                .frame(height: 0.5),
-            alignment: .top
+            // Class switcher modal overlay - placed last to ensure it's always on top
+            Group {
+                if navigationManager.showClassSwitcher {
+                    ZStack {
+                        // Dimmed background
+                        Color.black.opacity(0.8)
+                            .ignoresSafeArea(.all)
+                            .allowsHitTesting(true) // Ensure it captures taps
+                            .onTapGesture {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    navigationManager.showClassSwitcher = false
+                                }
+                            }
+                        
+                        // Modal content that appears in the center
+                        ClassSwitcherView(onDismiss: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                navigationManager.showClassSwitcher = false
+                            }
+                        })
+                        .transition(AnyTransition.opacity.combined(with: AnyTransition.scale(scale: 0.9)))
+                        .zIndex(10000) // Very high zIndex to ensure it's above sheets and other modals
+                    }
+                    .zIndex(9999) // High zIndex for the entire modal
+                }
+            }
         )
     }
 }

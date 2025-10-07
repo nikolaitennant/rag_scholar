@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 import UniformTypeIdentifiers
-internal import UIKit
+import UIKit
 
 @MainActor
 class DocumentManager: ObservableObject {

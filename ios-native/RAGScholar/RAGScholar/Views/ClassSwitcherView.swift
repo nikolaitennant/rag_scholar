@@ -2,7 +2,7 @@
 //  ClassSwitcherView.swift
 //  RAGScholar
 //
-//  Slack-style class switcher with native iOS design
+//  Modern card-based class switcher with subject type selection
 //
 
 import SwiftUI
@@ -11,197 +11,206 @@ struct ClassSwitcherView: View {
     @EnvironmentObject var classManager: ClassManager
     @EnvironmentObject var navigationManager: NavigationManager
     @Environment(\.dismiss) var dismiss
+    let onDismiss: (() -> Void)?
+    
+    @State private var showingCreateClass = false
+    
+    init(onDismiss: (() -> Void)? = nil) {
+        self.onDismiss = onDismiss
+    }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                // Background
-                Color(red: 0.11, green: 0.11, blue: 0.12)
-                    .ignoresSafeArea()
-
-                if classManager.classes.isEmpty {
-                    emptyStateView
-                } else {
-                    classListView
+        ZStack {
+            // Background - dimmed and blocks interaction with underlying views
+            Color.black.opacity(0.8)
+                .ignoresSafeArea()
+                .allowsHitTesting(true) // Ensure it captures all taps
+                .onTapGesture {
+                    onDismiss?() ?? dismiss()
                 }
-            }
-            .navigationTitle("Switch Class")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Close") {
-                        dismiss()
+            
+            VStack(spacing: 20) {
+                Spacer()
+                
+                // Class Switcher Card
+                VStack(spacing: 24) {
+                // Header
+                VStack(spacing: 8) {
+                    Text("Select Class")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.white)
+                    
+                    Text("Choose your active class")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                    
+                    // Classes List
+                    if classManager.classes.isEmpty {
+                        // Empty state
+                        VStack(spacing: 16) {
+                            Image(systemName: "book.closed")
+                                .font(.system(size: 32))
+                                .foregroundColor(.white.opacity(0.4))
+                            
+                            Text("No classes yet")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        .padding(.vertical, 20)
+                    } else {
+                        // Class list
+                        LazyVStack(spacing: 12) {
+                            ForEach(classManager.classes) { classItem in
+                                ClassRowView(
+                                    classItem: classItem,
+                                    isSelected: classManager.activeClass?.id == classItem.id,
+                                    onSelect: {
+                                        classManager.selectClass(classItem)
+                                        onDismiss?() ?? dismiss()
+                                    }
+                                )
+                            }
+                        }
                     }
-                    .foregroundColor(.white)
-                }
-
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        // Navigate to create class
-                    } label: {
-                        Image(systemName: "plus")
-                            .foregroundColor(.white)
+                    
+                    // Action Buttons
+                    HStack(spacing: 12) {
+                        // Create New Class Button - pill shaped
+                        Button {
+                            showingCreateClass = true
+                        } label: {
+                            Text("Create New Class")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    Capsule() // Perfect pill shape
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color(red: 0.3, green: 0.6, blue: 1.0),
+                                                    Color(red: 0.6, green: 0.4, blue: 1.0)
+                                                ],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .shadow(color: Color(red: 0.5, green: 0.5, blue: 1.0).opacity(0.4), radius: 8, x: 0, y: 2) // Glow effect
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        
+                        // Cancel Button
+                        Button {
+                            onDismiss?() ?? dismiss()
+                        } label: {
+                            Text("Cancel")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white.opacity(0.7))
+                                .frame(width: 80)
+                                .padding(.vertical, 14)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-            }
-        }
-        .preferredColorScheme(.dark)
-    }
-
-    // MARK: - Empty State
-
-    private var emptyStateView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "book.closed.fill")
-                .font(.system(size: 60))
-                .foregroundColor(.white.opacity(0.3))
-
-            Text("No Classes Yet")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .foregroundColor(.white)
-
-            Text("Create your first class to get started")
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.6))
-                .multilineTextAlignment(.center)
-
-            Button {
-                // Navigate to create class
-                dismiss()
-            } label: {
-                Text("Create Your First Class")
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(
-                        LinearGradient(
-                            colors: [Color(red: 0.43, green: 0.37, blue: 0.99), Color(red: 0.62, green: 0.47, blue: 1)],
-                            startPoint: .leading,
-                            endPoint: .trailing
+                .padding(24)
+                .background(
+                    RoundedRectangle(cornerRadius: 28) // More rounded
+                        .fill(Color(red: 0.11, green: 0.11, blue: 0.12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 28)
+                                .stroke(Color.white.opacity(0.1), lineWidth: 1) // Subtle grey highlight
                         )
-                        .cornerRadius(12)
-                    )
+                )
+                .padding(.horizontal, 20)
+                
+                Spacer()
             }
-            .buttonStyle(.plain)
-            .padding(.top, 8)
+            .zIndex(1) // Ensure content stays above background
         }
-        .padding()
+        .overlay(
+            // Create class modal overlay
+            Group {
+                if showingCreateClass {
+                    ZStack {
+                        // Dimmed background
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                showingCreateClass = false
+                            }
+                        
+                        // Modal content that appears in the center
+                        CreateClassView(onDismiss: {
+                            showingCreateClass = false
+                            // Also dismiss the ClassSwitcherView after creating a class
+                            onDismiss?() ?? dismiss()
+                        })
+                        .transition(AnyTransition.opacity.combined(with: AnyTransition.scale(scale: 0.9)))
+                    }
+                }
+            }
+        )
     }
-
-    // MARK: - Class List
-
-    private var classListView: some View {
-        ScrollView {
-            VStack(spacing: 12) {
-                ForEach(classManager.classes) { userClass in
-                    ClassRowView(
-                        userClass: userClass,
-                        isActive: classManager.activeClass?.id == userClass.id
-                    ) {
-                        classManager.selectClass(userClass)
-                        dismiss()
-                    }
-                }
-
-                // Create New Class Button
-                Button {
-                    // Navigate to create class
-                    dismiss()
-                } label: {
-                    HStack {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(Color(red: 0.43, green: 0.37, blue: 0.99))
-
-                        Text("New Class")
-                            .font(.headline)
-                            .foregroundColor(.white)
-
-                        Spacer()
-                    }
-                    .padding()
-                    .background(
-                        Color.white.opacity(0.05)
-                            .cornerRadius(16)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 8)
-            }
-            .padding()
-        }
+    
+    // Computed property to help with type checking
+    private var createButtonGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color(red: 0.3, green: 0.6, blue: 1.0),
+                Color(red: 0.6, green: 0.4, blue: 1.0)
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
     }
 }
 
-// MARK: - Class Row
+// MARK: - Class Row View
 
 struct ClassRowView: View {
-    let userClass: UserClass
-    let isActive: Bool
-    let onTap: () -> Void
-
+    let classItem: UserClass
+    let isSelected: Bool
+    let onSelect: () -> Void
+    
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 16) {
-                // Icon
-                ZStack {
-                    Circle()
-                        .fill(
-                            isActive ?
-                            LinearGradient(
-                                colors: [Color(red: 0.43, green: 0.37, blue: 0.99), Color(red: 0.62, green: 0.47, blue: 1)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ) :
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.1), Color.white.opacity(0.1)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 48, height: 48)
-
-                    Image(systemName: userClass.domainType.icon)
-                        .font(.system(size: 22))
+        Button(action: onSelect) {
+            HStack(spacing: 12) {
+                // Subject Icon
+                Image(systemName: classItem.domainType.icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(.white.opacity(0.8))
+                    .frame(width: 32, height: 32)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(classItem.name)
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white)
+                        .multilineTextAlignment(.leading)
+                    
+                    Text(classItem.domainType.displayName)
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(.white.opacity(0.6))
                 }
-
-                // Class Info
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(userClass.name)
-                        .font(.headline)
-                        .foregroundColor(.white)
-
-                    Text(userClass.domainType.displayName)
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.5))
-                }
-
+                
                 Spacer()
-
-                // Active Indicator
-                if isActive {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(Color(red: 0.43, green: 0.37, blue: 0.99))
+                
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(Color(red: 0.61, green: 0.42, blue: 1.0))
                 }
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             .background(
-                (isActive ? Color(red: 0.43, green: 0.37, blue: 0.99).opacity(0.15) : Color.white.opacity(0.05))
-                    .cornerRadius(16)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(
-                        isActive ? Color(red: 0.43, green: 0.37, blue: 0.99).opacity(0.5) : Color.white.opacity(0.1),
-                        lineWidth: isActive ? 2 : 1
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? Color.white.opacity(0.08) : Color.clear)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isSelected ? Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.3) : Color.clear, lineWidth: 1)
                     )
             )
         }

@@ -31,40 +31,41 @@ class RewardsManager: ObservableObject {
         isLoading = true
         error = nil
 
-        do {
-            // TODO: Implement API endpoint for achievements
-            // achievements = try await apiService.fetchAchievements()
+        // TODO: Implement API endpoint for achievements
+        // When implementing API call, add back do-catch:
+        // do {
+        //     achievements = try await apiService.fetchAchievements()
+        // } catch {
+        //     self.error = error.localizedDescription
+        // }
 
-            // For now, use default achievements and update progress
-            await updateAchievementProgress()
-
-            saveToStorage()
-        } catch {
-            self.error = error.localizedDescription
-        }
+        // For now, use default achievements and update progress
+        await updateAchievementProgress()
+        saveToStorage()
 
         isLoading = false
     }
 
     func fetchUserStats() async {
-        do {
-            // TODO: Implement API endpoint for user stats
-            // userStats = try await apiService.fetchUserStats()
+        // TODO: Implement API endpoint for user stats
+        // When implementing API call, add back do-catch:
+        // do {
+        //     userStats = try await apiService.fetchUserStats()
+        // } catch {
+        //     self.error = error.localizedDescription
+        // }
 
-            // Mock data for now
-            userStats = UserStats(
-                totalPoints: 125,
-                achievementsUnlocked: 3,
-                totalAchievements: achievements.count,
-                chatsCreated: 5,
-                documentsUploaded: 2,
-                questionsAsked: 15
-            )
+        // Mock data for now
+        userStats = UserStats(
+            totalPoints: 125,
+            achievementsUnlocked: 3,
+            totalAchievements: achievements.count,
+            chatsCreated: 5,
+            documentsUploaded: 2,
+            questionsAsked: 15
+        )
 
-            saveToStorage()
-        } catch {
-            self.error = error.localizedDescription
-        }
+        saveToStorage()
     }
 
     // MARK: - Achievement Tracking

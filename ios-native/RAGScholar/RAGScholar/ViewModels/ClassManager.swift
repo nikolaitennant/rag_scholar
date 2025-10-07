@@ -20,7 +20,63 @@ class ClassManager: ObservableObject {
     private let apiService = APIService.shared
 
     private init() {
+        loadSampleClasses() // Add sample classes for testing
         loadActiveClassFromStorage()
+    }
+    
+    // MARK: - Sample Data for Testing
+    
+    private func loadSampleClasses() {
+        let sampleClasses = [
+            UserClass(
+                id: "1",
+                name: "Introduction to Psychology",
+                domainType: .science,
+                description: "Basic principles of psychology and human behavior",
+                documents: [],
+                createdAt: Date().addingTimeInterval(-86400 * 7) // 7 days ago
+            ),
+            UserClass(
+                id: "2", 
+                name: "Constitutional Law",
+                domainType: .law,
+                description: "Study of constitutional principles and legal frameworks",
+                documents: [],
+                createdAt: Date().addingTimeInterval(-86400 * 3) // 3 days ago
+            ),
+            UserClass(
+                id: "3",
+                name: "Advanced Calculus",
+                domainType: .general,
+                description: "Advanced mathematical concepts and applications",
+                documents: [],
+                createdAt: Date().addingTimeInterval(-86400) // 1 day ago
+            ),
+            UserClass(
+                id: "4",
+                name: "Modern Literature",
+                domainType: .literature,
+                description: "Analysis of contemporary literary works",
+                documents: [],
+                createdAt: Date()
+            ),
+            UserClass(
+                id: "5",
+                name: "Business Strategy",
+                domainType: .business,
+                description: "Strategic planning and business development",
+                documents: [],
+                createdAt: Date().addingTimeInterval(-86400 * 5) // 5 days ago
+            )
+        ]
+        
+        classes = sampleClasses
+        
+        // Set the first class as active by default
+        if let firstClass = classes.first {
+            activeClass = firstClass
+            saveActiveClassToStorage()
+        }
     }
 
     // MARK: - Persistence

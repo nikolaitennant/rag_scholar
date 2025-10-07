@@ -7,7 +7,7 @@
 
 import Foundation
 import Combine
-internal import UIKit
+import UIKit
 
 @MainActor
 class ChatManager: ObservableObject {

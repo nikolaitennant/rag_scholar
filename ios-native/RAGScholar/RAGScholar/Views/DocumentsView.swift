@@ -101,6 +101,7 @@ struct DocumentsView: View {
                 Text("Are you sure you want to delete '\(document.filename)'? This action cannot be undone.")
             }
         }
+        .background(Color(red: 0.11, green: 0.11, blue: 0.11)) // ChatGPT-like greyish black
         .onAppear {
             Task {
                 await documentManager.fetchDocuments()

@@ -51,16 +51,27 @@ struct ChatView: View {
             // Input Area
             HStack(spacing: 12) {
                 TextField("Ask a question...", text: $inputText, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 16))
                     .foregroundColor(.white)
-                    .padding(12)
+                    .font(.system(size: 16))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
                     .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.white.opacity(0.1))
+                        Capsule()
+                            .fill(Color(red: 0.11, green: 0.11, blue: 0.12))
+                            .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.4), radius: 8, x: 0, y: 0)
                     )
                     .focused($isInputFocused)
                     .lineLimit(1...5)
+                    .onTapGesture {
+                        // Force focus when tapping the text field
+                        isInputFocused = true
+                    }
+
+                // Debug button - remove this later
+                Button("KB") {
+                    isInputFocused = true
+                }
+                .foregroundColor(.blue)
 
                 Button(action: sendMessage) {
                     Image(systemName: "arrow.up.circle.fill")
@@ -77,6 +88,7 @@ struct ChatView: View {
                     .ignoresSafeArea(edges: .bottom)
             )
         }
+        .background(Color(red: 0.11, green: 0.11, blue: 0.11)) // ChatGPT-like greyish black
         .onAppear {
             // Fetch initial data if needed
             if chatManager.sessions.isEmpty {

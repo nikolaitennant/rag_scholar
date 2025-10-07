@@ -110,4 +110,7 @@ struct CustomTabBar: View {
         .environmentObject(NavigationManager.shared)
         .environmentObject(ClassManager.shared)
         .environmentObject(AuthenticationManager.shared)
+        .environmentObject(RewardsManager.shared)
+        .environmentObject(ChatManager.shared)
+        .environmentObject(DocumentManager.shared)
 }

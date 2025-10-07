@@ -22,9 +22,12 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 struct RAGScholarApp: App {
     // Register app delegate for Firebase setup
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    
+
     @StateObject private var authManager = AuthenticationManager.shared
     @StateObject private var classManager = ClassManager.shared
+    @StateObject private var chatManager = ChatManager.shared
+    @StateObject private var documentManager = DocumentManager.shared
+    @StateObject private var rewardsManager = RewardsManager.shared
     @StateObject private var navigationManager = NavigationManager.shared
 
     init() {
@@ -37,6 +40,9 @@ struct RAGScholarApp: App {
             ContentView()
                 .environmentObject(authManager)
                 .environmentObject(classManager)
+                .environmentObject(chatManager)
+                .environmentObject(documentManager)
+                .environmentObject(rewardsManager)
                 .environmentObject(navigationManager)
                 .preferredColorScheme(.dark) // Force dark mode for now
         }

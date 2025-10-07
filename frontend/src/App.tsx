@@ -12,6 +12,10 @@ import { SettingsModal } from './components/SettingsModal';
 import { SplashScreen } from './components/SplashScreen';
 import { AchievementNotification } from './components/AchievementNotification';
 import { CommandSuggestions } from './components/CommandSuggestions';
+import { TopNavigationBar } from './components/TopNavigationBar';
+import { ClassSwitcherDropdown } from './components/ClassSwitcherDropdown';
+import { GlobalSearchOverlay } from './components/GlobalSearchOverlay';
+import { ClassOnboarding } from './components/ClassOnboarding';
 import { useAchievements } from './hooks/useAchievements';
 import { apiService } from './services/api';
 import { getCommandSuggestions } from './utils/commandParser';
@@ -98,6 +102,11 @@ const AppContent: React.FC = () => {
   const [editingDocumentId, setEditingDocumentId] = useState<string | null>(null);
   const [editingDocumentName, setEditingDocumentName] = useState('');
   const isMobile = window.innerWidth < 768;
+
+  // New navigation components state
+  const [showClassSwitcher, setShowClassSwitcher] = useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Persist document filter to localStorage
   useEffect(() => {
@@ -219,6 +228,45 @@ const AppContent: React.FC = () => {
     localStorage.setItem('model_temperature', apiSettings.temperature.toString());
     localStorage.setItem('max_tokens', apiSettings.maxTokens.toString());
   }, [apiSettings]);
+
+  // Persist active class to localStorage
+  useEffect(() => {
+    if (activeClass) {
+      localStorage.setItem('activeClassId', activeClass.id);
+    } else {
+      localStorage.removeItem('activeClassId');
+    }
+  }, [activeClass]);
+
+  // Load active class from localStorage and show onboarding if no classes
+  useEffect(() => {
+    if (!isAuthenticated || userClasses.length === 0) return;
+
+    const savedActiveClassId = localStorage.getItem('activeClassId');
+
+    // If there's a saved class, try to restore it
+    if (savedActiveClassId) {
+      const savedClass = userClasses.find(c => c.id === savedActiveClassId);
+      if (savedClass) {
+        setActiveClass(savedClass);
+        return;
+      }
+    }
+
+    // Otherwise, auto-select the first class
+    if (userClasses.length > 0 && !activeClass) {
+      setActiveClass(userClasses[0]);
+    }
+  }, [isAuthenticated, userClasses]);
+
+  // Show onboarding if no classes exist
+  useEffect(() => {
+    if (!isAuthenticated || appLoading) return;
+
+    if (userClasses.length === 0 && !showOnboarding) {
+      setShowOnboarding(true);
+    }
+  }, [isAuthenticated, userClasses, appLoading]);
 
   // Configure Capacitor StatusBar for fullscreen appearance
   useEffect(() => {
@@ -1106,6 +1154,25 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // Handlers for new navigation components
+  const handleOnboardingCreateClass = async (name: string, type: DomainType, description: string) => {
+    await handleCreateClass(name, type, description);
+    setShowOnboarding(false);
+  };
+
+  const handleSearchSelectDocument = (documentId: string) => {
+    // Navigate to docs page
+    setMobilePage('docs');
+    // Optionally scroll to document or highlight it
+  };
+
+  const handleSearchSelectChat = (sessionId: string) => {
+    // Navigate to chat and load that session
+    setMobilePage('chat');
+    // Load the session messages
+    handleSelectSession(sessionId);
+  };
+
   const handleAssignDocuments = async (classId: string, documentIds: string[]) => {
     const updatedClasses = userClasses.map(userClass =>
       userClass.id === classId
@@ -1263,32 +1330,25 @@ const AppContent: React.FC = () => {
             height: '100vh',
             minHeight: '100vh',
             zIndex: 10,
-            transform: `translateY(-13px)` // Move entire container up
+            paddingTop: 'calc(56px + env(safe-area-inset-top))' // Account for top navigation bar (56px)
           }}>
-            {/* Fixed Header - Only exists on home page */}
-            <div className="fixed top-0 left-0 right-0 z-20 px-0" style={{
-              paddingTop: `env(safe-area-inset-top)`,
-              paddingBottom: '20px',
-              background: 'transparent',
-              transform: `translateY(-140px)` // Move header down
-            }}>
-              <div className="px-5" style={{ paddingTop: '10px' }}>
-                <h1 className="text-[28px] font-semibold tracking-tight text-white" style={{
-                  lineHeight: '1.1'
-                }}>
-                  {(() => {
-                    const hour = new Date().getHours();
-                    const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
-                    if (hour < 12) return `Good morning, ${userName}`;
-                    if (hour < 17) return `Good afternoon, ${userName}`;
-                    return `Good evening, ${userName}`;
-                  })()}&nbsp;
-                  <Heart className="w-6 h-6 text-[#AF52DE] animate-pulse inline-block ml-1" style={{ verticalAlign: 'middle', transform: 'translateY(-2px)' }} />
-                </h1>
-                <p className="text-sm text-gray-400/90 mt-1">
-                  Ready to explore your documents?
-                </p>
-              </div>
+            {/* Greeting Section */}
+            <div className="px-5 pt-4 pb-6">
+              <h1 className="text-[28px] font-semibold tracking-tight text-white" style={{
+                lineHeight: '1.1'
+              }}>
+                {(() => {
+                  const hour = new Date().getHours();
+                  const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
+                  if (hour < 12) return `Good morning, ${userName}`;
+                  if (hour < 17) return `Good afternoon, ${userName}`;
+                  return `Good evening, ${userName}`;
+                })()}&nbsp;
+                <Heart className="w-6 h-6 text-[#AF52DE] animate-pulse inline-block ml-1" style={{ verticalAlign: 'middle', transform: 'translateY(-2px)' }} />
+              </h1>
+              <p className="text-sm text-gray-400/90 mt-1">
+                Ready to explore your documents?
+              </p>
             </div>
 
             {/* Scrollable Content */}
@@ -1384,38 +1444,10 @@ const AppContent: React.FC = () => {
                 })()}
               </button>
 
-              {/* iOS-Style Classes Section */}
-              <div className="space-y-4 animate-slide-in-bottom"
-                style={{
-                  animationDelay: '0.15s',
-                  animationFillMode: 'both'
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-white/80">
-                    Classes
-                  </h2>
-                  <button
-                    onClick={() => {
-                      // Reset form state when creating new class
-                      setMobileClassFormData({ name: '', type: null, description: '' });
-                      setEditingMobileClass(null);
-                      setMobileEditingClassDocs([]);
-                      setMobileFormStep('class');
-                      setShowMobileClassForm(!showMobileClassForm);
-                    }}
-                    className="w-9 h-9 min-w-9 rounded-full flex-shrink-0 bg-gradient-to-r from-[#6D5FFD] to-[#9E78FF] shadow-lg shadow-purple-500/30 flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95"
-                    style={{
-                      WebkitTapHighlightColor: 'transparent',
-                      backdropFilter: 'blur(10px)'
-                    }}
-                  >
-                    <Plus className="w-5 h-5 text-white" />
-                  </button>
-                </div>
+              {/* Classes section removed - now accessed via top navigation */}
 
-                {/* Create Class Form */}
-                {showMobileClassForm && createPortal(
+              {/* Create Class Form - Keep this for backward compatibility with existing create class flow */}
+              {showMobileClassForm && createPortal(
                   <>
                     {/* Soft overlay behind form - covers entire screen */}
                     <div className="fixed inset-0 bg-black/40 backdrop-blur-md animate-fade-in" style={{ zIndex: 999 }} />
@@ -1673,143 +1705,6 @@ const AppContent: React.FC = () => {
                   document.body
                 )}
 
-                {/* Classes List */}
-                {userClasses.length === 0 && !showMobileClassForm ? (
-                  <div className="text-center py-2 space-y-3">
-                    <div className="w-10 h-10 mx-auto rounded-full bg-white/10 flex items-center justify-center">
-                      <BookOpen className="w-4 h-4 text-white/60" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-white mb-1">No classes yet</p>
-                      <p className="text-gray-400 text-sm mb-3">Create your first class to get started</p>
-                      <button
-                        onClick={() => {
-                          // Reset form state when creating new class
-                          setMobileClassFormData({ name: '', type: null, description: '' });
-                          setEditingMobileClass(null);
-                          setMobileEditingClassDocs([]);
-                          setMobileFormStep('class');
-                          setShowMobileClassForm(true);
-                        }}
-                        className="px-5 py-2.5 rounded-full text-white font-medium transition-all duration-200 active:scale-95 inline-flex items-center gap-2 text-sm"
-                        style={{
-                          background: 'linear-gradient(135deg, #007AFF 0%, #AF52DE 100%)',
-                          boxShadow: '0 4px 12px rgba(0, 122, 255, 0.3)'
-                        }}
-                      >
-                        <Plus className="h-4 w-4" />
-                        Create Class
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {userClasses
-                      .filter(userClass =>
-                        // Hide class being edited until fully loaded
-                        !(editingMobileClass && userClass.id === editingMobileClass.id && isEditingMobileClass)
-                      )
-                      .map((userClass) => {
-                        const typeInfo = DOMAIN_TYPE_INFO[userClass.domainType];
-                        const Icon = typeInfo?.icon;
-                        const isActive = activeClass?.id === userClass.id;
-                        const docCount = documents.filter(doc => doc.assigned_classes?.includes(userClass.id)).length;
-
-                      return (
-                        <div key={userClass.id} className={`p-4 transition-all duration-300 active:scale-[0.98] rounded-2xl relative border ${
-                          isActive
-                            ? 'bg-gradient-to-r from-purple-500/25 to-violet-500/25 border-purple-400/20 shadow-[0_6px_20px_rgba(109,95,253,0.3)]'
-                            : 'bg-[#1C1C1E]/60 backdrop-blur-md border-white/10 shadow-[0_6px_16px_rgba(0,0,0,0.3)]'
-                        }`}
-                        style={{
-                          WebkitTapHighlightColor: 'transparent',
-                          touchAction: 'manipulation'
-                        }}>
-                          <div className="flex items-center space-x-3">
-                            <button
-                              onClick={() => handleSelectClass(userClass)}
-                              className="flex items-center space-x-3 flex-1 min-w-0 text-left"
-                            >
-                              {Icon && <Icon className={`w-4 h-4 ${
-                                isActive
-                                  ? 'text-purple-400'
-                                  : theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                              }`} />}
-                              <div className="flex-1 min-w-0">
-                                <h4 className={`ios-title text-white truncate text-left ${
-                                  isActive ? 'opacity-100' : 'opacity-90'
-                                }`}>
-                                  {userClass.name}
-                                </h4>
-                                <div className="flex items-center space-x-2 mt-2">
-                                  {isActive && (
-                                    <div className="relative">
-                                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                                      <div className="absolute top-0 left-0 w-2 h-2 bg-purple-400 rounded-full animate-ping"></div>
-                                    </div>
-                                  )}
-                                  <span className={`ios-caption px-2 py-1 rounded-full ${
-                                    isActive
-                                      ? 'bg-purple-500/20 text-purple-300'
-                                      : 'bg-white/5 text-white/70'
-                                  }`}>
-                                    {typeInfo?.label || userClass.domainType}
-                                  </span>
-                                  <span className={`ios-caption px-2 py-1 rounded-full ${
-                                    isActive
-                                      ? 'bg-purple-500/20 text-purple-300'
-                                      : 'bg-white/5 text-white/70'
-                                  }`}>
-                                    {docCount} doc{docCount !== 1 ? 's' : ''}
-                                  </span>
-                                </div>
-                              </div>
-                            </button>
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingMobileClass(userClass);
-                                  setMobileClassFormData({
-                                    name: userClass.name,
-                                    type: userClass.domainType,
-                                    description: userClass.description || ''
-                                  });
-                                  setMobileEditingClassDocs(
-                                    documents
-                                      .filter(doc => doc.assigned_classes?.includes(userClass.id))
-                                      .map(doc => doc.id)
-                                  );
-                                  setShowMobileClassForm(true);
-                                }}
-                                className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-white/5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95"
-                                style={{
-                                  WebkitTapHighlightColor: 'transparent'
-                                }}
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteClass(userClass.id);
-                                }}
-                                className="w-7 h-7 min-w-7 rounded-full flex-shrink-0 bg-white/5 flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/15 transition-all duration-200 active:scale-95"
-                                style={{
-                                  WebkitTapHighlightColor: 'transparent'
-                                }}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
               {/* Recent Chats - Show based on active class selection */}
               {(() => {
                 // Filter sessions based on active class (same logic as desktop)
@@ -1983,15 +1878,14 @@ const AppContent: React.FC = () => {
         return (
           <div className="relative" style={{
             height: '100vh',
-            paddingTop: `env(safe-area-inset-top)`, // Background covers notch area
-            zIndex: 10,
-            transform: `translateY(-18px)` // Move entire container up to match home page
+            paddingTop: 'calc(56px + env(safe-area-inset-top))', // Account for top navigation bar (56px)
+            zIndex: 10
           }}>
-            {/* Fixed Header - doesn't move */}
+            {/* Header */}
             <div
               className="px-5 flex items-center justify-between"
               style={{
-                paddingTop: 'calc(env(safe-area-inset-top) - 2px)',
+                paddingTop: '8px',
                 paddingBottom: '16px',
                 background: 'transparent',
                 position: 'absolute',
@@ -2359,12 +2253,14 @@ const AppContent: React.FC = () => {
 
       case 'rewards':
         return (
-          <div className="h-full flex flex-col">
-            {/* Fixed Header */}
+          <div className="h-full flex flex-col" style={{
+            paddingTop: 'calc(56px + env(safe-area-inset-top))' // Account for top navigation bar (56px)
+          }}>
+            {/* Header */}
             <div
               className="px-5 flex items-center justify-between"
               style={{
-                paddingTop: 'calc(env(safe-area-inset-top) - 20px)',
+                paddingTop: '8px',
                 paddingBottom: '16px'
               }}>
               <div>
@@ -2975,6 +2871,19 @@ const AppContent: React.FC = () => {
 
       {/* Mobile Layout */}
       <div className="md:hidden w-full h-screen relative bg-transparent">
+        {/* Top Navigation Bar - Only on mobile */}
+        {isMobile && !showOnboarding && (
+          <TopNavigationBar
+            activeClass={activeClass}
+            onClassSwitcherClick={() => setShowClassSwitcher(true)}
+            onSearchClick={() => setShowGlobalSearch(true)}
+            onSettingsClick={() => {
+              setSettingsPage('main');
+              setMobilePage('settings');
+            }}
+          />
+        )}
+
         {renderMobilePage()}
 
         {/* Real WhatsApp-style Bottom Navigation Dock */}
@@ -3205,6 +3114,46 @@ const AppContent: React.FC = () => {
           // Optional: Add any cleanup after splash screen transition
         }}
       />
+
+      {/* New Navigation Components - Mobile only */}
+      {isMobile && (
+        <>
+          {/* Class Switcher Dropdown */}
+          <ClassSwitcherDropdown
+            isOpen={showClassSwitcher}
+            onClose={() => setShowClassSwitcher(false)}
+            activeClass={activeClass}
+            userClasses={userClasses}
+            onSelectClass={handleSelectClass}
+            onCreateClass={() => {
+              setShowClassSwitcher(false);
+              setMobileClassFormData({ name: '', type: null, description: '' });
+              setEditingMobileClass(null);
+              setMobileEditingClassDocs([]);
+              setMobileFormStep('class');
+              setShowMobileClassForm(true);
+            }}
+          />
+
+          {/* Global Search Overlay */}
+          <GlobalSearchOverlay
+            isOpen={showGlobalSearch}
+            onClose={() => setShowGlobalSearch(false)}
+            activeClass={activeClass}
+            documents={documents}
+            chatSessions={sessions}
+            onSelectDocument={handleSearchSelectDocument}
+            onSelectChat={handleSearchSelectChat}
+          />
+
+          {/* Class Onboarding */}
+          {showOnboarding && (
+            <ClassOnboarding
+              onCreateClass={handleOnboardingCreateClass}
+            />
+          )}
+        </>
+      )}
       </div>
     </div>
   );

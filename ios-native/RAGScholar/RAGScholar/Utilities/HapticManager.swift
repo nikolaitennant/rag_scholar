@@ -54,7 +54,7 @@ class HapticManager {
 
     // MARK: - Selection Feedback
 
-    func selection() {
+    func selectionFeedback() {
         selection.selectionChanged()
         selection.prepare()
     }

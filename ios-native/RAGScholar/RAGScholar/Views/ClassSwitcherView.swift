@@ -77,9 +77,7 @@ struct ClassSwitcherView: View {
                 HStack(spacing: 12) {
                     // Create New Class Button - pill shaped
                     Button {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showingCreateClass = true
-                        }
+                        onCreateClass?()
                     } label: {
                         Text("Create New Class")
                             .font(.system(size: 16, weight: .semibold))
@@ -130,8 +128,7 @@ struct ClassSwitcherView: View {
             Spacer()
         }
     }
-    }
-    
+
     // Computed property to help with type checking
     private var createButtonGradient: LinearGradient {
         LinearGradient(

@@ -265,8 +265,7 @@ struct CreateClassView: View {
             }
             .transition(.move(edge: .bottom).combined(with: .opacity)) // Slide up from bottom with fade
         }
-    }
-    
+
     private func createClass() {
         guard let domainType = selectedDomainType else { return }
         Task {

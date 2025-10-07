@@ -148,6 +148,6 @@ class ClassManager: ObservableObject {
     func selectClass(_ userClass: UserClass) {
         activeClass = userClass
         saveActiveClassToStorage()
-        HapticManager.shared.selection()
+        HapticManager.shared.selectionFeedback()
     }
 }

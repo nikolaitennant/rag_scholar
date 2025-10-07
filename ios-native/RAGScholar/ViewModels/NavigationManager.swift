@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import UIKit
 
 @MainActor
 class NavigationManager: ObservableObject {
@@ -36,7 +37,7 @@ class NavigationManager: ObservableObject {
 
     func selectTab(_ tab: Tab) {
         selectedTab = tab
-        HapticManager.shared.selection()
+        HapticManager.shared.selectionFeedback()
     }
 
     func toggleClassSwitcher() {

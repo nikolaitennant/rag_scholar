@@ -7,18 +7,27 @@
 //
 
 import SwiftUI
-import Firebase
+import FirebaseCore
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        FirebaseApp.configure()
+        print("Firebase configured successfully!")
+        return true
+    }
+}
 
 @main
 struct RAGScholarApp: App {
+    // Register app delegate for Firebase setup
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    
     @StateObject private var authManager = AuthenticationManager.shared
     @StateObject private var classManager = ClassManager.shared
     @StateObject private var navigationManager = NavigationManager.shared
 
     init() {
-        // Configure Firebase
-        FirebaseApp.configure()
-
         // Configure appearance
         configureAppearance()
     }

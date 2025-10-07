@@ -11,6 +11,7 @@ struct MainTabView: View {
     @EnvironmentObject var navigationManager: NavigationManager
     @EnvironmentObject var classManager: ClassManager
     @State private var keyboardVisible = false
+    @State private var showCreateClass = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -98,30 +99,55 @@ struct MainTabView: View {
         //     }
         // )
         .overlay(
+            // Shared modal background - present when any modal is showing
+            Group {
+                if navigationManager.showClassSwitcher || showCreateClass {
+                    Color.black.opacity(0.9)
+                        .ignoresSafeArea(.all)
+                        .allowsHitTesting(true)
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                navigationManager.showClassSwitcher = false
+                                showCreateClass = false
+                            }
+                        }
+                        .transition(.opacity)
+                        .zIndex(9998) // Below both modals but above everything else
+                }
+            }
+        )
+        .overlay(
             // Class switcher modal overlay - placed last to ensure it's always on top
             Group {
                 if navigationManager.showClassSwitcher {
-                    ZStack {
-                        // Dimmed background
-                        Color.black.opacity(0.8)
-                            .ignoresSafeArea(.all)
-                            .allowsHitTesting(true) // Ensure it captures taps
-                            .onTapGesture {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    navigationManager.showClassSwitcher = false
-                                }
-                            }
-                        
-                        // Modal content that appears in the center
-                        ClassSwitcherView(onDismiss: {
+                    ClassSwitcherView(
+                        onDismiss: {
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 navigationManager.showClassSwitcher = false
                             }
-                        })
-                        .transition(AnyTransition.opacity.combined(with: AnyTransition.scale(scale: 0.9)))
-                        .zIndex(10000) // Very high zIndex to ensure it's above sheets and other modals
-                    }
-                    .zIndex(9999) // High zIndex for the entire modal
+                        },
+                        onCreateClass: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                navigationManager.showClassSwitcher = false
+                                showCreateClass = true
+                            }
+                        }
+                    )
+                    .transition(.opacity)
+                    .zIndex(10000) // Very high zIndex to ensure it's above sheets and other modals
+                }
+            }
+        )
+        .overlay(
+            // Create class modal overlay
+            Group {
+                if showCreateClass {
+                    CreateClassView(onDismiss: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showCreateClass = false
+                        }
+                    })
+                    .zIndex(10001) // Above ClassSwitcherView
                 }
             }
         )

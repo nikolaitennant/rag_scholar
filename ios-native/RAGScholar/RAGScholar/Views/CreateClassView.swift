@@ -25,21 +25,10 @@ struct CreateClassView: View {
     }
 
     var body: some View {
-        ZStack {
-            // Background - dimmed and blocks interaction with underlying views
-            Color.black.opacity(0.8)
-                .ignoresSafeArea()
-                .allowsHitTesting(true) // Ensure it captures all taps
-                .onTapGesture {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        onDismiss?()
-                    }
-                }
+        VStack {
+            Spacer()
             
-            VStack {
-                Spacer()
-                
-                TabView(selection: $currentStep) {
+            TabView(selection: $currentStep) {
                     VStack(spacing: 24) {
                         VStack(spacing: 24) {
                             // Step 1: Class Name and Subject Selection
@@ -75,6 +64,10 @@ struct CreateClassView: View {
                                             } else {
                                                 Capsule()
                                                     .fill(Color(red: 0.11, green: 0.11, blue: 0.12))
+                                                    .overlay(
+                                                        Capsule()
+                                                            .stroke(Color.white.opacity(0.2), lineWidth: 1) // Light grey outline when not focused
+                                                    )
                                             }
                                         }
                                     )
@@ -270,9 +263,8 @@ struct CreateClassView: View {
                 
                 Spacer()
             }
-            .zIndex(1) // Ensure content stays above background
+            .transition(.move(edge: .bottom).combined(with: .opacity)) // Slide up from bottom with fade
         }
-        .zIndex(2000) // Very high zIndex to ensure it stays above ClassSwitcher
     }
     
     private func createClass() {
@@ -297,24 +289,24 @@ struct DomainTypeButton: View {
     
     var body: some View {
         Button(action: onSelect) {
-            VStack(spacing: 8) {
+            VStack(spacing: 6) { // Reduced spacing for more compact layout
                 Image(systemName: domainType.icon)
-                    .font(.system(size: 24, weight: .medium))
+                    .font(.system(size: 20, weight: .medium)) // Slightly smaller icon
                     .foregroundColor(isSelected ? Color(red: 0.61, green: 0.42, blue: 1.0) : .white.opacity(0.7))
                 
                 Text(domainType.displayName)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 10, weight: .medium)) // Smaller text
                     .foregroundColor(.white.opacity(0.8))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
+                    .frame(height: 26) // Reduced height for text area
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .frame(width: 90, height: 90) // Square dimensions with fixed size
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16) // More rounded for square shape
                     .fill(isSelected ? Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.2) : Color(red: 0.16, green: 0.16, blue: 0.18))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
+                        RoundedRectangle(cornerRadius: 16)
                             .stroke(isSelected ? Color(red: 0.61, green: 0.42, blue: 1.0) : Color.clear, lineWidth: 1)
                     )
             )

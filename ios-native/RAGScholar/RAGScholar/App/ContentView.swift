@@ -16,7 +16,7 @@ struct ContentView: View {
             if authManager.isLoading {
                 SplashScreenView()
             } else if authManager.isAuthenticated {
-                if classManager.classes.isEmpty {
+                if classManager.classes.isEmpty && !classManager.isLoading {
                     ClassOnboardingView()
                 } else {
                     MainTabView()
@@ -27,6 +27,20 @@ struct ContentView: View {
         }
         .animation(.easeInOut, value: authManager.isAuthenticated)
         .animation(.easeInOut, value: classManager.classes.isEmpty)
+        .task {
+            // Fetch classes when user is authenticated
+            if authManager.isAuthenticated && classManager.classes.isEmpty {
+                await classManager.fetchClasses()
+            }
+        }
+        .onChange(of: authManager.isAuthenticated) {
+            // Fetch classes when user logs in
+            if authManager.isAuthenticated {
+                Task {
+                    await classManager.fetchClasses()
+                }
+            }
+        }
     }
 }
 

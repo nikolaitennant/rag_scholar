@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct LoginView: View {
+    @EnvironmentObject var authManager: AuthenticationManager
     @Environment(\.colorScheme) var colorScheme
     @State private var isSignUp = false
     @State private var showPassword = false
@@ -15,11 +16,14 @@ struct LoginView: View {
     @State private var name = ""
     @State private var email = ""
     @State private var password = ""
-    @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var successMessage: String?
 
     @FocusState private var focusedField: Field?
+
+    private var isLoading: Bool {
+        authManager.isLoading
+    }
 
     enum Field {
         case name, email, password
@@ -280,16 +284,48 @@ struct LoginView: View {
     private func handleSubmit() {
         errorMessage = nil
         successMessage = nil
-        isLoading = true
 
-        // Simulate API call
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            isLoading = false
-            errorMessage = "Authentication not implemented yet"
+        // Validation
+        if email.isEmpty {
+            errorMessage = "Please enter your email"
+            return
+        }
+
+        if !isForgotPassword && password.isEmpty {
+            errorMessage = "Please enter your password"
+            return
+        }
+
+        if isSignUp && name.isEmpty {
+            errorMessage = "Please enter your name"
+            return
+        }
+
+        Task {
+            do {
+                if isForgotPassword {
+                    // Reset password
+                    try await authManager.resetPassword(email: email)
+                    successMessage = "Password reset email sent! Check your inbox."
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        isForgotPassword = false
+                        successMessage = nil
+                    }
+                } else if isSignUp {
+                    // Sign up
+                    try await authManager.signUp(email: email, password: password, displayName: name)
+                } else {
+                    // Sign in
+                    try await authManager.signIn(email: email, password: password)
+                }
+            } catch {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }
 
 #Preview {
     LoginView()
+        .environmentObject(AuthenticationManager.shared)
 }

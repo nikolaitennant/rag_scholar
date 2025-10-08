@@ -98,20 +98,22 @@ struct TopNavigationBar: View {
                 .buttonStyle(.plain)
             }
 
-            // Settings Button (always visible)
-            Button {
-                showSettings = true
-            } label: {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7))
-                    .frame(width: 36, height: 36)
-                    .background(
-                        (colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
-                            .clipShape(Circle())
-                    )
+            // Settings Button (only on Home tab)
+            if navigationManager.selectedTab == .home {
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7))
+                        .frame(width: 36, height: 36)
+                        .background(
+                            (colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
+                                .clipShape(Circle())
+                        )
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 12)

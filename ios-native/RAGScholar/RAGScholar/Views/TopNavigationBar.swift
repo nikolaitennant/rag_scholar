@@ -17,58 +17,88 @@ struct TopNavigationBar: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Class Dropdown (Traditional Menu)
-            Menu {
-                ForEach(classManager.classes) { userClass in
-                    Button(action: {
-                        classManager.selectClass(userClass)
-                    }) {
-                        HStack {
-                            Text(userClass.name)
-                            if classManager.activeClass?.id == userClass.id {
-                                Image(systemName: "checkmark")
+            // Class Dropdown (Traditional Menu) - Only on Chat tab
+            if navigationManager.selectedTab == .chat {
+                Menu {
+                    ForEach(classManager.classes) { userClass in
+                        Button(action: {
+                            classManager.selectClass(userClass)
+                        }) {
+                            HStack {
+                                Text(userClass.name)
+                                if classManager.activeClass?.id == userClass.id {
+                                    Image(systemName: "checkmark")
+                                }
                             }
                         }
                     }
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    Text(classManager.activeClass?.name ?? "Select Class")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(colorScheme == .dark ? .white : .black)
-                        .lineLimit(1)
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(classManager.activeClass?.name ?? "Select Class")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                            .lineLimit(1)
 
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white)
+                            .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.4), radius: 6, x: 0, y: 0)
+                    )
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white)
-                        .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.4), radius: 6, x: 0, y: 0)
-                )
+            } else {
+                // Class Switcher Button for non-Chat tabs
+                Button {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        navigationManager.toggleClassSwitcher()
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(classManager.activeClass?.name ?? "Select Class")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                            .lineLimit(1)
+
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white)
+                            .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.4), radius: 6, x: 0, y: 0)
+                    )
+                }
+                .buttonStyle(.plain)
             }
 
             Spacer()
 
-            // New Chat Button
-            Button {
-                startNewChat()
-            } label: {
-                Image(systemName: "square.and.pencil")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7))
-                    .frame(width: 36, height: 36)
-                    .background(
-                        (colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
-                            .clipShape(Circle())
-                    )
+            // Show New Chat button only on Chat tab
+            if navigationManager.selectedTab == .chat {
+                Button {
+                    startNewChat()
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7))
+                        .frame(width: 36, height: 36)
+                        .background(
+                            (colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
+                                .clipShape(Circle())
+                        )
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
 
-            // Settings Button
+            // Settings Button (always visible)
             Button {
                 showSettings = true
             } label: {

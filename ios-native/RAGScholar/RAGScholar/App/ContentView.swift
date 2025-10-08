@@ -10,6 +10,8 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var classManager: ClassManager
+    @EnvironmentObject var documentManager: DocumentManager
+    @EnvironmentObject var rewardsManager: RewardsManager
 
     var body: some View {
         Group {
@@ -28,18 +30,28 @@ struct ContentView: View {
         .animation(.easeInOut, value: authManager.isAuthenticated)
         .animation(.easeInOut, value: classManager.classes.isEmpty)
         .task {
-            // Fetch classes when user is authenticated
-            if authManager.isAuthenticated && classManager.classes.isEmpty {
-                await classManager.fetchClasses()
+            // Fetch all data when user is authenticated
+            if authManager.isAuthenticated {
+                await fetchAllData()
             }
         }
         .onChange(of: authManager.isAuthenticated) {
-            // Fetch classes when user logs in
+            // Fetch all data when user logs in
             if authManager.isAuthenticated {
                 Task {
-                    await classManager.fetchClasses()
+                    await fetchAllData()
                 }
             }
+        }
+    }
+
+    private func fetchAllData() async {
+        // Fetch everything in parallel
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await classManager.fetchClasses() }
+            group.addTask { await documentManager.fetchDocuments() }
+            group.addTask { await rewardsManager.fetchUserStats() }
+            group.addTask { await rewardsManager.fetchAchievements() }
         }
     }
 }
@@ -48,5 +60,7 @@ struct ContentView: View {
     ContentView()
         .environmentObject(AuthenticationManager.shared)
         .environmentObject(ClassManager.shared)
+        .environmentObject(DocumentManager.shared)
+        .environmentObject(RewardsManager.shared)
         .environmentObject(NavigationManager.shared)
 }

@@ -47,19 +47,19 @@ struct SettingsView: View {
             loadTimezone()
             loadAPISettings()
         }
-        .onChange(of: apiKey) { _ in
+        .onChange(of: apiKey) {
             debounceAPISettingsSave()
         }
-        .onChange(of: selectedModel) { _ in
+        .onChange(of: selectedModel) {
             debounceAPISettingsSave()
         }
-        .onChange(of: temperature) { _ in
+        .onChange(of: temperature) {
             debounceAPISettingsSave()
         }
-        .onChange(of: maxTokens) { _ in
+        .onChange(of: maxTokens) {
             debounceAPISettingsSave()
         }
-        .onChange(of: timezone) { _ in
+        .onChange(of: timezone) {
             debounceAPISettingsSave()
         }
     }

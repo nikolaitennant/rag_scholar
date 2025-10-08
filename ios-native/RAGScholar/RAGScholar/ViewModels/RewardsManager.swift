@@ -36,7 +36,7 @@ class RewardsManager: ObservableObject {
             let userProfile = try await apiService.refreshAchievements()
 
             // Parse achievements from user profile
-            if let profileAchievements = userProfile.profile?.achievements {
+            if userProfile.profile?.achievements != nil {
                 // Convert API achievements to local Achievement model
                 // For now, just update progress on default achievements
                 await updateAchievementProgress()

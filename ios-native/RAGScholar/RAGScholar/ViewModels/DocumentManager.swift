@@ -56,7 +56,15 @@ class DocumentManager: ObservableObject {
             uploadProgress = 0.3
             HapticManager.shared.impact(.light)
 
-            let document = try await apiService.uploadDocument(file: data, filename: filename)
+            // Get API key from UserDefaults
+            let apiKey = UserDefaults.standard.string(forKey: "api_key")
+
+            let document = try await apiService.uploadDocument(
+                file: data,
+                filename: filename,
+                collection: "database",
+                apiKey: apiKey
+            )
 
             uploadProgress = 1.0
             documents.insert(document, at: 0)
@@ -75,7 +83,8 @@ class DocumentManager: ObservableObject {
 
     func deleteDocument(_ documentId: String) async {
         do {
-            try await apiService.deleteDocument(id: documentId)
+            let apiKey = UserDefaults.standard.string(forKey: "api_key")
+            try await apiService.deleteDocument(id: documentId, apiKey: apiKey)
 
             // Remove from local state
             documents.removeAll(where: { $0.id == documentId })
@@ -87,12 +96,36 @@ class DocumentManager: ObservableObject {
         }
     }
 
-    func assignToClass(documentId: String, classId: String) async {
+    func updateDocument(_ documentId: String, filename: String) async {
         do {
+            let apiKey = UserDefaults.standard.string(forKey: "api_key")
+            let updatedDoc = try await apiService.updateDocument(
+                id: documentId,
+                filename: filename,
+                apiKey: apiKey
+            )
+
+            // Update local state
+            if let index = documents.firstIndex(where: { $0.id == documentId }) {
+                documents[index] = updatedDoc
+            }
+
+            HapticManager.shared.success()
+        } catch {
+            self.error = error.localizedDescription
+            HapticManager.shared.error()
+        }
+    }
+
+    func assignToClass(documentId: String, documentSource: String, classId: String) async {
+        do {
+            let apiKey = UserDefaults.standard.string(forKey: "api_key")
             try await apiService.assignDocumentToClass(
                 documentId: documentId,
+                documentSource: documentSource,
                 classId: classId,
-                action: "assign"
+                operation: "add",
+                apiKey: apiKey
             )
 
             // Update local state
@@ -109,12 +142,15 @@ class DocumentManager: ObservableObject {
         }
     }
 
-    func unassignFromClass(documentId: String, classId: String) async {
+    func unassignFromClass(documentId: String, documentSource: String, classId: String) async {
         do {
+            let apiKey = UserDefaults.standard.string(forKey: "api_key")
             try await apiService.assignDocumentToClass(
                 documentId: documentId,
+                documentSource: documentSource,
                 classId: classId,
-                action: "unassign"
+                operation: "remove",
+                apiKey: apiKey
             )
 
             // Update local state

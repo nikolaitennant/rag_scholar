@@ -45,7 +45,34 @@ struct SettingsView: View {
         }
         .onAppear {
             loadTimezone()
+            loadAPISettings()
         }
+        .onChange(of: apiKey) { _ in
+            debounceAPISettingsSave()
+        }
+        .onChange(of: selectedModel) { _ in
+            debounceAPISettingsSave()
+        }
+        .onChange(of: temperature) { _ in
+            debounceAPISettingsSave()
+        }
+        .onChange(of: maxTokens) { _ in
+            debounceAPISettingsSave()
+        }
+        .onChange(of: timezone) { _ in
+            debounceAPISettingsSave()
+        }
+    }
+
+    @State private var saveWorkItem: DispatchWorkItem?
+
+    private func debounceAPISettingsSave() {
+        saveWorkItem?.cancel()
+        let workItem = DispatchWorkItem {
+            saveAPISettings()
+        }
+        saveWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
     }
 
     private var backgroundGradient: some View {
@@ -747,6 +774,56 @@ struct SettingsView: View {
     private func loadTimezone() {
         if let saved = UserDefaults.standard.string(forKey: "userTimezone") {
             timezone = saved
+        }
+    }
+
+    private func loadAPISettings() {
+        Task {
+            do {
+                let settings = try await APIService.shared.getAPISettings()
+                apiKey = settings.apiKey ?? ""
+                selectedModel = settings.preferredModel ?? "gpt-5-mini"
+                temperature = settings.temperature ?? 0.0
+                maxTokens = settings.maxTokens ?? 2000
+                if let tz = settings.timezone {
+                    timezone = tz
+                }
+            } catch {
+                print("Failed to load API settings: \(error)")
+            }
+        }
+    }
+
+    private func saveAPISettings() {
+        Task {
+            do {
+                try await APIService.shared.updateAPISettings(
+                    apiKey: apiKey.isEmpty ? nil : apiKey,
+                    preferredModel: selectedModel,
+                    temperature: temperature,
+                    maxTokens: Int(maxTokens),
+                    timezone: timezone
+                )
+
+                // Also save to UserDefaults for offline access
+                if !apiKey.isEmpty {
+                    UserDefaults.standard.set(apiKey, forKey: "api_key")
+                }
+                UserDefaults.standard.set(selectedModel, forKey: "preferred_model")
+                UserDefaults.standard.set(temperature, forKey: "temperature")
+                UserDefaults.standard.set(Int(maxTokens), forKey: "max_tokens")
+                UserDefaults.standard.set(timezone, forKey: "userTimezone")
+
+                saveMessage = "Settings saved successfully"
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    saveMessage = nil
+                }
+            } catch {
+                saveMessage = "Failed to save settings"
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    saveMessage = nil
+                }
+            }
         }
     }
 

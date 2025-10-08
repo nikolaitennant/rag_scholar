@@ -21,6 +21,12 @@ struct UserProfile: Codable {
         let researchInterests: [String]?
         let preferredDomains: [String]?
         let profileImage: String?
+        let totalPoints: Int?
+        let achievementsUnlocked: Int?
+        let chatsCreated: Int?
+        let documentsUploaded: Int?
+        let questionsAsked: Int?
+        let achievements: [String]?
 
         enum CodingKeys: String, CodingKey {
             case displayName = "display_name"
@@ -28,6 +34,12 @@ struct UserProfile: Codable {
             case researchInterests = "research_interests"
             case preferredDomains = "preferred_domains"
             case profileImage = "profile_image"
+            case totalPoints = "total_points"
+            case achievementsUnlocked = "achievements_unlocked"
+            case chatsCreated = "chats_created"
+            case documentsUploaded = "documents_uploaded"
+            case questionsAsked = "questions_asked"
+            case achievements
         }
     }
 

@@ -31,41 +31,81 @@ class RewardsManager: ObservableObject {
         isLoading = true
         error = nil
 
-        // TODO: Implement API endpoint for achievements
-        // When implementing API call, add back do-catch:
-        // do {
-        //     achievements = try await apiService.fetchAchievements()
-        // } catch {
-        //     self.error = error.localizedDescription
-        // }
+        do {
+            // Fetch user profile which includes achievements
+            let userProfile = try await apiService.refreshAchievements()
 
-        // For now, use default achievements and update progress
-        await updateAchievementProgress()
-        saveToStorage()
+            // Parse achievements from user profile
+            if let profileAchievements = userProfile.profile?.achievements {
+                // Convert API achievements to local Achievement model
+                // For now, just update progress on default achievements
+                await updateAchievementProgress()
+            } else {
+                await updateAchievementProgress()
+            }
+
+            saveToStorage()
+        } catch {
+            self.error = error.localizedDescription
+            // Fallback to local progress update
+            await updateAchievementProgress()
+        }
 
         isLoading = false
     }
 
     func fetchUserStats() async {
-        // TODO: Implement API endpoint for user stats
-        // When implementing API call, add back do-catch:
-        // do {
-        //     userStats = try await apiService.fetchUserStats()
-        // } catch {
-        //     self.error = error.localizedDescription
-        // }
+        do {
+            // Fetch user profile which includes stats
+            let userProfile = try await apiService.getCurrentUser()
 
-        // Mock data for now
-        userStats = UserStats(
-            totalPoints: 125,
-            achievementsUnlocked: 3,
-            totalAchievements: achievements.count,
-            chatsCreated: 5,
-            documentsUploaded: 2,
-            questionsAsked: 15
-        )
+            // Parse stats from user profile
+            if let profile = userProfile.profile {
+                userStats = UserStats(
+                    totalPoints: profile.totalPoints ?? 0,
+                    achievementsUnlocked: profile.achievementsUnlocked ?? 0,
+                    totalAchievements: achievements.count,
+                    chatsCreated: profile.chatsCreated ?? 0,
+                    documentsUploaded: profile.documentsUploaded ?? 0,
+                    questionsAsked: profile.questionsAsked ?? 0
+                )
+            } else {
+                // Mock data fallback
+                userStats = UserStats(
+                    totalPoints: 125,
+                    achievementsUnlocked: 3,
+                    totalAchievements: achievements.count,
+                    chatsCreated: 5,
+                    documentsUploaded: 2,
+                    questionsAsked: 15
+                )
+            }
 
-        saveToStorage()
+            saveToStorage()
+        } catch {
+            self.error = error.localizedDescription
+            // Mock data fallback
+            userStats = UserStats(
+                totalPoints: 125,
+                achievementsUnlocked: 3,
+                totalAchievements: achievements.count,
+                chatsCreated: 5,
+                documentsUploaded: 2,
+                questionsAsked: 15
+            )
+        }
+    }
+
+    func grantEarlyAdopter() async {
+        do {
+            try await apiService.grantEarlyAdopter()
+            await fetchUserStats()
+            await fetchAchievements()
+            HapticManager.shared.success()
+        } catch {
+            self.error = error.localizedDescription
+            HapticManager.shared.error()
+        }
     }
 
     // MARK: - Achievement Tracking

@@ -16,9 +16,10 @@ class APIService {
     private let session: URLSession
 
     private init() {
-        // Use production backend by default, fallback to localhost for development
+        // Development: Use localhost with Docker Compose
+        // Production: Use deployed backend
         #if DEBUG
-        self.baseURL = ProcessInfo.processInfo.environment["API_URL"] ?? "https://ragscholarai-212187655853.europe-west1.run.app/api/v1"
+        self.baseURL = ProcessInfo.processInfo.environment["API_URL"] ?? "http://localhost:8000/api/v1"
         #else
         self.baseURL = "https://ragscholarai-212187655853.europe-west1.run.app/api/v1"
         #endif

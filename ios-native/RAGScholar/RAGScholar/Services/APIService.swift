@@ -16,9 +16,12 @@ class APIService {
     private let session: URLSession
 
     private init() {
-        // TODO: Move to configuration file
-        self.baseURL = "http://localhost:8000/api/v1" // Development
-        // self.baseURL = "https://your-production-api.com/api/v1" // Production
+        // Use production backend by default, fallback to localhost for development
+        #if DEBUG
+        self.baseURL = ProcessInfo.processInfo.environment["API_URL"] ?? "https://ragscholarai-212187655853.europe-west1.run.app/api/v1"
+        #else
+        self.baseURL = "https://ragscholarai-212187655853.europe-west1.run.app/api/v1"
+        #endif
 
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = 30

@@ -77,13 +77,13 @@ struct ChatView: View {
             // Input Area
             HStack(spacing: 12) {
                 TextField("Ask a question...", text: $inputText, axis: .vertical)
-                    .foregroundColor(.white)
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
                     .font(.system(size: 16))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .background(
                         Capsule()
-                            .fill(Color(red: 0.11, green: 0.11, blue: 0.12))
+                            .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color(red: 0.95, green: 0.95, blue: 0.97))
                             .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.4), radius: 8, x: 0, y: 0)
                     )
                     .focused($isInputFocused)
@@ -97,11 +97,11 @@ struct ChatView: View {
             .padding(.vertical, 12)
             .background(
                 Rectangle()
-                    .fill(Color(red: 0.11, green: 0.11, blue: 0.12))
+                    .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white)
                     .ignoresSafeArea(edges: .bottom)
             )
         }
-        .background(Color(red: 0.11, green: 0.11, blue: 0.11)) // ChatGPT-like greyish black
+        .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color(red: 0.95, green: 0.95, blue: 0.97))
         .toolbar(isInputFocused ? .hidden : .visible, for: .tabBar)
         .onAppear {
             // Auto-focus input when view appears
@@ -157,6 +157,7 @@ struct ChatView: View {
 
 struct MessageBubble: View {
     let message: Message
+    @Environment(\.colorScheme) var colorScheme
 
     private var userGradient: LinearGradient {
         LinearGradient(
@@ -171,7 +172,9 @@ struct MessageBubble: View {
 
     private var assistantGradient: LinearGradient {
         LinearGradient(
-            colors: [Color.white.opacity(0.1), Color.white.opacity(0.08)],
+            colors: colorScheme == .dark ?
+                [Color.white.opacity(0.1), Color.white.opacity(0.08)] :
+                [Color(red: 0.95, green: 0.95, blue: 0.97), Color(red: 0.93, green: 0.93, blue: 0.95)],
             startPoint: .leading,
             endPoint: .trailing
         )
@@ -187,7 +190,7 @@ struct MessageBubble: View {
                 // Message Content
                 Text(message.content)
                     .font(.system(size: 16))
-                    .foregroundColor(.white)
+                    .foregroundColor(message.role == .user ? .white : (colorScheme == .dark ? .white : .black))
                     .padding(16)
                     .background(
                         RoundedRectangle(cornerRadius: 20)
@@ -198,7 +201,7 @@ struct MessageBubble: View {
                 // Timestamp
                 Text(formatTimestamp(message.timestamp))
                     .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.5) : .black.opacity(0.5))
 
                 // Citations (for assistant messages only)
                 if message.role == .assistant, let citations = message.citations, !citations.isEmpty {
@@ -342,10 +345,12 @@ struct LoadingBubble: View {
 // MARK: - Empty Chat Placeholder
 
 struct EmptyChatPlaceholder: View {
+    @Environment(\.colorScheme) var colorScheme
+
     var body: some View {
         Text("Welcome to RAG Scholar")
             .font(.system(size: 24, weight: .bold))
-            .foregroundColor(.white)
+            .foregroundColor(colorScheme == .dark ? .white : .black)
             .padding()
     }
 }

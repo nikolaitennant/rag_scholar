@@ -44,7 +44,7 @@ struct RAGScholarApp: App {
                 .environmentObject(documentManager)
                 .environmentObject(rewardsManager)
                 .environmentObject(navigationManager)
-                .preferredColorScheme(.dark) // Force dark mode for now
+                .environmentObject(ThemeManager.shared)
         }
     }
 

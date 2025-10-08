@@ -25,6 +25,12 @@ class APIService {
         self.session = URLSession(configuration: configuration)
     }
 
+    // MARK: - Public Methods
+
+    func getBaseURL() -> String {
+        return baseURL
+    }
+
     // MARK: - Authentication Token
 
     private var authToken: String? {

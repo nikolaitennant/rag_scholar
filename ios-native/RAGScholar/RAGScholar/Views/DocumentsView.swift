@@ -12,6 +12,7 @@ struct DocumentsView: View {
     @EnvironmentObject var documentManager: DocumentManager
     @EnvironmentObject var classManager: ClassManager
     @EnvironmentObject var rewardsManager: RewardsManager
+    @Environment(\.colorScheme) var colorScheme
 
     @State private var showingDocumentPicker = false
     @State private var searchText = ""
@@ -24,16 +25,16 @@ struct DocumentsView: View {
             HStack(spacing: 12) {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.5) : .black.opacity(0.4))
 
                     TextField("Search documents...", text: $searchText)
                         .textFieldStyle(.plain)
-                        .foregroundColor(.white)
+                        .foregroundColor(colorScheme == .dark ? .white : .black)
                 }
                 .padding(12)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white.opacity(0.1))
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
                 )
 
                 Button(action: { showingDocumentPicker = true }) {

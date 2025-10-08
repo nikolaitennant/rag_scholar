@@ -11,6 +11,7 @@ struct ChatView: View {
     @EnvironmentObject var chatManager: ChatManager
     @EnvironmentObject var classManager: ClassManager
     @EnvironmentObject var rewardsManager: RewardsManager
+    @Environment(\.colorScheme) var colorScheme
 
     @State private var inputText: String = ""
     @State private var scrollProxy: ScrollViewProxy?

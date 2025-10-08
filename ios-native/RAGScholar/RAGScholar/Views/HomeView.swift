@@ -6,15 +6,19 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct HomeView: View {
     @EnvironmentObject var classManager: ClassManager
     @EnvironmentObject var chatManager: ChatManager
     @EnvironmentObject var rewardsManager: RewardsManager
     @EnvironmentObject var navigationManager: NavigationManager
+    @EnvironmentObject var authManager: AuthenticationManager
+    @Environment(\.colorScheme) var colorScheme
 
     @State private var isEditingSession: ChatSession?
     @State private var editedSessionName: String = ""
+    @State private var heartOpacity: Double = 1.0
 
     var body: some View {
         ScrollView {
@@ -24,17 +28,26 @@ struct HomeView: View {
                     HStack(spacing: 8) {
                         Text(greetingTextWithUsername)
                             .font(.system(size: 28, weight: .semibold, design: .default))
-                            .foregroundColor(.white)
-                        
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+
                         Image(systemName: "suit.heart")
-                            .font(.system(size: 22, weight: .medium))
-                            .foregroundColor(Color(red: 0.4, green: 0.2, blue: 0.8)) // Dark violet
-                            .baselineOffset(1)
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(Color(red: 0.64, green: 0.47, blue: 1.0)) // Violet-400
+                            .offset(y: 2)
+                            .opacity(heartOpacity)
+                            .onAppear {
+                                withAnimation(
+                                    Animation.easeInOut(duration: 2.0)
+                                        .repeatForever(autoreverses: true)
+                                ) {
+                                    heartOpacity = 0.5
+                                }
+                            }
                     }
-                    
+
                     Text("Ready to explore your documents?")
                         .font(.system(size: 15, weight: .regular, design: .default))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.55) : .black.opacity(0.5))
                 }
                 .padding(.horizontal)
                 .padding(.top, 8)
@@ -54,7 +67,7 @@ struct HomeView: View {
                     HStack {
                         Text("Recent Chats")
                             .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
 
                         Spacer()
 
@@ -68,7 +81,7 @@ struct HomeView: View {
                                 Text("New Chat")
                             }
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(
@@ -126,7 +139,7 @@ struct HomeView: View {
             }
             .padding(.vertical)
         }
-        .background(Color(red: 0.11, green: 0.11, blue: 0.11)) // Same as header - slightly lighter
+        .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
         .onAppear {
             Task {
                 await rewardsManager.fetchUserStats()
@@ -165,7 +178,11 @@ struct HomeView: View {
     }
 
     private func getUserName() -> String? {
-        // TODO: Get from AuthenticationManager when implemented
+        if let displayName = authManager.user?.displayName {
+            return displayName
+        } else if let email = authManager.user?.email {
+            return email.split(separator: "@").first.map(String.init)
+        }
         return nil
     }
 }
@@ -174,6 +191,7 @@ struct HomeView: View {
 
 struct LearningProgressCard: View {
     let stats: UserStats
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -181,7 +199,7 @@ struct LearningProgressCard: View {
             HStack {
                 Text("Learning Progress")
                     .font(.system(size: 17, weight: .semibold, design: .default))
-                    .foregroundColor(.white)
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
                 
                 Spacer()
                 
@@ -193,7 +211,7 @@ struct LearningProgressCard: View {
                     
                     Text("\(stats.totalPoints) pts")
                         .font(.system(size: 15, weight: .semibold, design: .default))
-                        .foregroundColor(.white)
+                        .foregroundColor(colorScheme == .dark ? .white : .black)
                 }
             }
             
@@ -203,13 +221,13 @@ struct LearningProgressCard: View {
                 HStack {
                     Text("Next: \(getNextAchievementName())")
                         .font(.system(size: 14, weight: .regular, design: .default))
-                        .foregroundColor(.white.opacity(0.65))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.65) : .black.opacity(0.6))
                     
                     Spacer()
                     
                     Text("(\(stats.achievementsUnlocked)/\(stats.totalAchievements))")
                         .font(.system(size: 14, weight: .regular, design: .default))
-                        .foregroundColor(.white.opacity(0.65))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.65) : .black.opacity(0.6))
                 }
                 
                 // Progress Bar
@@ -240,7 +258,7 @@ struct LearningProgressCard: View {
             }
         }
         .padding(20)
-        .background(Color(red: 0.11, green: 0.11, blue: 0.12)) // #1C1C1E
+        .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
@@ -267,6 +285,7 @@ struct ChatListItem: View {
     let onEdit: () -> Void
     let onSaveEdit: () -> Void
     let onDelete: () -> Void
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         HStack(spacing: 12) {
@@ -277,7 +296,7 @@ struct ChatListItem: View {
             if isEditing {
                 TextField("Chat name", text: $editedName)
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white)
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
                     .onSubmit {
                         onSaveEdit()
                     }
@@ -285,7 +304,7 @@ struct ChatListItem: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(session.name)
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(colorScheme == .dark ? .white : .black)
                         .lineLimit(1)
 
                     HStack(spacing: 12) {
@@ -294,7 +313,7 @@ struct ChatListItem: View {
                         Text(formatTimestamp(session.updatedAt))
                     }
                     .font(.system(size: 13))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
                 }
             }
 
@@ -303,13 +322,13 @@ struct ChatListItem: View {
             if !isEditing {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14))
-                    .foregroundColor(.white.opacity(0.3))
+                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.3) : .black.opacity(0.25))
             }
         }
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.05))
+                .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
         )
         .contentShape(Rectangle())
         .onTapGesture {
@@ -339,30 +358,41 @@ struct ChatListItem: View {
 // MARK: - Empty State
 
 struct EmptyChatState: View {
+    @Environment(\.colorScheme) var colorScheme
+
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 48))
-                .foregroundColor(.white.opacity(0.3))
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.3) : .black.opacity(0.25))
 
             Text("No chats yet")
                 .font(.system(size: 18, weight: .medium))
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
 
             Text("Start a new chat to begin learning")
                 .font(.system(size: 14))
-                .foregroundColor(.white.opacity(0.4))
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.4) : .black.opacity(0.35))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
     }
 }
 
-#Preview {
+#Preview("Dark Mode") {
     HomeView()
         .environmentObject(ClassManager.shared)
         .environmentObject(ChatManager.shared)
         .environmentObject(RewardsManager.shared)
         .environmentObject(NavigationManager.shared)
-        .background(Color.black)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Light Mode") {
+    HomeView()
+        .environmentObject(ClassManager.shared)
+        .environmentObject(ChatManager.shared)
+        .environmentObject(RewardsManager.shared)
+        .environmentObject(NavigationManager.shared)
+        .preferredColorScheme(.light)
 }

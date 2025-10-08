@@ -10,8 +10,10 @@ import SwiftUI
 struct TopNavigationBar: View {
     @EnvironmentObject var classManager: ClassManager
     @EnvironmentObject var navigationManager: NavigationManager
+    @Environment(\.colorScheme) var colorScheme
     @State private var isSearchActive = false
     @State private var searchText = ""
+    @State private var showSettings = false
     @FocusState private var isSearchFocused: Bool
 
     var body: some View {
@@ -21,12 +23,12 @@ struct TopNavigationBar: View {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
-                    
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
+
                     TextField("Search...", text: $searchText)
                         .textFieldStyle(.plain)
                         .font(.system(size: 17, weight: .regular))
-                        .foregroundColor(.white)
+                        .foregroundColor(colorScheme == .dark ? .white : .black)
                         .focused($isSearchFocused)
                         .onSubmit {
                             // Handle search submission
@@ -39,7 +41,7 @@ struct TopNavigationBar: View {
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 16))
-                                .foregroundColor(.white.opacity(0.6))
+                                .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
                         }
                         .buttonStyle(.plain)
                     }
@@ -48,7 +50,7 @@ struct TopNavigationBar: View {
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 20) // More pill-like
-                        .fill(Color(red: 0.16, green: 0.16, blue: 0.18))
+                        .fill(colorScheme == .dark ? Color(red: 0.16, green: 0.16, blue: 0.18) : Color(red: 0.95, green: 0.95, blue: 0.97))
                 )
                 
                 // Clean close button - similar to class selector
@@ -61,11 +63,11 @@ struct TopNavigationBar: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7))
                         .frame(width: 36, height: 36)
                         .background(
                             RoundedRectangle(cornerRadius: 18) // Pill-like close button
-                                .fill(Color(red: 0.11, green: 0.11, blue: 0.12))
+                                .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white)
                                 .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.3), radius: 4, x: 0, y: 0)
                         )
                 }
@@ -82,18 +84,18 @@ struct TopNavigationBar: View {
                     HStack(spacing: 6) {
                         Text(classManager.activeClass?.name ?? "Select Class")
                             .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
                             .lineLimit(1)
 
                         Image(systemName: "chevron.down")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(red: 0.11, green: 0.11, blue: 0.12)) // #1C1C1E
+                            .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white)
                             .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.4), radius: 6, x: 0, y: 0)
                     )
                 }
@@ -110,10 +112,10 @@ struct TopNavigationBar: View {
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7))
                         .frame(width: 36, height: 36)
                         .background(
-                            Color.white.opacity(0.1)
+                            (colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
                                 .clipShape(Circle())
                         )
                 }
@@ -121,15 +123,14 @@ struct TopNavigationBar: View {
 
                 // Settings Button
                 Button {
-                    // Navigate to settings
-                    navigationManager.selectedTab = .home // Placeholder
+                    showSettings = true
                 } label: {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7))
                         .frame(width: 36, height: 36)
                         .background(
-                            Color.white.opacity(0.1)
+                            (colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
                                 .clipShape(Circle())
                         )
                 }
@@ -138,13 +139,10 @@ struct TopNavigationBar: View {
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 12)
-        .background(Color(red: 0.11, green: 0.11, blue: 0.11)) // Slightly lighter header color
-        .overlay(
-            Rectangle()
-                .fill(Color.white.opacity(0.03))
-                .frame(height: 0.5),
-            alignment: .bottom
-        )
+        .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+        }
     }
     
     private func performSearch() {
@@ -160,9 +158,16 @@ struct TopNavigationBar: View {
     }
 }
 
-#Preview {
+#Preview("Dark Mode") {
     TopNavigationBar()
         .environmentObject(ClassManager.shared)
         .environmentObject(NavigationManager.shared)
-        .background(Color.black)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Light Mode") {
+    TopNavigationBar()
+        .environmentObject(ClassManager.shared)
+        .environmentObject(NavigationManager.shared)
+        .preferredColorScheme(.light)
 }

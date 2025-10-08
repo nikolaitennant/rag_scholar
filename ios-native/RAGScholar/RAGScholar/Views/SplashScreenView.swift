@@ -8,39 +8,82 @@
 import SwiftUI
 
 struct SplashScreenView: View {
+    @Environment(\.colorScheme) var colorScheme
+    @State private var showContent = false
+    @State private var animateDots = false
+
     var body: some View {
         ZStack {
-            // Background gradient
-            LinearGradient(
-                colors: [
-                    Color(red: 0.1, green: 0.1, blue: 0.18),
-                    Color(red: 0.09, green: 0.13, blue: 0.25),
-                    Color(red: 0.06, green: 0.2, blue: 0.38)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Background - adapts to light/dark mode
+            (colorScheme == .dark ? Color(red: 0.05, green: 0.05, blue: 0.05) : Color.white)
+                .ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                Image(systemName: "book.fill")
-                    .font(.system(size: 80))
-                    .foregroundColor(.white)
+            VStack(spacing: 24) {
+                // Book icon with pulse animation
+                Image(systemName: "book.open.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                    .opacity(showContent ? 1 : 0)
+                    .scaleEffect(showContent ? 1 : 0.9)
+                    .animation(
+                        Animation.easeOut(duration: 0.7)
+                            .delay(0.1),
+                        value: showContent
+                    )
 
-                Text("RAG Scholar")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
+                // App name with gradient
+                HStack(spacing: 0) {
+                    Text("RAG Scholar")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.55, green: 0.36, blue: 0.96),
+                                    Color(red: 0.66, green: 0.33, blue: 0.97)
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
 
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    .scaleEffect(1.5)
-                    .padding(.top, 20)
+                    // Animated dots
+                    HStack(spacing: 2) {
+                        ForEach(0..<3) { index in
+                            Text(".")
+                                .font(.system(size: 24, weight: .semibold))
+                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                                .opacity(animateDots ? 1 : 0)
+                                .animation(
+                                    Animation.easeInOut(duration: 0.6)
+                                        .repeatForever()
+                                        .delay(Double(index) * 0.2),
+                                    value: animateDots
+                                )
+                        }
+                    }
+                }
+                .opacity(showContent ? 1 : 0)
+                .offset(y: showContent ? 0 : 8)
+                .animation(
+                    Animation.easeOut(duration: 0.7)
+                        .delay(0.2),
+                    value: showContent
+                )
             }
+        }
+        .onAppear {
+            showContent = true
+            animateDots = true
         }
     }
 }
 
-#Preview {
+#Preview("Dark Mode") {
     SplashScreenView()
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Light Mode") {
+    SplashScreenView()
+        .preferredColorScheme(.light)
 }

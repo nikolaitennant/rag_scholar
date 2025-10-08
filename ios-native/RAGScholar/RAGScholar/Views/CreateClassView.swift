@@ -10,36 +10,59 @@ import SwiftUI
 struct CreateClassView: View {
     @EnvironmentObject var classManager: ClassManager
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
     let onDismiss: (() -> Void)?
-    
+
     @State private var className = ""
     @State private var selectedDomainType: DomainType?
     @State private var currentStep = 1
     @FocusState private var isClassNameFieldFocused: Bool
-    
+
     // Domain type options with icons
     private let domainTypes = DomainType.allCases
-    
+
     init(onDismiss: (() -> Void)? = nil) {
         self.onDismiss = onDismiss
     }
 
+    private var inputBackgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white
+    }
+
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white
+    }
+
+    private var borderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1)
+    }
+
+    private var shadowColor: Color {
+        colorScheme == .dark ? Color.clear : Color.black.opacity(0.1)
+    }
+
     var body: some View {
-        VStack {
-            Spacer()
-            
-            TabView(selection: $currentStep) {
+        ZStack {
+            // Background to ensure proper color scheme detection
+            (colorScheme == .dark ? Color.black : Color.white)
+                .opacity(0.001)
+                .ignoresSafeArea()
+
+            VStack {
+                Spacer()
+
+                TabView(selection: $currentStep) {
                     VStack(spacing: 24) {
                         VStack(spacing: 24) {
                             // Step 1: Class Name and Subject Selection
                             VStack(spacing: 8) {
                                 Text("Create New Class")
                                     .font(.system(size: 20, weight: .semibold))
-                                    .foregroundColor(.white)
-                                
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+
                                 Text("Choose a name and subject type")
                                     .font(.system(size: 14, weight: .regular))
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
                             }
                             
                             // Class Name Input
@@ -47,7 +70,7 @@ struct CreateClassView: View {
                                 TextField("Class name (e.g., History 101)", text: $className)
                                     .textFieldStyle(.plain)
                                     .font(.system(size: 16, weight: .regular))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
                                     .tint(Color(red: 0.64, green: 0.47, blue: 1.0)) // Violet cursor
                                     .focused($isClassNameFieldFocused)
                                     .onTapGesture {
@@ -59,14 +82,14 @@ struct CreateClassView: View {
                                         Group {
                                             if isClassNameFieldFocused {
                                                 Capsule()
-                                                    .fill(Color(red: 0.11, green: 0.11, blue: 0.12))
+                                                    .fill(inputBackgroundColor)
                                                     .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.6), radius: 10, x: 0, y: 0)
                                             } else {
                                                 Capsule()
-                                                    .fill(Color(red: 0.11, green: 0.11, blue: 0.12))
+                                                    .fill(inputBackgroundColor)
                                                     .overlay(
                                                         Capsule()
-                                                            .stroke(Color.white.opacity(0.2), lineWidth: 1) // Light grey outline when not focused
+                                                            .stroke(colorScheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.1), lineWidth: 1)
                                                     )
                                             }
                                         }
@@ -131,7 +154,7 @@ struct CreateClassView: View {
                                 } label: {
                                     Text("Cancel")
                                         .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.white.opacity(0.7))
+                                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
                                         .frame(width: 80)
                                         .padding(.vertical, 14)
                                 }
@@ -141,11 +164,12 @@ struct CreateClassView: View {
                         .padding(24)
                         .background(
                             RoundedRectangle(cornerRadius: 28) // More rounded
-                                .fill(Color(red: 0.11, green: 0.11, blue: 0.12))
+                                .fill(cardBackgroundColor)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 28)
-                                        .stroke(Color.white.opacity(0.1), lineWidth: 1) // Subtle grey highlight
+                                        .stroke(borderColor, lineWidth: 1)
                                 )
+                                .shadow(color: shadowColor, radius: 20, x: 0, y: 10)
                         )
                         .padding(.horizontal, 20)
                     }
@@ -157,11 +181,11 @@ struct CreateClassView: View {
                             VStack(spacing: 8) {
                                 Text("Add Documents")
                                     .font(.system(size: 20, weight: .semibold))
-                                    .foregroundColor(.white)
-                                
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+
                                 Text("Upload or select documents for your class")
                                     .font(.system(size: 14, weight: .regular))
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
                             }
                             
                             // Upload Button - transparent purple with outline and glow
@@ -193,8 +217,8 @@ struct CreateClassView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Existing Documents")
                                     .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.white)
-                                
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+
                                 // Sample documents (replace with actual document list)
                                 VStack(spacing: 8) {
                                     DocumentRowView(name: "Sample Document.pdf", type: "Document")
@@ -212,7 +236,7 @@ struct CreateClassView: View {
                                 } label: {
                                     Text("Back")
                                         .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.white.opacity(0.7))
+                                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
                                         .frame(width: 80)
                                         .padding(.vertical, 14)
                                 }
@@ -248,11 +272,12 @@ struct CreateClassView: View {
                         .padding(24)
                         .background(
                             RoundedRectangle(cornerRadius: 28) // More rounded
-                                .fill(Color(red: 0.11, green: 0.11, blue: 0.12))
+                                .fill(cardBackgroundColor)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 28)
-                                        .stroke(Color.white.opacity(0.1), lineWidth: 1) // Subtle grey highlight
+                                        .stroke(borderColor, lineWidth: 1)
                                 )
+                                .shadow(color: shadowColor, radius: 20, x: 0, y: 10)
                         )
                         .padding(.horizontal, 20)
                     }
@@ -265,6 +290,7 @@ struct CreateClassView: View {
             }
             .transition(.move(edge: .bottom).combined(with: .opacity)) // Slide up from bottom with fade
         }
+    }
 
     private func createClass() {
         guard let domainType = selectedDomainType else { return }
@@ -282,20 +308,21 @@ struct CreateClassView: View {
 // MARK: - Domain Type Button
 
 struct DomainTypeButton: View {
+    @Environment(\.colorScheme) var colorScheme
     let domainType: DomainType
     let isSelected: Bool
     let onSelect: () -> Void
-    
+
     var body: some View {
         Button(action: onSelect) {
             VStack(spacing: 6) { // Reduced spacing for more compact layout
                 Image(systemName: domainType.icon)
                     .font(.system(size: 20, weight: .medium)) // Slightly smaller icon
-                    .foregroundColor(isSelected ? Color(red: 0.61, green: 0.42, blue: 1.0) : .white.opacity(0.7))
-                
+                    .foregroundColor(isSelected ? Color(red: 0.61, green: 0.42, blue: 1.0) : (colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6)))
+
                 Text(domainType.displayName)
                     .font(.system(size: 10, weight: .medium)) // Smaller text
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .frame(height: 26) // Reduced height for text area
@@ -303,7 +330,7 @@ struct DomainTypeButton: View {
             .frame(width: 90, height: 90) // Square dimensions with fixed size
             .background(
                 RoundedRectangle(cornerRadius: 16) // More rounded for square shape
-                    .fill(isSelected ? Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.2) : Color(red: 0.16, green: 0.16, blue: 0.18))
+                    .fill(isSelected ? Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.2) : (colorScheme == .dark ? Color(red: 0.16, green: 0.16, blue: 0.18) : Color(red: 0.95, green: 0.95, blue: 0.97)))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
                             .stroke(isSelected ? Color(red: 0.61, green: 0.42, blue: 1.0) : Color.clear, lineWidth: 1)
@@ -317,9 +344,10 @@ struct DomainTypeButton: View {
 // MARK: - Document Row View
 
 struct DocumentRowView: View {
+    @Environment(\.colorScheme) var colorScheme
     let name: String
     let type: String
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Only highlight the icon, not the whole row
@@ -327,17 +355,17 @@ struct DocumentRowView: View {
                 .font(.system(size: 20))
                 .foregroundColor(Color(red: 0.64, green: 0.47, blue: 1.0)) // Highlighted icon
                 .frame(width: 24, height: 24)
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.white)
-                
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
+
                 Text(type)
                     .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
             }
-            
+
             Spacer()
         }
         .padding(.horizontal, 16)
@@ -346,8 +374,15 @@ struct DocumentRowView: View {
     }
 }
 
-#Preview {
+#Preview("Dark Mode") {
     CreateClassView()
         .environmentObject(ClassManager.shared)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Light Mode") {
+    CreateClassView()
+        .environmentObject(ClassManager.shared)
+        .preferredColorScheme(.light)
 }
 

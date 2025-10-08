@@ -9,6 +9,7 @@ import SwiftUI
 
 struct RewardsView: View {
     @EnvironmentObject var rewardsManager: RewardsManager
+    @Environment(\.colorScheme) var colorScheme
 
     @State private var selectedTab = 0
 
@@ -40,7 +41,7 @@ struct RewardsView: View {
             }
             .padding(.bottom, 100)
         }
-        .background(Color(red: 0.11, green: 0.11, blue: 0.11)) // ChatGPT-like greyish black
+        .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color(red: 0.95, green: 0.95, blue: 0.97))
         .onAppear {
             Task {
                 await rewardsManager.fetchAchievements()

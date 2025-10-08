@@ -16,10 +16,10 @@ class APIService {
     private let session: URLSession
 
     private init() {
-        // Development: Use localhost with Docker Compose
+        // Development: Use ngrok tunnel to Docker Compose backend
         // Production: Use deployed backend
         #if DEBUG
-        self.baseURL = ProcessInfo.processInfo.environment["API_URL"] ?? "http://localhost:8000/api/v1"
+        self.baseURL = ProcessInfo.processInfo.environment["API_URL"] ?? "https://ragscholar-api.ngrok.app/api/v1"
         #else
         self.baseURL = "https://ragscholarai-212187655853.europe-west1.run.app/api/v1"
         #endif

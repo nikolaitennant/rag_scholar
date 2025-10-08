@@ -119,12 +119,22 @@ class ChatManager: ObservableObject {
         error = nil
 
         do {
+            // Get API settings from UserDefaults
+            let apiKey = UserDefaults.standard.string(forKey: "api_key")
+            let model = UserDefaults.standard.string(forKey: "preferred_model") ?? "gpt-5-mini"
+            let temperature = UserDefaults.standard.double(forKey: "temperature")
+            let maxTokens = UserDefaults.standard.integer(forKey: "max_tokens")
+
             let response = try await apiService.sendMessage(
                 query: query,
                 sessionId: currentSession?.id,
                 classId: classId,
                 className: className,
-                domainType: domainType
+                domainType: domainType,
+                apiKey: apiKey,
+                model: model,
+                temperature: temperature == 0 ? nil : temperature,
+                maxTokens: maxTokens == 0 ? nil : maxTokens
             )
 
             // Add assistant response

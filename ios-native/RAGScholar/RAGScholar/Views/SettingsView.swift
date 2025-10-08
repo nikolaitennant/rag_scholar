@@ -784,7 +784,7 @@ struct SettingsView: View {
                 apiKey = settings.apiKey ?? ""
                 selectedModel = settings.preferredModel ?? "gpt-5-mini"
                 temperature = settings.temperature ?? 0.0
-                maxTokens = settings.maxTokens ?? 2000
+                maxTokens = settings.maxTokens.map(Double.init) ?? 2000
                 if let tz = settings.timezone {
                     timezone = tz
                 }

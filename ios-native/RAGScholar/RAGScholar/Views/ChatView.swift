@@ -85,7 +85,13 @@ struct ChatView: View {
             )
         }
         .background(Color(red: 0.11, green: 0.11, blue: 0.11)) // ChatGPT-like greyish black
+        .toolbar(isInputFocused ? .hidden : .visible, for: .tabBar)
         .onAppear {
+            // Auto-focus input when view appears
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isInputFocused = true
+            }
+
             // Fetch initial data if needed
             if chatManager.sessions.isEmpty {
                 Task {
@@ -321,27 +327,11 @@ struct LoadingBubble: View {
 struct EmptyChatPlaceholder: View {
     var body: some View {
         VStack(spacing: 20) {
-            Image(systemName: "message")
-                .font(.system(size: 64))
-                .foregroundColor(.white.opacity(0.3))
-
             VStack(spacing: 8) {
-                Text("Start a Conversation")
+                Text("Welcome to RAG Scholar")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.white)
-
-                Text("Ask questions about your documents")
-                    .font(.system(size: 16))
-                    .foregroundColor(.white.opacity(0.6))
-                    .multilineTextAlignment(.center)
             }
-
-            VStack(alignment: .leading, spacing: 12) {
-                SuggestionChip(text: "Summarize my documents")
-                SuggestionChip(text: "What are the key points?")
-                SuggestionChip(text: "Explain this concept")
-            }
-            .padding(.top, 8)
         }
         .padding()
     }

@@ -65,15 +65,7 @@ def create_app() -> FastAPI:
     # Configure CORS for local development and production
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "https://ragscholar.ngrok.app",  # ngrok tunnel for development
-            "https://ragscholar-api.ngrok.app",  # ngrok API tunnel
-            "https://ragscholarai.firebaseapp.com",  # Production frontend
-            "https://ragscholarai.web.app"  # Alternative Firebase domain
-            "http://localhost:3000", # Localhost
-            "http://127.0.0.1:3000", # Localhost
-            "http://192.168.4.175:3000", # Glebe Place IP
-        ],
+        allow_origins=["*"],  # Allow all origins including iOS apps
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["*"],

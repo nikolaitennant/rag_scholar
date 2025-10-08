@@ -18,11 +18,7 @@ struct ContentView: View {
             if authManager.isLoading {
                 SplashScreenView()
             } else if authManager.isAuthenticated {
-                if classManager.classes.isEmpty && !classManager.isLoading {
-                    ClassOnboardingView()
-                } else {
-                    MainTabView()
-                }
+                MainTabView()
             } else {
                 LoginView()
             }

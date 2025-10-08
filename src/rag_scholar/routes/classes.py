@@ -34,8 +34,8 @@ class ClassResponse(BaseModel):
     name: str
     domain_type: str
     description: str
-    created_at: str
-    updated_at: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
 
 @router.get("/", response_model=List[ClassResponse])
@@ -59,8 +59,8 @@ async def get_user_classes(current_user: dict = Depends(get_current_user)):
                 name=data.get("name", ""),
                 domain_type=data.get("domain_type", "general"),
                 description=data.get("description", ""),
-                created_at=data.get("created_at", ""),
-                updated_at=data.get("updated_at", "")
+                created_at=data.get("created_at") if "created_at" in data else None,
+                updated_at=data.get("updated_at") if "updated_at" in data else None
             ))
 
         return classes

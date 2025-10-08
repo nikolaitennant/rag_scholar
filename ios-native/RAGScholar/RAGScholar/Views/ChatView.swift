@@ -21,53 +21,55 @@ struct ChatView: View {
         VStack(spacing: 0) {
             // Messages ScrollView
             ScrollViewReader { proxy in
-                ZStack {
-                    ScrollView {
-                        LazyVStack(spacing: 16) {
-                            if chatManager.messages.isEmpty {
-                                // Spacer to push content down
-                                Color.clear
-                                    .frame(height: UIScreen.main.bounds.height * 0.35)
-                            } else {
-                                ForEach(chatManager.messages) { message in
-                                    MessageBubble(message: message)
-                                        .id(message.id)
-                                }
+                GeometryReader { geometry in
+                    ZStack {
+                        ScrollView {
+                            LazyVStack(spacing: 16) {
+                                if chatManager.messages.isEmpty {
+                                    // Spacer to push content down
+                                    Color.clear
+                                        .frame(height: geometry.size.height * 0.35)
+                                } else {
+                                    ForEach(chatManager.messages) { message in
+                                        MessageBubble(message: message)
+                                            .id(message.id)
+                                    }
 
-                                // Loading indicator
-                                if chatManager.isSendingMessage {
-                                    LoadingBubble()
+                                    // Loading indicator
+                                    if chatManager.isSendingMessage {
+                                        LoadingBubble()
+                                    }
                                 }
                             }
+                            .padding()
+                            .padding(.bottom, 20)
                         }
-                        .padding()
-                        .padding(.bottom, 20)
-                    }
-                    .onAppear {
-                        scrollProxy = proxy
-                    }
-                    .onChange(of: chatManager.messages.count) { _, _ in
-                        scrollToBottom(proxy: proxy)
-                    }
-                    .gesture(
-                        DragGesture()
-                            .onChanged { gesture in
-                                if gesture.translation.height > 50 {
-                                    isInputFocused = false
+                        .onAppear {
+                            scrollProxy = proxy
+                        }
+                        .onChange(of: chatManager.messages.count) { _, _ in
+                            scrollToBottom(proxy: proxy)
+                        }
+                        .gesture(
+                            DragGesture()
+                                .onChanged { gesture in
+                                    if gesture.translation.height > 50 {
+                                        isInputFocused = false
+                                    }
                                 }
-                            }
-                    )
+                        )
 
-                    // Welcome message centered
-                    if chatManager.messages.isEmpty {
-                        VStack {
-                            Spacer()
-                            EmptyChatPlaceholder()
-                                .opacity(inputText.isEmpty ? 1.0 : 0.0)
-                                .animation(.easeInOut(duration: 0.3), value: inputText.isEmpty)
-                            Spacer()
+                        // Welcome message centered
+                        if chatManager.messages.isEmpty {
+                            VStack {
+                                Spacer()
+                                EmptyChatPlaceholder()
+                                    .opacity(inputText.isEmpty ? 1.0 : 0.0)
+                                    .animation(.easeInOut(duration: 0.3), value: inputText.isEmpty)
+                                Spacer()
+                            }
+                            .allowsHitTesting(false)
                         }
-                        .allowsHitTesting(false)
                     }
                 }
             }

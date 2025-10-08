@@ -47,6 +47,14 @@ struct ChatView: View {
                 .onChange(of: chatManager.messages.count) { _, _ in
                     scrollToBottom(proxy: proxy)
                 }
+                .gesture(
+                    DragGesture()
+                        .onChanged { gesture in
+                            if gesture.translation.height > 50 {
+                                isInputFocused = false
+                            }
+                        }
+                )
             }
 
             // Input Area
@@ -63,23 +71,10 @@ struct ChatView: View {
                     )
                     .focused($isInputFocused)
                     .lineLimit(1...5)
-                    .onTapGesture {
-                        // Force focus when tapping the text field
-                        isInputFocused = true
+                    .submitLabel(.send)
+                    .onSubmit {
+                        sendMessage()
                     }
-
-                // Debug button - remove this later
-                Button("KB") {
-                    isInputFocused = true
-                }
-                .foregroundColor(.blue)
-
-                Button(action: sendMessage) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundColor(canSend ? Color(red: 0.43, green: 0.37, blue: 0.99) : .gray)
-                }
-                .disabled(!canSend)
             }
             .padding(.horizontal)
             .padding(.vertical, 12)

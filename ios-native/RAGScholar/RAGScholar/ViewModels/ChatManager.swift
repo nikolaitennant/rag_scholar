@@ -66,6 +66,13 @@ class ChatManager: ObservableObject {
         isLoading = false
     }
 
+    func startNewSession() async {
+        // Clear current session to start fresh
+        currentSession = nil
+        messages = []
+        HapticManager.shared.impact(.medium)
+    }
+
     func deleteSession(_ sessionId: String) async {
         do {
             try await apiService.deleteSession(id: sessionId)

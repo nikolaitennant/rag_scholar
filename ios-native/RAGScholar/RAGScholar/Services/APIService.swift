@@ -82,6 +82,7 @@ class APIService {
             request.httpBody = body
         }
 
+
         let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -95,7 +96,20 @@ class APIService {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode(T.self, from: data)
+
+        do {
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            // Log decoding errors for debugging
+            if T.self == UserClass.self || T.self == [UserClass].self || T.self == UserProfile.self {
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("❌ Decoding error for \(T.self)")
+                    print("❌ Response: \(responseString)")
+                    print("❌ Error: \(error)")
+                }
+            }
+            throw APIError.decodingError(error)
+        }
     }
 
     // MARK: - Class Endpoints

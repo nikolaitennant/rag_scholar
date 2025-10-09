@@ -45,6 +45,8 @@ async def get_user_classes(current_user: dict = Depends(get_current_user)):
         settings = get_settings()
         from google.cloud import firestore
 
+        logger.info("Fetching user classes", user_id=current_user["id"])
+
         db = firestore.Client(project=settings.google_cloud_project)
 
         # Get all classes for this user
@@ -62,6 +64,13 @@ async def get_user_classes(current_user: dict = Depends(get_current_user)):
                 created_at=data.get("created_at") if "created_at" in data else None,
                 updated_at=data.get("updated_at") if "updated_at" in data else None
             ))
+
+        logger.info("Classes retrieved from database",
+                   user_id=current_user["id"],
+                   class_count=len(classes))
+        logger.debug("Class list details",
+                    user_id=current_user["id"],
+                    classes=[{"id": c.id, "name": c.name, "domain_type": c.domain_type} for c in classes])
 
         return classes
 

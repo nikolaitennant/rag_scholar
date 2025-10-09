@@ -19,6 +19,8 @@ class DocumentManager: ObservableObject {
     @Published var isUploading = false
     @Published var uploadProgress: Double = 0.0
     @Published var error: String?
+    @Published var searchQuery: String = ""
+    @Published var showAllDocuments: Bool = false
 
     private let apiService = APIService.shared
 
@@ -33,8 +35,8 @@ class DocumentManager: ObservableObject {
         do {
             documents = try await apiService.fetchDocuments()
 
-            // Sort by upload date (most recent first)
-            documents.sort { ($0.uploadDate ?? Date.distantPast) > ($1.uploadDate ?? Date.distantPast) }
+            // Sort by upload date (most recent first) - using string comparison
+            documents.sort { ($0.uploadDate ?? "") > ($1.uploadDate ?? "") }
         } catch {
             self.error = error.localizedDescription
         }
@@ -44,7 +46,7 @@ class DocumentManager: ObservableObject {
 
     // MARK: - Document Upload
 
-    func uploadDocument(fileURL: URL, filename: String) async {
+    func uploadDocument(fileURL: URL, filename: String, classId: String? = nil) async {
         isUploading = true
         uploadProgress = 0.0
         error = nil
@@ -66,6 +68,17 @@ class DocumentManager: ObservableObject {
                 apiKey: apiKey
             )
 
+            // Assign to class if classId is provided
+            if let classId = classId {
+                try await apiService.assignDocumentToClass(
+                    documentId: document.id,
+                    documentSource: document.collection ?? "database",
+                    classId: classId,
+                    operation: "add",
+                    apiKey: apiKey
+                )
+            }
+
             uploadProgress = 1.0
             documents.insert(document, at: 0)
 
@@ -80,6 +93,50 @@ class DocumentManager: ObservableObject {
     }
 
     // MARK: - Document Management
+
+    func assignDocumentToClass(documentId: String, documentSource: String, classId: String) async {
+        let apiKey = UserDefaults.standard.string(forKey: "api_key")
+
+        do {
+            try await apiService.assignDocumentToClass(
+                documentId: documentId,
+                documentSource: documentSource,
+                classId: classId,
+                operation: "add",
+                apiKey: apiKey
+            )
+
+            // Refresh documents to get updated assignments
+            await fetchDocuments()
+
+            HapticManager.shared.success()
+        } catch {
+            self.error = error.localizedDescription
+            HapticManager.shared.error()
+        }
+    }
+
+    func removeDocumentFromClass(documentId: String, documentSource: String, classId: String) async {
+        let apiKey = UserDefaults.standard.string(forKey: "api_key")
+
+        do {
+            try await apiService.assignDocumentToClass(
+                documentId: documentId,
+                documentSource: documentSource,
+                classId: classId,
+                operation: "remove",
+                apiKey: apiKey
+            )
+
+            // Refresh documents to get updated assignments
+            await fetchDocuments()
+
+            HapticManager.shared.success()
+        } catch {
+            self.error = error.localizedDescription
+            HapticManager.shared.error()
+        }
+    }
 
     func deleteDocument(_ documentId: String) async {
         do {
@@ -130,8 +187,10 @@ class DocumentManager: ObservableObject {
 
             // Update local state
             if let index = documents.firstIndex(where: { $0.id == documentId }) {
-                if !documents[index].assignedClasses.contains(classId) {
-                    documents[index].assignedClasses.append(classId)
+                var assignedClasses = documents[index].assignedClasses ?? []
+                if !assignedClasses.contains(classId) {
+                    assignedClasses.append(classId)
+                    documents[index].assignedClasses = assignedClasses
                 }
             }
 
@@ -155,7 +214,9 @@ class DocumentManager: ObservableObject {
 
             // Update local state
             if let index = documents.firstIndex(where: { $0.id == documentId }) {
-                documents[index].assignedClasses.removeAll(where: { $0 == classId })
+                var assignedClasses = documents[index].assignedClasses ?? []
+                assignedClasses.removeAll(where: { $0 == classId })
+                documents[index].assignedClasses = assignedClasses
             }
 
             HapticManager.shared.success()
@@ -171,7 +232,7 @@ class DocumentManager: ObservableObject {
         guard let classId = classId else {
             return documents
         }
-        return documents.filter { $0.assignedClasses.contains(classId) }
+        return documents.filter { $0.assignedClasses?.contains(classId) ?? false }
     }
 
     func searchDocuments(query: String) -> [Document] {

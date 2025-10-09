@@ -18,6 +18,8 @@ class ClassManager: ObservableObject {
     @Published var error: String?
 
     private let apiService = APIService.shared
+    private var lastFetchTime: Date?
+    private let cacheTimeout: TimeInterval = 60 // 1 minute cache
 
     private init() {
         loadActiveClassFromStorage()
@@ -42,21 +44,35 @@ class ClassManager: ObservableObject {
 
     // MARK: - API Methods
 
-    func fetchClasses() async {
+    func fetchClasses(force: Bool = false) async {
+        // Check cache unless forced refresh
+        if !force, let lastFetch = lastFetchTime,
+           Date().timeIntervalSince(lastFetch) < cacheTimeout,
+           !classes.isEmpty {
+            print("📦 Using cached classes")
+            return
+        }
+
         isLoading = true
         error = nil
 
         do {
+            print("🔍 Fetching classes from backend...")
             classes = try await apiService.fetchClasses()
+            lastFetchTime = Date()
+            print("✅ Fetched \(classes.count) classes")
 
             // Auto-select active class
             if let savedId = UserDefaults.standard.string(forKey: "activeClassId"),
                let savedClass = classes.first(where: { $0.id == savedId }) {
                 activeClass = savedClass
+                print("✅ Selected saved class: \(savedClass.name)")
             } else if let firstClass = classes.first {
                 selectClass(firstClass)
+                print("✅ Selected first class: \(firstClass.name)")
             }
         } catch {
+            print("❌ Error fetching classes: \(error.localizedDescription)")
             self.error = error.localizedDescription
         }
 

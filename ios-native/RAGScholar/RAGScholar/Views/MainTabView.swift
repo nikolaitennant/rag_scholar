@@ -28,43 +28,48 @@ struct MainTabView: View {
     }
 
     private var mainContent: some View {
-        VStack(spacing: 0) {
-            TopNavigationBar()
-
-            TabView(selection: $navigationManager.selectedTab) {
+        TabView(selection: $navigationManager.selectedTab) {
+            NavigationStack {
                 HomeView()
-                    .tabItem {
-                        Image(systemName: NavigationManager.Tab.home.icon)
-                        Text(NavigationManager.Tab.home.rawValue)
-                    }
-                    .tag(NavigationManager.Tab.home)
-
-                ChatView()
-                    .tabItem {
-                        Image(systemName: NavigationManager.Tab.chat.icon)
-                        Text(NavigationManager.Tab.chat.rawValue)
-                    }
-                    .tag(NavigationManager.Tab.chat)
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { }
-                    }
-
-                DocumentsView()
-                    .tabItem {
-                        Image(systemName: NavigationManager.Tab.docs.icon)
-                        Text(NavigationManager.Tab.docs.rawValue)
-                    }
-                    .tag(NavigationManager.Tab.docs)
-
-                RewardsView()
-                    .tabItem {
-                        Image(systemName: NavigationManager.Tab.rewards.icon)
-                        Text(NavigationManager.Tab.rewards.rawValue)
-                    }
-                    .tag(NavigationManager.Tab.rewards)
+                    .navigationBarTitleDisplayMode(.inline)
             }
-            .tint(Color(red: 0.61, green: 0.42, blue: 1.0))
+            .tabItem {
+                Image(systemName: NavigationManager.Tab.home.icon)
+                Text(NavigationManager.Tab.home.rawValue)
+            }
+            .tag(NavigationManager.Tab.home)
+
+            NavigationStack {
+                ChatView()
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+            .tabItem {
+                Image(systemName: NavigationManager.Tab.chat.icon)
+                Text(NavigationManager.Tab.chat.rawValue)
+            }
+            .tag(NavigationManager.Tab.chat)
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { }
+            }
+
+            NavigationStack {
+                DocumentsView()
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+            .tabItem {
+                Image(systemName: NavigationManager.Tab.docs.icon)
+                Text(NavigationManager.Tab.docs.rawValue)
+            }
+            .tag(NavigationManager.Tab.docs)
+
+            RewardsView()
+                .tabItem {
+                    Image(systemName: NavigationManager.Tab.rewards.icon)
+                    Text(NavigationManager.Tab.rewards.rawValue)
+                }
+                .tag(NavigationManager.Tab.rewards)
         }
+        .tint(Color(red: 0.61, green: 0.42, blue: 1.0))
         .background(backgroundGradient)
         .toolbar(keyboardVisible ? .hidden : .visible, for: .tabBar)
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in

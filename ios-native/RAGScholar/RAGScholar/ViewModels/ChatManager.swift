@@ -31,16 +31,20 @@ class ChatManager: ObservableObject {
         error = nil
 
         do {
+            print("🔍 Fetching sessions from backend...")
             sessions = try await apiService.fetchSessions()
+            print("✅ Fetched \(sessions.count) total sessions")
 
             // Filter by class if specified
             if let classId = classId {
                 sessions = sessions.filter { $0.classId == classId }
+                print("✅ Filtered to \(sessions.count) sessions for class: \(classId)")
             }
 
             // Sort by most recent
-            sessions.sort { $0.updatedAt > $1.updatedAt }
+            sessions.sort { ($0.updatedAt ?? "") > ($1.updatedAt ?? "") }
         } catch {
+            print("❌ Error fetching sessions: \(error.localizedDescription)")
             self.error = error.localizedDescription
         }
 
@@ -150,23 +154,23 @@ class ChatManager: ObservableObject {
                 // Update existing session
                 if let index = sessions.firstIndex(where: { $0.id == sessionId }) {
                     sessions[index].name = response.chatName ?? sessions[index].name
-                    sessions[index] = ChatSession(
-                        id: sessions[index].id,
-                        name: response.chatName ?? sessions[index].name,
-                        messageCount: messages.count,
-                        updatedAt: Date(),
-                        classId: sessions[index].classId
-                    )
+                    // Don't recreate the session, just update the name
                     currentSession = sessions[index]
                 }
             } else {
                 // Create new session
+                let isoFormatter = ISO8601DateFormatter()
+                let now = isoFormatter.string(from: Date())
                 let newSession = ChatSession(
                     id: response.sessionId,
                     name: response.chatName ?? "New Chat",
                     messageCount: messages.count,
-                    updatedAt: Date(),
-                    classId: classId
+                    createdAt: now,
+                    updatedAt: now,
+                    classId: classId,
+                    preview: nil,
+                    className: nil,
+                    domain: nil
                 )
                 sessions.insert(newSession, at: 0)
                 currentSession = newSession

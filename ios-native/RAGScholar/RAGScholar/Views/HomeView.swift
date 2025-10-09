@@ -19,6 +19,10 @@ struct HomeView: View {
     @State private var isEditingSession: ChatSession?
     @State private var editedSessionName: String = ""
     @State private var heartOpacity: Double = 1.0
+    @State private var showSettings = false
+    @State private var searchText = ""
+    @State private var isSearchActive = false
+    @State private var showManageClasses = false
 
     var body: some View {
         ScrollView {
@@ -71,36 +75,24 @@ struct HomeView: View {
 
                         Spacer()
 
-                        Button(action: {
-                            chatManager.startNewChat()
-                            navigationManager.selectedTab = .chat
-                            HapticManager.shared.impact(.light)
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "plus")
-                                Text("New Chat")
+                        GlassEffectContainer {
+                            Button(action: {
+                                chatManager.startNewChat()
+                                navigationManager.selectedTab = .chat
+                                HapticManager.shared.impact(.light)
+                            }) {
+                                Image(systemName: "square.and.pencil")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .padding(10)
                             }
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(
-                                LinearGradient(
-                                    colors: [
-                                        Color(red: 0.43, green: 0.37, blue: 0.99),
-                                        Color(red: 0.62, green: 0.47, blue: 1)
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .cornerRadius(20)
+                            .glassEffect(in: Circle())
                         }
                     }
                     .padding(.horizontal)
 
                     // Chat List
-                    let recentChats = chatManager.getRecentSessions(for: classManager.activeClass?.id, limit: 5)
+                    let recentChats = filteredChats
 
                     if recentChats.isEmpty {
                         EmptyChatState()
@@ -140,11 +132,145 @@ struct HomeView: View {
             .padding(.vertical)
         }
         .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : .white, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(colorScheme == .dark ? .dark : .light, for: .navigationBar)
+        .toolbar {
+            if isSearchActive {
+                // Search mode - hide default items
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 8) {
+                        GlassEffectContainer {
+                            HStack(spacing: 0) {
+                                Image(systemName: "magnifyingglass")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
+                                    .padding(.leading, 16)
+
+                                TextField("Search chats...", text: $searchText)
+                                    .textFieldStyle(.plain)
+                                    .font(.system(size: 17, weight: .regular))
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .tint(Color(red: 0.61, green: 0.42, blue: 1.0))
+                                    .padding(.horizontal, 12)
+
+                                if !searchText.isEmpty {
+                                    Button {
+                                        searchText = ""
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.system(size: 16))
+                                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
+                                    }
+                                    .padding(.trailing, 16)
+                                } else {
+                                    Spacer()
+                                        .frame(width: 16)
+                                }
+                            }
+                            .padding(.vertical, 10)
+                            .glassEffect(in: Capsule())
+                        }
+                        .frame(minWidth: 0, maxWidth: .infinity)
+                    }
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        withAnimation {
+                            isSearchActive = false
+                            searchText = ""
+                        }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                    }
+                }
+            } else {
+                // Normal mode - class dropdown, search icon, settings
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        ForEach(classManager.classes) { userClass in
+                            Button(action: {
+                                classManager.selectClass(userClass)
+                            }) {
+                                HStack {
+                                    Text(userClass.name)
+                                    if classManager.activeClass?.id == userClass.id {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+
+                        Divider()
+
+                        Button(action: {
+                            showManageClasses = true
+                        }) {
+                            Label("Manage Classes", systemImage: "folder.badge.gearshape")
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(classManager.activeClass?.name ?? "Select Class")
+                                .font(.system(size: 15))
+                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                                .lineLimit(1)
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 12))
+                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                        }
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        withAnimation {
+                            isSearchActive = true
+                        }
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 16))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showSettings = true
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+        }
+        .sheet(isPresented: $showManageClasses) {
+            ManageClassesView()
+        }
         .onAppear {
             Task {
                 await rewardsManager.fetchUserStats()
                 await chatManager.fetchSessions(for: classManager.activeClass?.id)
             }
+        }
+    }
+
+    private var filteredChats: [ChatSession] {
+        let allChats = chatManager.getRecentSessions(for: classManager.activeClass?.id, limit: 100)
+
+        if searchText.isEmpty {
+            return Array(allChats.prefix(5))
+        }
+
+        return allChats.filter { session in
+            session.name.localizedCaseInsensitiveContains(searchText)
         }
     }
 
@@ -217,28 +343,28 @@ struct LearningProgressCard: View {
             
             // Next achievement and progress
             VStack(alignment: .leading, spacing: 8) {
-                // Next achievement line with progress on far right
+                // Next achievement line with achievements unlocked on far right
                 HStack {
                     Text("Next: \(getNextAchievementName())")
                         .font(.system(size: 14, weight: .regular, design: .default))
                         .foregroundColor(colorScheme == .dark ? .white.opacity(0.65) : .black.opacity(0.6))
-                    
+
                     Spacer()
-                    
-                    Text("(\(stats.achievementsUnlocked)/\(stats.totalAchievements))")
+
+                    Text("\(stats.achievementsUnlocked)/\(stats.totalAchievements) achievements")
                         .font(.system(size: 14, weight: .regular, design: .default))
                         .foregroundColor(colorScheme == .dark ? .white.opacity(0.65) : .black.opacity(0.6))
                 }
-                
-                // Progress Bar
+
+                // Progress Bar - shows total points out of all possible points
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         // Track
                         RoundedRectangle(cornerRadius: 3)
                             .fill(Color(red: 0.16, green: 0.16, blue: 0.18)) // #2A2A2D
                             .frame(height: 6)
-                        
-                        // Progress Fill - blueish to purple gradient
+
+                        // Progress Fill - blueish to purple gradient based on total points
                         RoundedRectangle(cornerRadius: 3)
                             .fill(
                                 LinearGradient(
@@ -250,8 +376,8 @@ struct LearningProgressCard: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: geometry.size.width * stats.progressToNextMilestone, height: 6)
-                            .animation(.easeInOut(duration: 0.3), value: stats.progressToNextMilestone)
+                            .frame(width: geometry.size.width * stats.progressToTotalPoints, height: 6)
+                            .animation(.easeInOut(duration: 0.3), value: stats.progressToTotalPoints)
                     }
                 }
                 .frame(height: 6)
@@ -308,9 +434,13 @@ struct ChatListItem: View {
                         .lineLimit(1)
 
                     HStack(spacing: 12) {
-                        Label("\(session.messageCount)", systemImage: "message")
+                        if let count = session.messageCount {
+                            Label("\(count)", systemImage: "message")
+                        }
 
-                        Text(formatTimestamp(session.updatedAt))
+                        if let updatedAt = session.updatedAt {
+                            Text(updatedAt)
+                        }
                     }
                     .font(.system(size: 13))
                     .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))

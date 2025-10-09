@@ -3,10 +3,12 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timezone
 import uuid
+import structlog
 
 from .auth import get_current_user
 from ..config.settings import get_settings
 
+logger = structlog.get_logger()
 router = APIRouter()
 
 class SessionResponse(BaseModel):
@@ -29,6 +31,8 @@ async def get_user_sessions(current_user: dict = Depends(get_current_user)):
         db = firestore.Client(project=settings.google_cloud_project)
         user_id = current_user["id"]
 
+        logger.info("Fetching chat sessions", user_id=user_id)
+
         # LangChain stores sessions as subcollections: users/{user_id}/chat_sessions/{session_id}/messages
         sessions_ref = db.collection(f"users/{user_id}/chat_sessions")
         session_docs = sessions_ref.stream()
@@ -36,6 +40,9 @@ async def get_user_sessions(current_user: dict = Depends(get_current_user)):
         session_list = []
         session_docs_list = list(session_docs)
 
+        logger.info("Chat sessions retrieved from database",
+                   user_id=user_id,
+                   session_count=len(session_docs_list))
         print(f"DEBUG SESSIONS: Found {len(session_docs_list)} session documents")
 
         for session_doc in session_docs_list:
@@ -103,9 +110,17 @@ async def get_user_sessions(current_user: dict = Depends(get_current_user)):
         # Convert ISO strings to datetime for proper sorting
         session_list.sort(key=lambda x: datetime.fromisoformat(x.updated_at.replace('Z', '+00:00')), reverse=True)
 
+        logger.info("Returning chat sessions",
+                   user_id=user_id,
+                   session_count=len(session_list))
+        logger.debug("Session list details",
+                    user_id=user_id,
+                    sessions=[{"id": s.id, "name": s.name, "message_count": s.message_count} for s in session_list])
+
         return session_list
 
     except Exception as e:
+        logger.error("Error getting sessions", user_id=user_id, error=str(e))
         print(f"DEBUG: Error getting sessions: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get sessions: {str(e)}")
 
@@ -119,11 +134,18 @@ async def get_session_messages(
         from langchain_google_firestore import FirestoreChatMessageHistory
         user_id = current_user["id"]
 
+        logger.info("Fetching session messages", user_id=user_id, session_id=session_id)
+
         # Use LangChain's FirestoreChatMessageHistory to get messages correctly
         history = FirestoreChatMessageHistory(
             session_id=session_id,
             collection=f"users/{user_id}/chat_sessions"
         )
+
+        logger.info("Messages retrieved from database",
+                   user_id=user_id,
+                   session_id=session_id,
+                   message_count=len(history.messages))
 
         message_list = []
         citation_metadata_map = {}
@@ -190,9 +212,18 @@ async def get_session_messages(
 
                 message_list.append(message_content)
 
+        logger.info("Returning session messages",
+                   user_id=user_id,
+                   session_id=session_id,
+                   returned_message_count=len(message_list))
+
         return {"messages": message_list}
 
     except Exception as e:
+        logger.error("Error getting session messages",
+                    user_id=user_id,
+                    session_id=session_id,
+                    error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to get session messages: {str(e)}")
 
 @router.put("/sessions/{session_id}")

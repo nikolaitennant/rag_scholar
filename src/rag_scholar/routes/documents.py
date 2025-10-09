@@ -207,7 +207,7 @@ async def get_documents(
 ):
     """Get documents in a collection."""
     user_id = current_user["id"]
-    logger.info("Getting documents for user", user_id=user_id, collection=collection)
+    logger.info("Fetching documents", user_id=user_id, collection=collection)
 
     try:
         # Get documents from user's documents subcollection (no API key needed for reading)
@@ -219,7 +219,9 @@ async def get_documents(
         try:
             docs_ref = db.collection(f"users/{user_id}/documents")
             docs = docs_ref.get()
-            logger.info("Found documents in Firestore", user_id=user_id, count=len(docs))
+            logger.info("Documents retrieved from database",
+                       user_id=user_id,
+                       document_count=len(docs))
 
             documents = []
             for doc in docs:
@@ -231,10 +233,19 @@ async def get_documents(
                 chunks_query = chunks_ref.where("metadata.source", "==", filename).limit(1)
                 chunks = chunks_query.get()
 
+                logger.debug("Chunks retrieved for document",
+                            user_id=user_id,
+                            filename=filename,
+                            chunks_found=len(chunks))
+
                 assigned_classes = []
                 if chunks:
                     chunk_data = chunks[0].to_dict()
                     assigned_classes = chunk_data.get("metadata", {}).get("assigned_classes", [])
+                    logger.debug("Chunk metadata retrieved",
+                                user_id=user_id,
+                                filename=filename,
+                                assigned_classes=assigned_classes)
 
                 documents.append({
                     "id": data.get("document_id", doc.id),
@@ -246,7 +257,12 @@ async def get_documents(
                     "assigned_classes": assigned_classes
                 })
 
-            logger.info("Returning documents", user_id=user_id, count=len(documents))
+            logger.info("Returning documents",
+                       user_id=user_id,
+                       document_count=len(documents))
+            logger.debug("Document list details",
+                        user_id=user_id,
+                        documents=[{"id": d["id"], "filename": d["filename"], "chunks": d["chunks"]} for d in documents])
             return documents
         except Exception as e:
             logger.error("Failed to get documents", user_id=user_id, error=str(e))

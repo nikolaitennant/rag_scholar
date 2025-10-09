@@ -11,11 +11,13 @@ struct ChatView: View {
     @EnvironmentObject var chatManager: ChatManager
     @EnvironmentObject var classManager: ClassManager
     @EnvironmentObject var rewardsManager: RewardsManager
+    @EnvironmentObject var navigationManager: NavigationManager
     @Environment(\.colorScheme) var colorScheme
 
     @State private var inputText: String = ""
     @State private var scrollProxy: ScrollViewProxy?
     @FocusState private var isInputFocused: Bool
+    @State private var showManageClasses = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -44,13 +46,7 @@ struct ChatView: View {
                             .padding()
                             .padding(.bottom, 20)
                         }
-                        .onAppear {
-                            scrollProxy = proxy
-                        }
-                        .onChange(of: chatManager.messages.count) { _, _ in
-                            scrollToBottom(proxy: proxy)
-                        }
-                        .gesture(
+                        .simultaneousGesture(
                             DragGesture()
                                 .onChanged { gesture in
                                     if gesture.translation.height > 50 {
@@ -58,6 +54,12 @@ struct ChatView: View {
                                     }
                                 }
                         )
+                        .onAppear {
+                            scrollProxy = proxy
+                        }
+                        .onChange(of: chatManager.messages.count) { _, _ in
+                            scrollToBottom(proxy: proxy)
+                        }
 
                         // Welcome message centered
                         if chatManager.messages.isEmpty {
@@ -74,35 +76,45 @@ struct ChatView: View {
                 }
             }
 
-            // Input Area
-            HStack(spacing: 12) {
-                TextField("Ask a question...", text: $inputText, axis: .vertical)
-                    .foregroundColor(colorScheme == .dark ? .white : .black)
-                    .font(.system(size: 16))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                    .background(
-                        Capsule()
-                            .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color(red: 0.95, green: 0.95, blue: 0.97))
-                            .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.4), radius: 8, x: 0, y: 0)
-                    )
-                    .focused($isInputFocused)
-                    .lineLimit(1...5)
-                    .submitLabel(.send)
-                    .onSubmit {
-                        sendMessage()
+            // Input Area with Glass Effect
+            GlassEffectContainer(spacing: 8) {
+                VStack(spacing: 0) {
+                    HStack(alignment: .center, spacing: 0) {
+                        TextField("Ask a question...", text: $inputText, axis: .vertical)
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                            .font(.system(size: 16))
+                            .focused($isInputFocused)
+                            .lineLimit(1...5)
+                            .frame(maxWidth: .infinity)
+                            .padding(.leading, 16)
+                            .padding(.vertical, 10)
+
+                        Button(action: sendMessage) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.system(size: 26))
+                                .foregroundColor(canSend ? Color(red: 0.61, green: 0.42, blue: 1.0) : Color.gray.opacity(0.3))
+                        }
+                        .disabled(!canSend)
+                        .padding(.trailing, 12)
+                        .padding(.vertical, 10)
                     }
+                    .glassEffect(in: Capsule())
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.4), radius: 8, x: 0, y: 0)
+                }
+                .background(
+                    Rectangle()
+                        .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white)
+                        .ignoresSafeArea(edges: .bottom)
+                )
             }
-            .padding(.horizontal)
-            .padding(.vertical, 12)
-            .background(
-                Rectangle()
-                    .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white)
-                    .ignoresSafeArea(edges: .bottom)
-            )
         }
-        .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color(red: 0.95, green: 0.95, blue: 0.97))
+        .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
         .toolbar(isInputFocused ? .hidden : .visible, for: .tabBar)
+        .sheet(isPresented: $showManageClasses) {
+            ManageClassesView()
+        }
         .onAppear {
             // Auto-focus input when view appears
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -113,6 +125,60 @@ struct ChatView: View {
             if chatManager.sessions.isEmpty {
                 Task {
                     await chatManager.fetchSessions(for: classManager.activeClass?.id)
+                }
+            }
+        }
+        .toolbarBackground(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : .white, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(colorScheme == .dark ? .dark : .light, for: .navigationBar)
+        .toolbar {
+            // Leading - Class dropdown
+            ToolbarItem(placement: .topBarLeading) {
+                Menu {
+                    ForEach(classManager.classes) { userClass in
+                        Button(action: {
+                            classManager.selectClass(userClass)
+                        }) {
+                            HStack {
+                                Text(userClass.name)
+                                if classManager.activeClass?.id == userClass.id {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    Button(action: {
+                        showManageClasses = true
+                    }) {
+                        Label("Manage Classes", systemImage: "folder.badge.gearshape")
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(classManager.activeClass?.name ?? "Select Class")
+                            .font(.system(size: 15))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 12))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                    }
+                }
+            }
+
+            // Trailing - New Chat button
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task {
+                        await chatManager.startNewSession()
+                        HapticManager.shared.impact(.medium)
+                    }
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                        .font(.system(size: 16))
+                        .foregroundColor(colorScheme == .dark ? .white : .black)
                 }
             }
         }
@@ -199,9 +265,11 @@ struct MessageBubble: View {
                     .frame(maxWidth: 300, alignment: message.role == .user ? .trailing : .leading)
 
                 // Timestamp
-                Text(formatTimestamp(message.timestamp))
-                    .font(.system(size: 12))
-                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.5) : .black.opacity(0.5))
+                if let timestamp = message.timestamp {
+                    Text(timestamp)
+                        .font(.system(size: 12))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.5) : .black.opacity(0.5))
+                }
 
                 // Citations (for assistant messages only)
                 if message.role == .assistant, let citations = message.citations, !citations.isEmpty {
@@ -215,11 +283,7 @@ struct MessageBubble: View {
         }
     }
 
-    private func formatTimestamp(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
+
 }
 
 // MARK: - Citations View

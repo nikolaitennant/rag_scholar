@@ -8,10 +8,10 @@
 import Foundation
 
 struct Message: Codable, Identifiable, Hashable {
-    let id: UUID
+    var id: UUID { UUID() }
     let role: MessageRole
     let content: String
-    let timestamp: Date
+    let timestamp: String?
     let citations: [Citation]?
 
     enum MessageRole: String, Codable {
@@ -19,8 +19,14 @@ struct Message: Codable, Identifiable, Hashable {
         case assistant
     }
 
-    init(id: UUID = UUID(), role: MessageRole, content: String, timestamp: Date = Date(), citations: [Citation]? = nil) {
-        self.id = id
+    enum CodingKeys: String, CodingKey {
+        case role
+        case content
+        case timestamp
+        case citations
+    }
+
+    init(role: MessageRole, content: String, timestamp: String? = nil, citations: [Citation]? = nil) {
         self.role = role
         self.content = content
         self.timestamp = timestamp
@@ -47,15 +53,23 @@ struct Citation: Codable, Identifiable, Hashable {
 struct ChatSession: Codable, Identifiable, Hashable {
     let id: String
     var name: String
-    let messageCount: Int
-    let updatedAt: Date
+    let messageCount: Int?
+    let createdAt: String?
+    let updatedAt: String?
     let classId: String?
+    let preview: String?
+    let className: String?
+    let domain: String?
 
     enum CodingKeys: String, CodingKey {
         case id
         case name
         case messageCount = "message_count"
+        case createdAt = "created_at"
         case updatedAt = "updated_at"
         case classId = "class_id"
+        case preview
+        case className = "class_name"
+        case domain
     }
 }

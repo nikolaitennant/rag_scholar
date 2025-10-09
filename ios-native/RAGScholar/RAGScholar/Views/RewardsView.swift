@@ -14,52 +14,75 @@ struct RewardsView: View {
     @State private var selectedTab = 0
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header with Points
-            if let stats = rewardsManager.userStats {
-                PointsHeader(stats: stats)
-                    .padding()
-            }
-
-            // Segmented Control
-            Picker("View", selection: $selectedTab) {
-                Text("Achievements").tag(0)
-                Text("Store").tag(1)
-            }
-            .pickerStyle(SegmentedPickerStyle())
-            .padding(.horizontal)
-
-            // Content
-            ScrollView {
-                if selectedTab == 0 {
-                    AchievementsGrid()
-                        .padding()
-                } else {
-                    StoreComingSoon()
-                        .padding()
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Segmented Control
+                Picker("View", selection: $selectedTab) {
+                    Text("Achievements").tag(0)
+                    Text("Store").tag(1)
                 }
-            }
-            .padding(.bottom, 100)
-        }
-        .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color(red: 0.95, green: 0.95, blue: 0.97))
-        .onAppear {
-            Task {
-                await rewardsManager.fetchAchievements()
-                await rewardsManager.fetchUserStats()
-            }
-        }
-        .overlay(
-            // Achievement Notification
-            Group {
-                if let achievement = rewardsManager.showAchievementNotification {
-                    AchievementNotificationView(achievement: achievement) {
-                        rewardsManager.dismissAchievementNotification()
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.horizontal, 80)
+                .padding(.vertical, 12)
+                .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
+
+                // Content
+                ScrollView {
+                    if selectedTab == 0 {
+                        AchievementsGrid()
+                            .padding()
+                            .padding(.bottom, 80)
+                    } else {
+                        StoreComingSoon()
+                            .padding()
+                            .padding(.bottom, 80)
                     }
-                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
+                .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Text("Rewards")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                    }
+
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        if let stats = rewardsManager.userStats {
+                            HStack(spacing: 4) {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.yellow)
+
+                                Text("\(stats.totalPoints) pts")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                            }
+                        }
+                    }
+                }
+                .onAppear {
+                    Task {
+                        await rewardsManager.fetchAchievements()
+                        await rewardsManager.fetchUserStats()
+                    }
+                }
+                .overlay(
+                    // Achievement Notification
+                    Group {
+                        if let achievement = rewardsManager.showAchievementNotification {
+                            AchievementNotificationView(achievement: achievement) {
+                                rewardsManager.dismissAchievementNotification()
+                            }
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                        }
+                    }
+                    .animation(.spring(), value: rewardsManager.showAchievementNotification)
+                )
             }
-            .animation(.spring(), value: rewardsManager.showAchievementNotification)
-        )
+        }
     }
 }
 
@@ -126,6 +149,7 @@ struct PointsHeader: View {
 
 struct AchievementsGrid: View {
     @EnvironmentObject var rewardsManager: RewardsManager
+    @Environment(\.colorScheme) var colorScheme
 
     let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -133,15 +157,41 @@ struct AchievementsGrid: View {
     ]
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 12) {
-            // Unlocked achievements first
-            ForEach(rewardsManager.unlockedAchievements) { achievement in
-                AchievementCard(achievement: achievement)
+        VStack(alignment: .leading, spacing: 20) {
+            // In Progress Section
+            if !rewardsManager.lockedAchievements.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("In Progress")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(colorScheme == .dark ? .white : .black)
+                        .padding(.horizontal)
+
+                    GlassEffectContainer(spacing: 16) {
+                        LazyVGrid(columns: columns, spacing: 12) {
+                            ForEach(rewardsManager.lockedAchievements) { achievement in
+                                AchievementCard(achievement: achievement)
+                            }
+                        }
+                    }
+                }
             }
 
-            // Then locked achievements
-            ForEach(rewardsManager.lockedAchievements) { achievement in
-                AchievementCard(achievement: achievement)
+            // Unlocked Section
+            if !rewardsManager.unlockedAchievements.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Unlocked")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(colorScheme == .dark ? .white : .black)
+                        .padding(.horizontal)
+
+                    GlassEffectContainer(spacing: 16) {
+                        LazyVGrid(columns: columns, spacing: 12) {
+                            ForEach(rewardsManager.unlockedAchievements) { achievement in
+                                AchievementCard(achievement: achievement)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -151,35 +201,60 @@ struct AchievementsGrid: View {
 
 struct AchievementCard: View {
     let achievement: Achievement
+    @Environment(\.colorScheme) var colorScheme
+
+    private var iconBackgroundGradient: LinearGradient {
+        if achievement.isUnlocked {
+            return LinearGradient(
+                colors: [Color.yellow.opacity(0.3), Color.orange.opacity(0.3)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            let colors = colorScheme == .dark
+                ? [Color.white.opacity(0.1), Color.white.opacity(0.05)]
+                : [Color.black.opacity(0.05), Color.black.opacity(0.03)]
+            return LinearGradient(
+                colors: colors,
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+
+    private var cardBackgroundColor: Color {
+        if achievement.isUnlocked {
+            return colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05)
+        } else {
+            return colorScheme == .dark ? Color.white.opacity(0.03) : Color.black.opacity(0.02)
+        }
+    }
+
+    private var borderColor: Color {
+        if achievement.isUnlocked {
+            return Color.yellow.opacity(0.03)
+        } else {
+            return .clear
+        }
+    }
 
     var body: some View {
         VStack(spacing: 12) {
             // Icon with Background
             ZStack {
                 Circle()
-                    .fill(achievement.isUnlocked
-                          ? LinearGradient(
-                            colors: [Color.yellow.opacity(0.3), Color.orange.opacity(0.3)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                          )
-                          : LinearGradient(
-                            colors: [Color.white.opacity(0.1), Color.white.opacity(0.05)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                          )
-                    )
+                    .fill(iconBackgroundGradient)
                     .frame(width: 60, height: 60)
 
                 Image(systemName: achievement.icon)
                     .font(.system(size: 28))
-                    .foregroundColor(achievement.isUnlocked ? .yellow : .white.opacity(0.3))
+                    .foregroundColor(achievement.isUnlocked ? .yellow : (colorScheme == .dark ? .white.opacity(0.3) : .black.opacity(0.3)))
 
                 // Lock overlay for locked achievements
                 if !achievement.isUnlocked {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 16))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.4))
                         .offset(x: 20, y: 20)
                 }
             }
@@ -187,13 +262,13 @@ struct AchievementCard: View {
             VStack(spacing: 4) {
                 Text(achievement.name)
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
 
                 Text(achievement.description)
                     .font(.system(size: 11))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
             }
@@ -205,26 +280,26 @@ struct AchievementCard: View {
                         .font(.system(size: 10))
                         .foregroundColor(.yellow)
 
-                    Text("\(achievement.points) pts")
+                    Text("+\(achievement.points) pts")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(colorScheme == .dark ? .white : .black)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
                     Capsule()
-                        .fill(Color.green.opacity(0.3))
+                        .fill(Color.yellow.opacity(0.15))
                 )
             } else {
                 VStack(spacing: 6) {
                     Text(achievement.progressText)
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
 
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 2)
-                                .fill(Color.white.opacity(0.2))
+                                .fill(colorScheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.1))
                                 .frame(height: 4)
 
                             RoundedRectangle(cornerRadius: 2)
@@ -238,17 +313,11 @@ struct AchievementCard: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity)
-        .background(
+        .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .fill(achievement.isUnlocked
-                      ? Color.white.opacity(0.08)
-                      : Color.white.opacity(0.03)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(achievement.isUnlocked ? Color.yellow.opacity(0.3) : Color.white.opacity(0.05), lineWidth: 1)
-                )
+                .stroke(borderColor, lineWidth: achievement.isUnlocked ? 2 : 0)
         )
+        .glassEffect(in: RoundedRectangle(cornerRadius: 16))
     }
 }
 
@@ -333,24 +402,28 @@ struct AchievementNotificationView: View {
 // MARK: - Store Coming Soon
 
 struct StoreComingSoon: View {
+    @Environment(\.colorScheme) var colorScheme
+
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 12) {
+            Spacer()
+                .frame(height: 120)
+
             Image(systemName: "cart.fill")
-                .font(.system(size: 64))
-                .foregroundColor(.white.opacity(0.3))
+                .font(.system(size: 48))
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.3) : .black.opacity(0.25))
 
-            VStack(spacing: 8) {
-                Text("Store Coming Soon")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.white)
+            Text("Store coming soon")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
 
-                Text("Redeem your points for exclusive rewards")
-                    .font(.system(size: 16))
-                    .foregroundColor(.white.opacity(0.6))
-                    .multilineTextAlignment(.center)
-            }
+            Text("Redeem your points for exclusive rewards")
+                .font(.system(size: 14))
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.4) : .black.opacity(0.35))
+                .multilineTextAlignment(.center)
+
+            Spacer()
         }
-        .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

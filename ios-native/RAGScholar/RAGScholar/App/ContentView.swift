@@ -12,6 +12,7 @@ struct ContentView: View {
     @EnvironmentObject var classManager: ClassManager
     @EnvironmentObject var documentManager: DocumentManager
     @EnvironmentObject var rewardsManager: RewardsManager
+    @State private var hasInitiallyFetched = false
 
     var body: some View {
         Group {
@@ -26,17 +27,22 @@ struct ContentView: View {
         .animation(.easeInOut, value: authManager.isAuthenticated)
         .animation(.easeInOut, value: classManager.classes.isEmpty)
         .task {
-            // Fetch all data when user is authenticated
-            if authManager.isAuthenticated {
+            // Only fetch once on initial load
+            if authManager.isAuthenticated && !hasInitiallyFetched {
                 await fetchAllData()
+                hasInitiallyFetched = true
             }
         }
         .onChange(of: authManager.isAuthenticated) {
-            // Fetch all data when user logs in
-            if authManager.isAuthenticated {
+            // Fetch when user logs in, but not when they log out
+            if authManager.isAuthenticated && !hasInitiallyFetched {
                 Task {
                     await fetchAllData()
+                    hasInitiallyFetched = true
                 }
+            } else if !authManager.isAuthenticated {
+                // Reset when user logs out
+                hasInitiallyFetched = false
             }
         }
     }

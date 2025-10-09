@@ -6,22 +6,28 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct TopNavigationBar: View {
     @EnvironmentObject var classManager: ClassManager
     @EnvironmentObject var navigationManager: NavigationManager
     @EnvironmentObject var chatManager: ChatManager
+    @EnvironmentObject var documentManager: DocumentManager
     @Environment(\.colorScheme) var colorScheme
     @State private var showSettings = false
     @State private var showClassPicker = false
     @State private var isSearchActive = false
     @State private var searchText = ""
+    @State private var showingDocumentPicker = false
     @FocusState private var isSearchFocused: Bool
 
     var body: some View {
         HStack(spacing: 12) {
             if isSearchActive && navigationManager.selectedTab == .home {
-                // Search Bar (when active on Home tab)
+                Spacer()
+                    .frame(width: 24)
+
+                // Search Bar (when active on Home tab) - Takes all available space
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 16, weight: .medium))
@@ -31,6 +37,7 @@ struct TopNavigationBar: View {
                         .textFieldStyle(.plain)
                         .font(.system(size: 17, weight: .regular))
                         .foregroundColor(colorScheme == .dark ? .white : .black)
+                        .tint(Color(red: 0.61, green: 0.42, blue: 1.0))
                         .focused($isSearchFocused)
                         .onSubmit {
                             performSearch()
@@ -47,11 +54,13 @@ struct TopNavigationBar: View {
                         .buttonStyle(.plain)
                     }
                 }
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 20)
                         .fill(colorScheme == .dark ? Color(red: 0.16, green: 0.16, blue: 0.18) : Color(red: 0.95, green: 0.95, blue: 0.97))
+                        .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.4), radius: 8, x: 0, y: 0)
                 )
 
                 // Close search button
@@ -73,67 +82,77 @@ struct TopNavigationBar: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .padding(.trailing, 12)
 
-            } else if navigationManager.selectedTab == .chat {
-                // Class Dropdown (Traditional Menu) - Only on Chat tab
-                Menu {
-                    ForEach(classManager.classes) { userClass in
-                        Button(action: {
-                            classManager.selectClass(userClass)
-                        }) {
-                            HStack {
-                                Text(userClass.name)
-                                if classManager.activeClass?.id == userClass.id {
-                                    Image(systemName: "checkmark")
+            } else if navigationManager.selectedTab == .chat || navigationManager.selectedTab == .docs {
+                // Class Dropdown (Traditional Menu) - Chat and Docs tabs (when search not active)
+                if !isSearchActive {
+                    Menu {
+                        ForEach(classManager.classes) { userClass in
+                            Button(action: {
+                                classManager.selectClass(userClass)
+                            }) {
+                                HStack {
+                                    Text(userClass.name)
+                                    if classManager.activeClass?.id == userClass.id {
+                                        Image(systemName: "checkmark")
+                                    }
                                 }
                             }
                         }
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(classManager.activeClass?.name ?? "Select Class")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
-                            .lineLimit(1)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(classManager.activeClass?.name ?? "Select Class")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                                .lineLimit(1)
 
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule()
+                                .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white)
+                        )
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white)
-                            .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.4), radius: 6, x: 0, y: 0)
-                    )
                 }
             } else {
-                // Class Switcher Button for non-Chat tabs
-                Button {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        navigationManager.toggleClassSwitcher()
+                // Class Switcher Button for other tabs (when search not active)
+                if !isSearchActive {
+                    Menu {
+                        ForEach(classManager.classes) { userClass in
+                            Button(action: {
+                                classManager.selectClass(userClass)
+                            }) {
+                                HStack {
+                                    Text(userClass.name)
+                                    if classManager.activeClass?.id == userClass.id {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(classManager.activeClass?.name ?? "Select Class")
+                                .font(.system(size: 15))
+                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                                .lineLimit(1)
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 12))
+                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule()
+                                .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white)
+                        )
                     }
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(classManager.activeClass?.name ?? "Select Class")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
-                            .lineLimit(1)
-
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white)
-                            .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.4), radius: 6, x: 0, y: 0)
-                    )
                 }
-                .buttonStyle(.plain)
             }
 
             Spacer()
@@ -146,6 +165,7 @@ struct TopNavigationBar: View {
                     Image(systemName: "square.and.pencil")
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7))
+                        .offset(y: -1)
                         .frame(width: 36, height: 36)
                         .background(
                             (colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
@@ -155,8 +175,73 @@ struct TopNavigationBar: View {
                 .buttonStyle(.plain)
             }
 
-            // Home tab buttons
-            if navigationManager.selectedTab == .home {
+            // Documents tab search active (handled by DocumentsView toolbar now)
+            if false && isSearchActive && navigationManager.selectedTab == .docs {
+                Spacer()
+                    .frame(width: 8)
+
+                // Search Bar
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
+
+                    TextField("Search documents...", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 17, weight: .regular))
+                        .foregroundColor(colorScheme == .dark ? .white : .black)
+                        .tint(Color(red: 0.61, green: 0.42, blue: 1.0))
+                        .focused($isSearchFocused)
+                        .onChange(of: searchText) { _, newValue in
+                            documentManager.searchQuery = newValue
+                        }
+
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                            documentManager.searchQuery = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                    Capsule()
+                        .fill(colorScheme == .dark ? Color(red: 0.16, green: 0.16, blue: 0.18) : Color(red: 0.95, green: 0.95, blue: 0.97))
+                        .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.4), radius: 8, x: 0, y: 0)
+                )
+
+                // Close search button
+                Button {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isSearchActive = false
+                        searchText = ""
+                        documentManager.searchQuery = ""
+                        isSearchFocused = false
+                    }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7))
+                        .frame(width: 36, height: 36)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18)
+                                .fill(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color.white)
+                                .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.3), radius: 4, x: 0, y: 0)
+                        )
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 8)
+            }
+
+            // Home tab buttons (only show when search is not active)
+            if navigationManager.selectedTab == .home && !isSearchActive {
                 // Search button
                 Button {
                     withAnimation(.easeInOut(duration: 0.3)) {
@@ -165,37 +250,34 @@ struct TopNavigationBar: View {
                     }
                 } label: {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7))
-                        .frame(width: 36, height: 36)
-                        .background(
-                            (colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
-                                .clipShape(Circle())
-                        )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.borderless)
 
                 // Settings Button
                 Button {
                     showSettings = true
                 } label: {
                     Image(systemName: "gearshape.fill")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7))
-                        .frame(width: 36, height: 36)
-                        .background(
-                            (colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
-                                .clipShape(Circle())
-                        )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.borderless)
             }
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, isSearchActive ? 0 : 24)
         .padding(.vertical, 12)
         .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
         .sheet(isPresented: $showSettings) {
             SettingsView()
+        }
+        .sheet(isPresented: $showingDocumentPicker) {
+            DocumentPicker { url in
+                Task {
+                    await documentManager.uploadDocument(
+                        fileURL: url,
+                        filename: url.lastPathComponent,
+                        classId: classManager.activeClass?.id
+                    )
+                }
+            }
         }
     }
 

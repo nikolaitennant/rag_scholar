@@ -12,17 +12,11 @@ struct UserClass: Codable, Identifiable, Hashable {
     var name: String
     var domainType: DomainType
     var description: String?
-    var documents: [String]
-    let createdAt: Date
+    var documents: [String]?
+    let createdAt: String?
+    let updatedAt: String?
 
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case domainType = "domain_type"
-        case description
-        case documents
-        case createdAt = "created_at"
-    }
+    // No CodingKeys needed - APIService uses convertFromSnakeCase
 }
 
 enum DomainType: String, Codable, CaseIterable {

@@ -1,6 +1,7 @@
 """RAG Scholar chat endpoints using LangChain."""
 
 import uuid
+import structlog
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -13,6 +14,7 @@ from rag_scholar.config.settings import get_settings
 
 from .auth import get_current_user
 
+logger = structlog.get_logger()
 router = APIRouter()
 
 
@@ -44,6 +46,12 @@ async def chat(
     current_user: dict = Depends(get_current_user),
 ) -> ChatResponse:
     """Full RAG Scholar chat with document retrieval, citations, and background mode support."""
+
+    logger.info("Processing chat request",
+               user_id=current_user["id"],
+               session_id=request.session_id,
+               class_id=request.class_id,
+               query_length=len(request.query))
 
     # Initialize services with user's API key if provided
     settings = get_settings()
@@ -118,6 +126,11 @@ async def chat(
     # Retrieve relevant documents using LangChain ingestion pipeline
     context_docs = []
     if request.query:
+        logger.info("Searching for relevant documents",
+                   user_id=current_user["id"],
+                   class_id=request.class_id,
+                   k=request.k)
+
         search_results = await ingestion_pipeline.search_documents(
             query=request.query,
             user_id=current_user["id"],
@@ -127,7 +140,15 @@ async def chat(
         # Preserve all search result data including score and metadata fields
         context_docs = search_results
 
+        logger.info("Document search completed",
+                   user_id=current_user["id"],
+                   documents_found=len(context_docs))
+
     # Chat with RAG pipeline
+    logger.info("Generating chat response",
+               user_id=current_user["id"],
+               session_id=session_id)
+
     result = await rag_pipeline.chat_with_history(
         question=request.query,
         context_docs=context_docs,
@@ -155,6 +176,12 @@ async def chat(
     # Track citations if sources were returned
     sources_count = len(result.get("sources", []))
 
+    logger.info("Chat response generated",
+               user_id=current_user["id"],
+               session_id=session_id,
+               sources_count=sources_count,
+               response_length=len(result.get("response", "")))
+
     # Update user achievements for chat
     try:
         user_service = UserProfileService(settings)
@@ -170,9 +197,11 @@ async def chat(
         # Track citations if sources were returned
         if sources_count > 0:
             await user_service.update_user_stats(current_user["id"], "citations_received", sources_count)
+
+        logger.info("User stats updated successfully", user_id=current_user["id"])
     except Exception as e:
         # Don't fail the chat if achievement tracking fails
-        logger.warning(f"Achievement tracking failed: {str(e)}")
+        logger.warning("Achievement tracking failed", user_id=current_user["id"], error=str(e))
 
     return ChatResponse(**result)
 

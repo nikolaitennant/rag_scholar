@@ -145,7 +145,8 @@ struct ChangeDomainView: View {
             domainType: .science,
             description: "Test description",
             documents: [],
-            createdAt: Date()
+            createdAt: "2025-01-01T00:00:00Z",
+            updatedAt: "2025-01-01T00:00:00Z"
         )
     )
     .environmentObject(ClassManager.shared)
@@ -160,7 +161,8 @@ struct ChangeDomainView: View {
             domainType: .science,
             description: "Test description",
             documents: [],
-            createdAt: Date()
+            createdAt: "2025-01-01T00:00:00Z",
+            updatedAt: "2025-01-01T00:00:00Z"
         )
     )
     .environmentObject(ClassManager.shared)

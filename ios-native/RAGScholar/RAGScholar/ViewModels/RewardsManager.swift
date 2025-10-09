@@ -33,16 +33,11 @@ class RewardsManager: ObservableObject {
 
         do {
             // Fetch user profile which includes achievements
-            let userProfile = try await apiService.refreshAchievements()
+            _ = try await apiService.refreshAchievements()
 
             // Parse achievements from user profile
-            if userProfile.profile?.achievements != nil {
-                // Convert API achievements to local Achievement model
-                // For now, just update progress on default achievements
-                await updateAchievementProgress()
-            } else {
-                await updateAchievementProgress()
-            }
+            // For now, just update progress on default achievements
+            await updateAchievementProgress()
 
             saveToStorage()
         } catch {
@@ -59,25 +54,33 @@ class RewardsManager: ObservableObject {
             // Fetch user profile which includes stats
             let userProfile = try await apiService.getCurrentUser()
 
+            // Calculate total possible points from all achievements
+            let totalPossiblePoints = achievements.reduce(0) { $0 + $1.points }
+
+            // Count unlocked achievements from user profile
+            let achievementsUnlocked = userProfile.achievements?.filter { $0.isUnlocked }.count ?? 0
+
             // Parse stats from user profile
-            if let profile = userProfile.profile {
+            if let stats = userProfile.stats {
                 userStats = UserStats(
-                    totalPoints: profile.totalPoints ?? 0,
-                    achievementsUnlocked: profile.achievementsUnlocked ?? 0,
+                    totalPoints: stats.totalPoints ?? 0,
+                    achievementsUnlocked: achievementsUnlocked,
                     totalAchievements: achievements.count,
-                    chatsCreated: profile.chatsCreated ?? 0,
-                    documentsUploaded: profile.documentsUploaded ?? 0,
-                    questionsAsked: profile.questionsAsked ?? 0
+                    chatsCreated: stats.totalChats ?? 0,
+                    documentsUploaded: stats.documentsUploaded ?? 0,
+                    questionsAsked: 0, // Not in backend response
+                    totalPossiblePoints: totalPossiblePoints
                 )
             } else {
                 // Mock data fallback
                 userStats = UserStats(
                     totalPoints: 125,
-                    achievementsUnlocked: 3,
+                    achievementsUnlocked: achievementsUnlocked,
                     totalAchievements: achievements.count,
                     chatsCreated: 5,
                     documentsUploaded: 2,
-                    questionsAsked: 15
+                    questionsAsked: 15,
+                    totalPossiblePoints: totalPossiblePoints
                 )
             }
 
@@ -85,13 +88,15 @@ class RewardsManager: ObservableObject {
         } catch {
             self.error = error.localizedDescription
             // Mock data fallback
+            let totalPossiblePoints = achievements.reduce(0) { $0 + $1.points }
             userStats = UserStats(
                 totalPoints: 125,
                 achievementsUnlocked: 3,
                 totalAchievements: achievements.count,
                 chatsCreated: 5,
                 documentsUploaded: 2,
-                questionsAsked: 15
+                questionsAsked: 15,
+                totalPossiblePoints: totalPossiblePoints
             )
         }
     }
@@ -187,8 +192,8 @@ class RewardsManager: ObservableObject {
 
         // Check if achievement should be unlocked
         if !achievement.isUnlocked && achievement.progress >= achievement.target {
-            achievements[index].isUnlocked = true
-            achievements[index].unlockedAt = Date()
+            let isoFormatter = ISO8601DateFormatter()
+            achievements[index].unlockedAt = isoFormatter.string(from: Date())
 
             // Add points to user stats
             if var stats = userStats {
@@ -198,7 +203,8 @@ class RewardsManager: ObservableObject {
                     totalAchievements: stats.totalAchievements,
                     chatsCreated: stats.chatsCreated,
                     documentsUploaded: stats.documentsUploaded,
-                    questionsAsked: stats.questionsAsked
+                    questionsAsked: stats.questionsAsked,
+                    totalPossiblePoints: stats.totalPossiblePoints
                 )
                 userStats = stats
             }
@@ -228,7 +234,8 @@ class RewardsManager: ObservableObject {
                 totalAchievements: stats.totalAchievements,
                 chatsCreated: stats.chatsCreated + 1,
                 documentsUploaded: stats.documentsUploaded,
-                questionsAsked: stats.questionsAsked
+                questionsAsked: stats.questionsAsked,
+                totalPossiblePoints: stats.totalPossiblePoints
             )
             userStats = stats
         }
@@ -243,7 +250,8 @@ class RewardsManager: ObservableObject {
                 totalAchievements: stats.totalAchievements,
                 chatsCreated: stats.chatsCreated,
                 documentsUploaded: stats.documentsUploaded + 1,
-                questionsAsked: stats.questionsAsked
+                questionsAsked: stats.questionsAsked,
+                totalPossiblePoints: stats.totalPossiblePoints
             )
             userStats = stats
         }
@@ -258,7 +266,8 @@ class RewardsManager: ObservableObject {
                 totalAchievements: stats.totalAchievements,
                 chatsCreated: stats.chatsCreated,
                 documentsUploaded: stats.documentsUploaded,
-                questionsAsked: stats.questionsAsked + 1
+                questionsAsked: stats.questionsAsked + 1,
+                totalPossiblePoints: stats.totalPossiblePoints
             )
             userStats = stats
         }
@@ -290,7 +299,12 @@ class RewardsManager: ObservableObject {
     // MARK: - Helper Methods
 
     var unlockedAchievements: [Achievement] {
-        achievements.filter { $0.isUnlocked }.sorted { ($0.unlockedAt ?? Date.distantPast) > ($1.unlockedAt ?? Date.distantPast) }
+        let isoFormatter = ISO8601DateFormatter()
+        return achievements.filter { $0.isUnlocked }.sorted {
+            let date1 = $0.unlockedAt.flatMap { isoFormatter.date(from: $0) } ?? Date.distantPast
+            let date2 = $1.unlockedAt.flatMap { isoFormatter.date(from: $0) } ?? Date.distantPast
+            return date1 > date2
+        }
     }
 
     var lockedAchievements: [Achievement] {

@@ -58,8 +58,28 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     settings = get_settings()
     user_service = UserProfileService(settings)
 
+    logger.info("Fetching user profile", user_id=current_user["id"])
+
     # Get full user profile from Firestore
     profile_data = await user_service.get_user_profile(current_user["id"])
+
+    logger.info("Profile data retrieved from database",
+                user_id=current_user["id"],
+                has_stats=bool(profile_data.get("stats")),
+                has_profile=bool(profile_data.get("profile")),
+                achievements_count=len(profile_data.get("achievements", [])),
+                total_points=profile_data.get("total_points", 0),
+                has_profile_image=bool(profile_data.get("profile", {}).get("profile_image")))
+
+    logger.debug("Full profile data", user_id=current_user["id"], profile_data=profile_data)
+
+    # Log profile image details if present
+    profile_image = profile_data.get("profile", {}).get("profile_image")
+    if profile_image:
+        logger.info("Profile image found",
+                   user_id=current_user["id"],
+                   image_url_length=len(profile_image),
+                   is_base64=profile_image.startswith("data:image") if profile_image else False)
 
     # Merge Firebase user data with profile data
     full_user = {
@@ -74,6 +94,7 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
         "total_points": profile_data.get("total_points", 0)
     }
 
+    logger.info("Returning user profile", user_id=current_user["id"])
     return full_user
 
 
@@ -161,6 +182,17 @@ async def update_user_profile(
         # Convert the profile data to dict and remove None values
         update_data = {k: v for k, v in profile_data.model_dump().items() if v is not None}
 
+        logger.info("Updating user profile",
+                   user_id=current_user["id"],
+                   fields_updated=list(update_data.keys()),
+                   has_profile_image="profile_image" in update_data)
+
+        if "profile_image" in update_data:
+            logger.info("Profile image being updated",
+                       user_id=current_user["id"],
+                       image_url_length=len(update_data["profile_image"]) if update_data["profile_image"] else 0,
+                       is_base64=update_data["profile_image"].startswith("data:image") if update_data.get("profile_image") else False)
+
         # Update user profile in Firestore
         success = await user_service.update_user_profile_data(
             current_user["id"],
@@ -168,6 +200,7 @@ async def update_user_profile(
         )
 
         if success:
+            logger.info("Profile updated successfully", user_id=current_user["id"])
             return {"message": "Profile updated successfully"}
         else:
             raise HTTPException(status_code=500, detail="Failed to update profile")

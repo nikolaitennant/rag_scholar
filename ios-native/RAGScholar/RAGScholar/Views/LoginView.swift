@@ -39,7 +39,8 @@ struct LoginView: View {
                 Spacer()
 
                 // Login Form
-                VStack(spacing: 24) {
+                GlassEffectContainer(spacing: 12) {
+                    VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
                         Text(isForgotPassword ? "Reset Password" : isSignUp ? "Create Account" : "Welcome Back")
@@ -78,11 +79,12 @@ struct LoginView: View {
                             .background(
                                 Capsule()
                                     .fill(focusedField == .name ? Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.1) : (colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05)))
-                                    .overlay(
-                                        Capsule()
-                                            .stroke(focusedField == .name ? Color(red: 0.61, green: 0.42, blue: 1.0) : Color.clear, lineWidth: 2)
-                                    )
                             )
+                            .overlay(
+                                Capsule()
+                                    .stroke(focusedField == .name ? Color(red: 0.61, green: 0.42, blue: 1.0) : Color.clear, lineWidth: 2)
+                            )
+                            .glassEffect(in: Capsule())
                         }
                     }
 
@@ -90,17 +92,17 @@ struct LoginView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Email Address")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7))
 
                         HStack(spacing: 12) {
                             Image(systemName: "envelope.fill")
                                 .font(.system(size: 16))
-                                .foregroundColor(.white.opacity(0.4))
+                                .foregroundColor(colorScheme == .dark ? .white.opacity(0.4) : .black.opacity(0.3))
 
                             TextField("Enter your email", text: $email)
                                 .textFieldStyle(.plain)
                                 .font(.system(size: 16))
-                                .foregroundColor(.white)
+                                .foregroundColor(colorScheme == .dark ? .white : .black)
                                 .focused($focusedField, equals: .email)
                                 .textContentType(.emailAddress)
                                 .keyboardType(.emailAddress)
@@ -110,12 +112,13 @@ struct LoginView: View {
                         .padding(.vertical, 14)
                         .background(
                             Capsule()
-                                .fill(focusedField == .email ? Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.1) : Color.white.opacity(0.1))
-                                .overlay(
-                                    Capsule()
-                                        .stroke(focusedField == .email ? Color(red: 0.61, green: 0.42, blue: 1.0) : Color.clear, lineWidth: 2)
-                                )
+                                .fill(focusedField == .email ? Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.1) : (colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05)))
                         )
+                        .overlay(
+                            Capsule()
+                                .stroke(focusedField == .email ? Color(red: 0.61, green: 0.42, blue: 1.0) : Color.clear, lineWidth: 2)
+                        )
+                        .glassEffect(in: Capsule())
                     }
 
                     // Password Field
@@ -123,18 +126,18 @@ struct LoginView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Password")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.7))
 
                             HStack(spacing: 12) {
                                 Image(systemName: "lock.fill")
                                     .font(.system(size: 16))
-                                    .foregroundColor(.white.opacity(0.4))
+                                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.4) : .black.opacity(0.3))
 
                                 if showPassword {
                                     TextField("Enter your password", text: $password)
                                         .textFieldStyle(.plain)
                                         .font(.system(size: 16))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(colorScheme == .dark ? .white : .black)
                                         .focused($focusedField, equals: .password)
                                         .textContentType(isSignUp ? .newPassword : .password)
                                         .autocapitalization(.none)
@@ -142,7 +145,7 @@ struct LoginView: View {
                                     SecureField("Enter your password", text: $password)
                                         .textFieldStyle(.plain)
                                         .font(.system(size: 16))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(colorScheme == .dark ? .white : .black)
                                         .focused($focusedField, equals: .password)
                                         .textContentType(isSignUp ? .newPassword : .password)
                                         .autocapitalization(.none)
@@ -153,19 +156,20 @@ struct LoginView: View {
                                 } label: {
                                     Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
                                         .font(.system(size: 16))
-                                        .foregroundColor(.white.opacity(0.4))
+                                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.4) : .black.opacity(0.3))
                                 }
                             }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 14)
                             .background(
                                 Capsule()
-                                    .fill(focusedField == .password ? Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.1) : Color.white.opacity(0.1))
-                                    .overlay(
-                                        Capsule()
-                                            .stroke(focusedField == .password ? Color(red: 0.61, green: 0.42, blue: 1.0) : Color.clear, lineWidth: 2)
-                                    )
+                                    .fill(focusedField == .password ? Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.1) : (colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05)))
                             )
+                            .overlay(
+                                Capsule()
+                                    .stroke(focusedField == .password ? Color(red: 0.61, green: 0.42, blue: 1.0) : Color.clear, lineWidth: 2)
+                            )
+                            .glassEffect(in: Capsule())
 
                             if !isSignUp {
                                 HStack {
@@ -175,7 +179,7 @@ struct LoginView: View {
                                     } label: {
                                         Text("Forgot your password?")
                                             .font(.system(size: 13))
-                                            .foregroundColor(.white.opacity(0.6))
+                                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
                                     }
                                 }
                             }
@@ -189,15 +193,15 @@ struct LoginView: View {
                             .foregroundColor(.red.opacity(0.9))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity)
                             .background(
-                                RoundedRectangle(cornerRadius: 12)
+                                Capsule()
                                     .fill(Color.red.opacity(0.2))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.red.opacity(0.3), lineWidth: 1)
-                                    )
                             )
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                            )
+                            .glassEffect(in: Capsule())
                     }
 
                     if let success = successMessage {
@@ -206,15 +210,15 @@ struct LoginView: View {
                             .foregroundColor(.green.opacity(0.9))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity)
                             .background(
-                                RoundedRectangle(cornerRadius: 12)
+                                Capsule()
                                     .fill(Color.green.opacity(0.2))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.green.opacity(0.3), lineWidth: 1)
-                                    )
                             )
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.green.opacity(0.3), lineWidth: 1)
+                            )
+                            .glassEffect(in: Capsule())
                     }
 
                     // Submit Button
@@ -231,7 +235,7 @@ struct LoginView: View {
                                 .font(.system(size: 16, weight: .semibold))
                         }
                         .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 32)
                         .padding(.vertical, 16)
                         .background(
                             Capsule()
@@ -247,6 +251,7 @@ struct LoginView: View {
                                 )
                                 .shadow(color: Color(red: 0.5, green: 0.5, blue: 1.0).opacity(0.4), radius: 12, x: 0, y: 4)
                         )
+                        .glassEffect(in: Capsule())
                     }
                     .buttonStyle(.plain)
                     .disabled(isLoading)
@@ -270,11 +275,12 @@ struct LoginView: View {
                     } label: {
                         Text(isForgotPassword ? "Back to sign in" : isSignUp ? "Already have an account? Sign in" : "Need an account? Sign up")
                             .font(.system(size: 13))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
                     }
+                    }
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 32)
                 }
-                .padding(.horizontal, 32)
-                .padding(.vertical, 32)
 
                 Spacer()
             }

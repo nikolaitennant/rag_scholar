@@ -12,43 +12,30 @@ import Combine
 struct UserProfile: Codable {
     let id: String
     let email: String
-    let createdAt: String
+    let name: String?
+    let createdAt: String?  // Made optional to handle missing field
+    let isActive: Bool?
+    let stats: Stats?
     let profile: Profile?
+    let achievements: [Achievement]?
+    let totalPoints: Int?
+
+    struct Stats: Codable {
+        let totalPoints: Int?
+        let totalChats: Int?
+        let documentsUploaded: Int?
+        // No CodingKeys needed - APIService uses convertFromSnakeCase
+    }
 
     struct Profile: Codable {
-        let displayName: String?
         let bio: String?
         let researchInterests: [String]?
         let preferredDomains: [String]?
         let profileImage: String?
-        let totalPoints: Int?
-        let achievementsUnlocked: Int?
-        let chatsCreated: Int?
-        let documentsUploaded: Int?
-        let questionsAsked: Int?
-        let achievements: [String]?
-
-        enum CodingKeys: String, CodingKey {
-            case displayName = "display_name"
-            case bio
-            case researchInterests = "research_interests"
-            case preferredDomains = "preferred_domains"
-            case profileImage = "profile_image"
-            case totalPoints = "total_points"
-            case achievementsUnlocked = "achievements_unlocked"
-            case chatsCreated = "chats_created"
-            case documentsUploaded = "documents_uploaded"
-            case questionsAsked = "questions_asked"
-            case achievements
-        }
+        // No CodingKeys needed - APIService uses convertFromSnakeCase
     }
 
-    enum CodingKeys: String, CodingKey {
-        case id
-        case email
-        case createdAt = "created_at"
-        case profile
-    }
+    // No CodingKeys needed - APIService uses convertFromSnakeCase
 }
 
 @MainActor
@@ -72,37 +59,31 @@ class AuthenticationManager: ObservableObject {
             Task { @MainActor in
                 self?.user = user
                 self?.isAuthenticated = user != nil
+                self?.isLoading = false
 
+                // Fetch profile in background (don't block auth completion)
                 if user != nil {
-                    await self?.fetchUserProfile()
+                    Task {
+                        await self?.fetchUserProfile()
+                    }
                 } else {
                     self?.userProfile = nil
                 }
-
-                self?.isLoading = false
             }
         }
     }
 
     func fetchUserProfile() async {
-        guard let user = user else { return }
+        guard user != nil else {
+            return
+        }
 
         do {
-            let token = try await user.getIDToken()
-            let baseURL = APIService.shared.getBaseURL()
-
-            guard let url = URL(string: "\(baseURL)/user/profile") else { return }
-
-            var request = URLRequest(url: url)
-            request.httpMethod = "GET"
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let profile = try JSONDecoder().decode(UserProfile.self, from: data)
+            // Use APIService instead of manual request
+            let profile = try await APIService.shared.getCurrentUser()
             self.userProfile = profile
         } catch {
-            print("Failed to fetch user profile: \(error)")
+            // Silent fail - profile not critical for app function
         }
     }
 

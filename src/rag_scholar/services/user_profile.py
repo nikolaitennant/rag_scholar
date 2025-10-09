@@ -265,12 +265,6 @@ class UserProfileService:
             "early_bird": stats.get("early_bird_unlocked", 0) >= 1,
             "night_owl": stats.get("night_owl_unlocked", 0) >= 1,
             "week_streak": stats.get("streak_days", 0) >= 7,
-            "knowledge_seeker": stats.get("total_chats", 0) >= target,
-            "citation_master": stats.get("citations_received", 0) >= target,
-            "domain_explorer": len(stats.get("domains_explored", [])) >= target,
-            "research_streak": stats.get("streak_days", 0) >= target,
-            "power_user": stats.get("total_points", 0) >= target,
-            "early_adopter": stats.get("is_early_adopter", 0) >= 1
         }
 
         return conditions.get(ach_type, False)
@@ -288,12 +282,6 @@ class UserProfileService:
             "early_bird": stats.get("early_bird_unlocked", 0),
             "night_owl": stats.get("night_owl_unlocked", 0),
             "week_streak": stats.get("streak_days", 0),
-            "knowledge_seeker": stats.get("total_chats", 0),
-            "citation_master": stats.get("citations_received", 0),
-            "domain_explorer": len(stats.get("domains_explored", [])),
-            "research_streak": stats.get("streak_days", 0),
-            "power_user": stats.get("total_points", 0),
-            "early_adopter": stats.get("is_early_adopter", 0)
         }
         return progress_map.get(ach_type or "", 0)
 

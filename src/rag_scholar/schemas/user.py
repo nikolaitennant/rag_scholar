@@ -19,12 +19,6 @@ class AchievementType(str, Enum):
     EARLY_BIRD = "early_bird"
     NIGHT_OWL = "night_owl"
     WEEK_STREAK = "week_streak"
-    KNOWLEDGE_SEEKER = "knowledge_seeker"
-    CITATION_MASTER = "citation_master"
-    DOMAIN_EXPLORER = "domain_explorer"
-    RESEARCH_STREAK = "research_streak"
-    POWER_USER = "power_user"
-    EARLY_ADOPTER = "early_adopter"
 
 
 class Achievement(BaseModel):

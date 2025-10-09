@@ -82,18 +82,6 @@ struct RewardsPopupView: View {
                     await rewardsManager.fetchUserStats()
                 }
             }
-            .overlay(
-                // Achievement Notification
-                Group {
-                    if let achievement = rewardsManager.showAchievementNotification {
-                        AchievementNotificationView(achievement: achievement) {
-                            rewardsManager.dismissAchievementNotification()
-                        }
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                    }
-                }
-                .animation(.spring(), value: rewardsManager.showAchievementNotification)
-            )
         }
     }
 }
@@ -271,84 +259,6 @@ struct AchievementCard: View {
                 .stroke(borderColor, lineWidth: achievement.isUnlocked ? 2 : 0)
         )
         .glassEffect(in: RoundedRectangle(cornerRadius: 16))
-    }
-}
-
-// MARK: - Achievement Notification
-
-struct AchievementNotificationView: View {
-    let achievement: Achievement
-    let onDismiss: () -> Void
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 16) {
-                // Icon
-                ZStack {
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [Color.yellow.opacity(0.4), Color.yellow.opacity(0)],
-                                center: .center,
-                                startRadius: 15,
-                                endRadius: 30
-                            )
-                        )
-                        .frame(width: 60, height: 60)
-
-                    Image(systemName: achievement.icon)
-                        .font(.system(size: 28))
-                        .foregroundColor(.yellow)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Achievement Unlocked!")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.yellow)
-
-                    Text(achievement.name)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white)
-
-                    HStack(spacing: 4) {
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 10))
-                        Text("+\(achievement.points) points")
-                            .font(.system(size: 12, weight: .semibold))
-                    }
-                    .foregroundColor(.yellow)
-                }
-
-                Spacer()
-
-                Button(action: onDismiss) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14))
-                        .foregroundColor(.white.opacity(0.6))
-                }
-            }
-            .padding(20)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(red: 0.43, green: 0.37, blue: 0.99), Color(red: 0.62, green: 0.47, blue: 1)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .shadow(color: Color.purple.opacity(0.5), radius: 20, y: 10)
-            )
-            .padding(.horizontal)
-            .padding(.top, 60) // Account for status bar
-
-            Spacer()
-        }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                onDismiss()
-            }
-        }
     }
 }
 

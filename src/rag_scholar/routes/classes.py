@@ -110,10 +110,16 @@ async def create_class(
         try:
             from ..services.user_profile import UserProfileService
             user_service = UserProfileService(settings)
-            await user_service.update_user_stats(current_user["id"], "classes_created", 1)
-            logger.info("Class creation achievement tracked", user_id=current_user["id"])
+            success = await user_service.update_user_stats(current_user["id"], "classes_created", 1)
+            logger.info("Class creation achievement tracked",
+                       user_id=current_user["id"],
+                       success=success,
+                       class_name=class_data.name)
         except Exception as e:
-            logger.warning("Failed to track class creation achievement", error=str(e))
+            logger.error("Failed to track class creation achievement",
+                        error=str(e),
+                        user_id=current_user["id"],
+                        class_name=class_data.name)
 
         return ClassResponse(
             id=class_id,

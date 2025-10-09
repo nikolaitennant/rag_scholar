@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import UserNotifications
 
 @MainActor
 class RewardsManager: ObservableObject {
@@ -16,13 +17,24 @@ class RewardsManager: ObservableObject {
     @Published var userStats: UserStats?
     @Published var isLoading = false
     @Published var error: String?
-    @Published var showAchievementNotification: Achievement?
 
     private let apiService = APIService.shared
 
     private init() {
         // Load from local storage as fallback
         loadFromStorage()
+        // Request notification permissions
+        requestNotificationPermissions()
+    }
+
+    private func requestNotificationPermissions() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                print("✅ Notification permissions granted")
+            } else if let error = error {
+                print("❌ Notification permission error: \(error)")
+            }
+        }
     }
 
     // MARK: - Data Fetching
@@ -57,13 +69,20 @@ class RewardsManager: ObservableObject {
             // Calculate total possible points from all achievements
             let totalPossiblePoints = achievements.reduce(0) { $0 + $1.points }
 
-            // Count unlocked achievements from user profile
-            let achievementsUnlocked = userProfile.achievements?.filter { $0.isUnlocked }.count ?? 0
+            // Count unlocked achievements and calculate actual points earned
+            let unlockedAchievements = userProfile.achievements?.filter { $0.isUnlocked } ?? []
+            let achievementsUnlocked = unlockedAchievements.count
+
+            // Calculate total points from unlocked achievements
+            let calculatedPoints = unlockedAchievements.reduce(0) { $0 + $1.points }
 
             // Parse stats from user profile
             if let stats = userProfile.stats {
+                // Use calculated points if it's higher than stored points (for data integrity)
+                let totalPoints = max(stats.totalPoints ?? 0, calculatedPoints)
+
                 userStats = UserStats(
-                    totalPoints: stats.totalPoints ?? 0,
+                    totalPoints: totalPoints,
                     achievementsUnlocked: achievementsUnlocked,
                     totalAchievements: achievements.count,
                     chatsCreated: stats.totalChats ?? 0,
@@ -71,6 +90,8 @@ class RewardsManager: ObservableObject {
                     questionsAsked: 0, // Not in backend response
                     totalPossiblePoints: totalPossiblePoints
                 )
+
+                print("📊 User Stats - Points: \(totalPoints) (calculated: \(calculatedPoints), stored: \(stats.totalPoints ?? 0)), Unlocked: \(achievementsUnlocked)/\(achievements.count)")
             } else {
                 // Mock data fallback
                 userStats = UserStats(
@@ -209,8 +230,10 @@ class RewardsManager: ObservableObject {
                 userStats = stats
             }
 
-            // Show notification
-            showAchievementNotification = achievements[index]
+            // Send iOS notification
+            Task {
+                await showAchievementNotification(achievements[index])
+            }
 
             // Haptic feedback
             HapticManager.shared.success()
@@ -220,8 +243,26 @@ class RewardsManager: ObservableObject {
         }
     }
 
-    func dismissAchievementNotification() {
-        showAchievementNotification = nil
+    func showAchievementNotification(_ achievement: Achievement) async {
+        let content = UNMutableNotificationContent()
+        content.title = "🎉 Achievement Unlocked!"
+        content.body = "\(achievement.name) - +\(achievement.points) points"
+        content.sound = .default
+
+        // Create the request
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil // Deliver immediately
+        )
+
+        // Schedule the notification
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            print("✅ Notification sent for achievement: \(achievement.name)")
+        } catch {
+            print("❌ Error sending notification: \(error)")
+        }
     }
 
     // MARK: - Public Methods to Track Actions

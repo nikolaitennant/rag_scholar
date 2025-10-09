@@ -94,6 +94,10 @@ class ClassManager: ObservableObject {
             // Auto-select newly created class
             selectClass(newClass)
 
+            // Fetch achievements to check for newly unlocked achievements
+            await RewardsManager.shared.fetchAchievements()
+            await RewardsManager.shared.fetchUserStats()
+
             // Add haptic feedback
             HapticManager.shared.success()
         } catch {

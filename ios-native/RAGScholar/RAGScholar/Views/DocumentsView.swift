@@ -95,7 +95,7 @@ struct DocumentsView: View {
             }
         }
         .sheet(isPresented: $showManageClasses) {
-            ManageClassesView()
+            ClassesView()
         }
         .sheet(isPresented: $showingDocumentPicker) {
             DocumentPicker { url in
@@ -121,9 +121,6 @@ struct DocumentsView: View {
         }
         .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : .white)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : .white, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarColorScheme(colorScheme == .dark ? .dark : .light, for: .navigationBar)
         .toolbar {
             if isSearchActive {
                 // Search mode - search field takes up entire toolbar
@@ -203,12 +200,8 @@ struct DocumentsView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Text(classManager.activeClass?.name ?? "Select Class")
-                                .font(.system(size: 15))
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
                                 .lineLimit(1)
                             Image(systemName: "chevron.down")
-                                .font(.system(size: 12))
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
                         }
                     }
                 }
@@ -221,8 +214,6 @@ struct DocumentsView: View {
                                 withAnimation { isSearchActive = true }
                             } label: {
                                 Image(systemName: "magnifyingglass")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(colorScheme == .dark ? .white : .black)
                             }
                         }
 
@@ -231,37 +222,31 @@ struct DocumentsView: View {
                                 showingDocumentPicker = true
                             } label: {
                                 Image(systemName: "plus")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(colorScheme == .dark ? .white : .black)
                             }
                         }
 
                         // Break grouping between icon capsule and Edit capsule
                         ToolbarSpacer(.fixed)
 
-                        // Second capsule: Edit
-                        ToolbarItem(id: "edit") {
+                        // Second capsule: Edit (prominent style)
+                        ToolbarItem(id: "edit", placement: .topBarTrailing) {
                             Button("Edit") {
                                 withAnimation {
                                     isEditMode = true
                                     selectedDocuments.removeAll()
                                 }
                             }
-                            .font(.system(size: 15))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
                         }
 
                     } else {
-                        // When editing: single "Done" capsule
-                        ToolbarItem(id: "done") {
+                        // When editing: single "Done" capsule (prominent style)
+                        ToolbarItem(id: "done", placement: .primaryAction) {
                             Button("Done") {
                                 withAnimation {
                                     isEditMode = false
                                     selectedDocuments.removeAll()
                                 }
                             }
-                            .font(.system(size: 15))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
                         }
                     }
                 }
@@ -297,7 +282,6 @@ struct DocumentsView: View {
                 }
             }
         }
-        .toolbarBackground(.visible, for: .bottomBar)
         .toolbar(isEditMode ? .hidden : .visible, for: .tabBar)
         .onAppear {
             Task {

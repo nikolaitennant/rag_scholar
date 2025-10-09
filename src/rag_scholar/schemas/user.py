@@ -10,13 +10,21 @@ class AchievementType(str, Enum):
     """Types of achievements users can earn."""
 
     FIRST_CHAT = "first_chat"
-    DOCUMENT_UPLOAD = "document_upload"
-    RESEARCH_STREAK = "research_streak"
-    DOMAIN_EXPLORER = "domain_explorer"
-    CITATION_MASTER = "citation_master"
-    EARLY_ADOPTER = "early_adopter"
+    UPLOAD_DOCUMENT = "upload_document"
+    CREATE_CLASS = "create_class"
+    TEN_CHATS = "ten_chats"
+    FIVE_DOCUMENTS = "five_documents"
+    HUNDRED_QUESTIONS = "hundred_questions"
+    THREE_CLASSES = "three_classes"
+    EARLY_BIRD = "early_bird"
+    NIGHT_OWL = "night_owl"
+    WEEK_STREAK = "week_streak"
     KNOWLEDGE_SEEKER = "knowledge_seeker"
+    CITATION_MASTER = "citation_master"
+    DOMAIN_EXPLORER = "domain_explorer"
+    RESEARCH_STREAK = "research_streak"
     POWER_USER = "power_user"
+    EARLY_ADOPTER = "early_adopter"
 
 
 class Achievement(BaseModel):
@@ -133,57 +141,71 @@ def create_default_achievements() -> list[Achievement]:
         Achievement(
             type=AchievementType.FIRST_CHAT,
             name="First Steps",
-            description="Send your first message to RAG Scholar",
+            description="Start your first chat",
+            points=10,
+            target=1,
+        ),
+        Achievement(
+            type=AchievementType.UPLOAD_DOCUMENT,
+            name="Knowledge Seeker",
+            description="Upload your first document",
+            points=15,
+            target=1,
+        ),
+        Achievement(
+            type=AchievementType.CREATE_CLASS,
+            name="Organization Master",
+            description="Create your first class",
             points=20,
             target=1,
         ),
         Achievement(
-            type=AchievementType.DOCUMENT_UPLOAD,
-            name="Knowledge Sharer",
-            description="Upload your first document",
-            points=40,
-            target=1,
+            type=AchievementType.TEN_CHATS,
+            name="Conversationalist",
+            description="Complete 10 chat sessions",
+            points=50,
+            target=10,
         ),
         Achievement(
-            type=AchievementType.RESEARCH_STREAK,
-            name="Consistent Researcher",
-            description="Use RAG Scholar for 7 consecutive days",
+            type=AchievementType.FIVE_DOCUMENTS,
+            name="Librarian",
+            description="Upload 5 documents",
+            points=50,
+            target=5,
+        ),
+        Achievement(
+            type=AchievementType.HUNDRED_QUESTIONS,
+            name="Curious Mind",
+            description="Ask 100 questions",
             points=100,
-            target=7,
+            target=100,
         ),
         Achievement(
-            type=AchievementType.DOMAIN_EXPLORER,
-            name="Domain Explorer",
-            description="Try research in 3 different domains",
-            points=60,
+            type=AchievementType.THREE_CLASSES,
+            name="Multi-tasker",
+            description="Create 3 different classes",
+            points=75,
             target=3,
         ),
         Achievement(
-            type=AchievementType.CITATION_MASTER,
-            name="Citation Master",
-            description="Receive 50 citation references in your research",
-            points=75,
-            target=50,
-        ),
-        Achievement(
-            type=AchievementType.EARLY_ADOPTER,
-            name="Early Adopter",
-            description="One of the first 100 users of RAG Scholar",
-            points=200,
+            type=AchievementType.EARLY_BIRD,
+            name="Early Bird",
+            description="Use the app before 6 AM",
+            points=25,
             target=1,
         ),
         Achievement(
-            type=AchievementType.KNOWLEDGE_SEEKER,
-            name="Knowledge Seeker",
-            description="Ask 25 research questions",
-            points=80,
-            target=25,
+            type=AchievementType.NIGHT_OWL,
+            name="Night Owl",
+            description="Use the app after 11 PM",
+            points=25,
+            target=1,
         ),
         Achievement(
-            type=AchievementType.POWER_USER,
-            name="Power User",
-            description="Accumulate 300 total points",
-            points=100,
-            target=300,
+            type=AchievementType.WEEK_STREAK,
+            name="Dedicated Learner",
+            description="Use the app 7 days in a row",
+            points=150,
+            target=7,
         ),
     ]

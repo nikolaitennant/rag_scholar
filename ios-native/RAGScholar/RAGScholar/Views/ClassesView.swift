@@ -1,5 +1,5 @@
 //
-//  ManageClassesView.swift
+//  ClassesView.swift
 //  RAGScholar
 //
 //  Class management with liquid glass styling
@@ -7,7 +7,13 @@
 
 import SwiftUI
 
-struct ManageClassesView: View {
+enum ClassSortOption {
+    case name
+    case createdDate
+    case domainType
+}
+
+struct ClassesView: View {
     @EnvironmentObject var classManager: ClassManager
     @Environment(\.colorScheme) var colorScheme
 
@@ -17,6 +23,8 @@ struct ManageClassesView: View {
     @State private var isSearchActive = false
     @State private var isEditMode = false
     @State private var selectedClasses: Set<String> = []
+    @State private var sortOption: ClassSortOption = .name
+    @State private var filterDomains: Set<DomainType> = []
 
     var body: some View {
         ScrollView {
@@ -67,9 +75,6 @@ struct ManageClassesView: View {
         }
         .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarColorScheme(colorScheme == .dark ? .dark : .light, for: .navigationBar)
         .toolbar {
             if isSearchActive {
                 // Search mode - search field takes up entire toolbar
@@ -86,7 +91,7 @@ struct ManageClassesView: View {
                                     .textFieldStyle(.plain)
                                     .font(.system(size: 17, weight: .regular))
                                     .foregroundColor(colorScheme == .dark ? .white : .black)
-                                    .tint(Color(red: 0.61, green: 0.42, blue: 1.0))
+                                    .tint(.black)
                                     .padding(.horizontal, 12)
 
                                 if !searchText.isEmpty {
@@ -123,6 +128,76 @@ struct ManageClassesView: View {
                     }
                 }
             } else {
+                // Leading filter and sort menus
+                ToolbarItem(id: "filter", placement: .topBarLeading) {
+                    Menu {
+                        ForEach(DomainType.allCases, id: \.self) { domain in
+                            Button {
+                                if filterDomains.contains(domain) {
+                                    filterDomains.remove(domain)
+                                } else {
+                                    filterDomains.insert(domain)
+                                }
+                            } label: {
+                                HStack {
+                                    Text(domain.displayName)
+                                    if filterDomains.contains(domain) {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+
+                        if !filterDomains.isEmpty {
+                            Divider()
+                            Button("Clear Filters") {
+                                filterDomains.removeAll()
+                            }
+                        }
+                    } label: {
+                        Label("Filter", systemImage: "line.3.horizontal.decrease")
+                    }
+                }
+
+                ToolbarItem(id: "sort", placement: .topBarLeading) {
+                    Menu {
+                        Button {
+                            sortOption = .name
+                        } label: {
+                            HStack {
+                                Text("Sort by Name")
+                                if sortOption == .name {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+
+                        Button {
+                            sortOption = .createdDate
+                        } label: {
+                            HStack {
+                                Text("Sort by Created Date")
+                                if sortOption == .createdDate {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+
+                        Button {
+                            sortOption = .domainType
+                        } label: {
+                            HStack {
+                                Text("Sort by Subject")
+                                if sortOption == .domainType {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    } label: {
+                        Label("Sort", systemImage: "arrow.up.arrow.down")
+                    }
+                }
+
                 // Trailing items (Liquid Glass style for ClassesView)
                 if !isEditMode {
                     // First capsule: Search + Add Class
@@ -131,8 +206,6 @@ struct ManageClassesView: View {
                             withAnimation { isSearchActive = true }
                         } label: {
                             Image(systemName: "magnifyingglass")
-                                .font(.system(size: 16))
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
                         }
                     }
 
@@ -141,37 +214,31 @@ struct ManageClassesView: View {
                             showingCreateClass = true
                         } label: {
                             Image(systemName: "plus")
-                                .font(.system(size: 16))
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
                         }
                     }
 
                     // Break grouping between icon capsule and Edit capsule
                     ToolbarSpacer(.fixed)
 
-                    // Second capsule: Edit
-                    ToolbarItem(id: "edit") {
+                    // Second capsule: Edit (prominent style)
+                    ToolbarItem(id: "edit", placement: .topBarTrailing) {
                         Button("Edit") {
                             withAnimation {
                                 isEditMode = true
                                 selectedClasses.removeAll()
                             }
                         }
-                        .font(.system(size: 15))
-                        .foregroundColor(colorScheme == .dark ? .white : .black)
                     }
 
                 } else {
-                    // Edit mode: single "Done" capsule
-                    ToolbarItem(id: "done") {
+                    // Edit mode: single "Done" capsule (prominent style)
+                    ToolbarItem(id: "done", placement: .primaryAction) {
                         Button("Done") {
                             withAnimation {
                                 isEditMode = false
                                 selectedClasses.removeAll()
                             }
                         }
-                        .font(.system(size: 15))
-                        .foregroundColor(colorScheme == .dark ? .white : .black)
                     }
                 }
             }
@@ -203,7 +270,6 @@ struct ManageClassesView: View {
                 }
             }
         }
-        .toolbarBackground(.visible, for: .bottomBar)
         .toolbar(isEditMode ? .hidden : .visible, for: .tabBar)
         .sheet(isPresented: $showingCreateClass) {
             CreateClassView()
@@ -214,13 +280,31 @@ struct ManageClassesView: View {
     }
 
     private var filteredClasses: [UserClass] {
-        if searchText.isEmpty {
-            return classManager.classes
-        } else {
-            return classManager.classes.filter { userClass in
+        var classes = classManager.classes
+
+        // Apply search filter
+        if !searchText.isEmpty {
+            classes = classes.filter { userClass in
                 userClass.name.localizedCaseInsensitiveContains(searchText) ||
                 userClass.domainType.displayName.localizedCaseInsensitiveContains(searchText)
             }
+        }
+
+        // Apply domain filter
+        if !filterDomains.isEmpty {
+            classes = classes.filter { userClass in
+                filterDomains.contains(userClass.domainType)
+            }
+        }
+
+        // Apply sorting
+        switch sortOption {
+        case .name:
+            return classes.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        case .createdDate:
+            return classes.sorted { ($0.createdAt ?? "") > ($1.createdAt ?? "") }
+        case .domainType:
+            return classes.sorted { $0.domainType.displayName.localizedCaseInsensitiveCompare($1.domainType.displayName) == .orderedAscending }
         }
     }
 
@@ -251,7 +335,7 @@ struct ClassRow: View {
                 Button(action: onSelect) {
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 24))
-                        .foregroundColor(isSelected ? Color(red: 0.61, green: 0.42, blue: 1.0) : (colorScheme == .dark ? .white.opacity(0.3) : .black.opacity(0.3)))
+                        .foregroundColor(isSelected ? .black : (colorScheme == .dark ? .white.opacity(0.3) : .black.opacity(0.3)))
                 }
                 .buttonStyle(.plain)
             }
@@ -259,12 +343,12 @@ struct ClassRow: View {
             // Domain Icon
             ZStack {
                 Circle()
-                    .fill(Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.2))
+                    .fill(Color.black.opacity(0.2))
                     .frame(width: 48, height: 48)
 
                 Image(systemName: userClass.domainType.icon)
                     .font(.system(size: 20))
-                    .foregroundColor(Color(red: 0.61, green: 0.42, blue: 1.0))
+                    .foregroundColor(.black)
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -297,7 +381,7 @@ struct ClassRow: View {
             RoundedRectangle(cornerRadius: 16)
                 .fill(
                     isEditMode && isSelected
-                        ? (colorScheme == .dark ? Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.1) : Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.08))
+                        ? (colorScheme == .dark ? Color.black.opacity(0.1) : Color.black.opacity(0.08))
                         : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.05))
                 )
         )
@@ -305,7 +389,7 @@ struct ClassRow: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(
                     isEditMode && isSelected
-                        ? Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.3)
+                        ? Color.black.opacity(0.3)
                         : Color.clear,
                     lineWidth: 2
                 )
@@ -341,11 +425,12 @@ struct EmptyClassesState: View {
                 .foregroundColor(colorScheme == .dark ? .white.opacity(0.4) : .black.opacity(0.35))
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 120)
+        .padding(.top, 220)
+        .padding(.bottom, 120)
     }
 }
 
 #Preview {
-    ManageClassesView()
+    ClassesView()
         .environmentObject(ClassManager.shared)
 }

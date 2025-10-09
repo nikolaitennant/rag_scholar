@@ -119,9 +119,6 @@ struct ChatView: View {
                 }
             }
         }
-        .toolbarBackground(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : .white, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarColorScheme(colorScheme == .dark ? .dark : .light, for: .navigationBar)
         .toolbar {
             // Leading - Class dropdown
             ToolbarItem(placement: .topBarLeading) {
@@ -149,12 +146,8 @@ struct ChatView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text(classManager.activeClass?.name ?? "Select Class")
-                            .font(.system(size: 15))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
                             .lineLimit(1)
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 12))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
                     }
                 }
             }
@@ -168,8 +161,6 @@ struct ChatView: View {
                     }
                 } label: {
                     Image(systemName: "square.and.pencil")
-                        .font(.system(size: 16))
-                        .foregroundColor(colorScheme == .dark ? .white : .black)
                 }
             }
         }

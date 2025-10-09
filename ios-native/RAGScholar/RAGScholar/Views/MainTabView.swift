@@ -14,17 +14,16 @@ struct MainTabView: View {
     @State private var showCreateClass = false
     @State private var showEditClass = false
     @State private var showManageDocuments = false
-    @State private var showChangeDomain = false
     @State private var classToEdit: UserClass?
+
+
 
     var body: some View {
         mainContent
             .overlay(modalBackground)
-            .overlay(classSwitcherOverlay)
             .overlay(createClassOverlay)
             .overlay(editClassOverlay)
             .overlay(manageDocumentsOverlay)
-            .overlay(changeDomainOverlay)
     }
 
     private var mainContent: some View {
@@ -33,6 +32,7 @@ struct MainTabView: View {
                 HomeView()
                     .navigationBarTitleDisplayMode(.inline)
             }
+            .tint(colorScheme == .dark ? .white : .black)
             .tabItem {
                 Image(systemName: NavigationManager.Tab.home.icon)
                 Text(NavigationManager.Tab.home.rawValue)
@@ -43,6 +43,7 @@ struct MainTabView: View {
                 ChatView()
                     .navigationBarTitleDisplayMode(.inline)
             }
+            .tint(colorScheme == .dark ? .white : .black)
             .tabItem {
                 Image(systemName: NavigationManager.Tab.chat.icon)
                 Text(NavigationManager.Tab.chat.rawValue)
@@ -56,6 +57,7 @@ struct MainTabView: View {
                 DocumentsView()
                     .navigationBarTitleDisplayMode(.inline)
             }
+            .tint(colorScheme == .dark ? .white : .black)
             .tabItem {
                 Image(systemName: NavigationManager.Tab.docs.icon)
                 Text(NavigationManager.Tab.docs.rawValue)
@@ -63,17 +65,18 @@ struct MainTabView: View {
             .tag(NavigationManager.Tab.docs)
 
             NavigationStack {
-                ManageClassesView()
+                ClassesView()
                     .navigationBarTitleDisplayMode(.inline)
             }
+            .tint(colorScheme == .dark ? .white : .black)
             .tabItem {
                 Image(systemName: NavigationManager.Tab.classes.icon)
                 Text(NavigationManager.Tab.classes.rawValue)
             }
             .tag(NavigationManager.Tab.classes)
         }
-        .tint(Color(red: 0.61, green: 0.42, blue: 1.0))
         .background(backgroundGradient)
+        .tint(Color(red: 0.61, green: 0.42, blue: 1.0))
         .toolbar(keyboardVisible ? .hidden : .visible, for: .tabBar)
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
             keyboardVisible = true
@@ -101,65 +104,20 @@ struct MainTabView: View {
 
     private var modalBackground: some View {
         Group {
-            if navigationManager.showClassSwitcher || showCreateClass || showEditClass || showManageDocuments || showChangeDomain {
+            if showCreateClass || showEditClass || showManageDocuments {
                 (colorScheme == .dark ? Color.black.opacity(0.9) : Color.black.opacity(0.5))
                     .ignoresSafeArea(.all)
                     .allowsHitTesting(true)
                     .onTapGesture {
                         withAnimation(.easeInOut(duration: 0.3)) {
-                            navigationManager.showClassSwitcher = false
                             showCreateClass = false
                             showEditClass = false
                             showManageDocuments = false
-                            showChangeDomain = false
                             classToEdit = nil
                         }
                     }
                     .transition(.opacity)
                     .zIndex(9998)
-            }
-        }
-    }
-
-    private var classSwitcherOverlay: some View {
-        Group {
-            if navigationManager.showClassSwitcher {
-                ClassSwitcherView(
-                    onDismiss: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            navigationManager.showClassSwitcher = false
-                        }
-                    },
-                    onCreateClass: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            navigationManager.showClassSwitcher = false
-                            showCreateClass = true
-                        }
-                    },
-                    onEditClass: { classItem in
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            navigationManager.showClassSwitcher = false
-                            classToEdit = classItem
-                            showEditClass = true
-                        }
-                    },
-                    onManageDocuments: { classItem in
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            navigationManager.showClassSwitcher = false
-                            classToEdit = classItem
-                            showManageDocuments = true
-                        }
-                    },
-                    onChangeDomain: { classItem in
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            navigationManager.showClassSwitcher = false
-                            classToEdit = classItem
-                            showChangeDomain = true
-                        }
-                    }
-                )
-                .transition(.opacity)
-                .zIndex(10000)
             }
         }
     }
@@ -202,23 +160,6 @@ struct MainTabView: View {
                     onDismiss: {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             showManageDocuments = false
-                            self.classToEdit = nil
-                        }
-                    }
-                )
-                .zIndex(10001)
-            }
-        }
-    }
-
-    private var changeDomainOverlay: some View {
-        Group {
-            if showChangeDomain, let classToEdit = classToEdit {
-                ChangeDomainView(
-                    classItem: classToEdit,
-                    onDismiss: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showChangeDomain = false
                             self.classToEdit = nil
                         }
                     }

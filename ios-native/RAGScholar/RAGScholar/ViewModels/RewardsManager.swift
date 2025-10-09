@@ -296,6 +296,13 @@ class RewardsManager: ObservableObject {
         }
     }
 
+    func clearCache() {
+        UserDefaults.standard.removeObject(forKey: "achievements")
+        UserDefaults.standard.removeObject(forKey: "userStats")
+        achievements = Achievement.defaultAchievements
+        userStats = nil
+    }
+
     // MARK: - Helper Methods
 
     var unlockedAchievements: [Achievement] {

@@ -190,6 +190,9 @@ async def chat(
         # Track daily activity for streak
         await user_service.track_daily_activity(current_user["id"])
 
+        # Track time-based achievements (early bird, night owl)
+        await user_service.track_time_based_achievements(current_user["id"])
+
         # Track domain exploration if domain_type is provided
         if request.domain_type:
             await user_service.track_domain_exploration(current_user["id"], request.domain_type)

@@ -14,7 +14,6 @@ class NavigationManager: ObservableObject {
     static let shared = NavigationManager()
 
     @Published var selectedTab: Tab = .home
-    @Published var showClassSwitcher = false
     @Published var showGlobalSearch = false
 
     private init() {}
@@ -38,13 +37,6 @@ class NavigationManager: ObservableObject {
     func selectTab(_ tab: Tab) {
         selectedTab = tab
         HapticManager.shared.selectionFeedback()
-    }
-
-    func toggleClassSwitcher() {
-        showClassSwitcher.toggle()
-        if showClassSwitcher {
-            HapticManager.shared.impact(.light)
-        }
     }
 
     func toggleGlobalSearch() {

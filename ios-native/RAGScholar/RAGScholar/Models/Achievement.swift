@@ -51,12 +51,6 @@ struct Achievement: Codable, Identifiable, Hashable {
         case "early_bird": return "sunrise.fill"
         case "night_owl": return "moon.stars.fill"
         case "week_streak": return "flame.fill"
-        case "knowledge_seeker": return "questionmark.bubble.fill"
-        case "citation_master": return "quote.bubble.fill"
-        case "domain_explorer": return "map.fill"
-        case "research_streak": return "flame.fill"
-        case "power_user": return "star.fill"
-        case "early_adopter": return "crown.fill"
         default: return "trophy.fill"
         }
     }

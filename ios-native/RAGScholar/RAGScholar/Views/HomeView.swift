@@ -133,9 +133,6 @@ struct HomeView: View {
         }
         .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : .white, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarColorScheme(colorScheme == .dark ? .dark : .light, for: .navigationBar)
         .toolbar {
             if isSearchActive {
                 // Search mode - hide default items
@@ -215,12 +212,8 @@ struct HomeView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Text(classManager.activeClass?.name ?? "Select Class")
-                                .font(.system(size: 15))
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
                                 .lineLimit(1)
                             Image(systemName: "chevron.down")
-                                .font(.system(size: 12))
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
                         }
                     }
                 }
@@ -232,8 +225,6 @@ struct HomeView: View {
                         }
                     } label: {
                         Image(systemName: "magnifyingglass")
-                            .font(.system(size: 16))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
                     }
                 }
 
@@ -242,8 +233,6 @@ struct HomeView: View {
                         showSettings = true
                     } label: {
                         Image(systemName: "gearshape.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
                     }
                 }
             }
@@ -511,7 +500,8 @@ struct EmptyChatState: View {
                 .foregroundColor(colorScheme == .dark ? .white.opacity(0.4) : .black.opacity(0.35))
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
+        .padding(.top, 100)
+        .padding(.bottom, 40)
     }
 }
 

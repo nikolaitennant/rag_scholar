@@ -256,13 +256,21 @@ class UserProfileService:
 
         conditions = {
             "first_chat": stats.get("total_chats", 0) >= 1,
-            "document_upload": stats.get("documents_uploaded", 0) >= 1,
-            "research_streak": stats.get("streak_days", 0) >= target,
-            "domain_explorer": len(stats.get("domains_explored", [])) >= target,
-            "citation_master": stats.get("citations_received", 0) >= target,
-            "early_adopter": stats.get("is_early_adopter", 0) >= 1,
+            "upload_document": stats.get("documents_uploaded", 0) >= 1,
+            "create_class": stats.get("classes_created", 0) >= 1,
+            "ten_chats": stats.get("total_chats", 0) >= 10,
+            "five_documents": stats.get("documents_uploaded", 0) >= 5,
+            "hundred_questions": stats.get("total_chats", 0) >= 100,
+            "three_classes": stats.get("classes_created", 0) >= 3,
+            "early_bird": stats.get("early_bird_unlocked", 0) >= 1,
+            "night_owl": stats.get("night_owl_unlocked", 0) >= 1,
+            "week_streak": stats.get("streak_days", 0) >= 7,
             "knowledge_seeker": stats.get("total_chats", 0) >= target,
-            "power_user": stats.get("total_points", 0) >= target
+            "citation_master": stats.get("citations_received", 0) >= target,
+            "domain_explorer": len(stats.get("domains_explored", [])) >= target,
+            "research_streak": stats.get("streak_days", 0) >= target,
+            "power_user": stats.get("total_points", 0) >= target,
+            "early_adopter": stats.get("is_early_adopter", 0) >= 1
         }
 
         return conditions.get(ach_type, False)
@@ -271,13 +279,21 @@ class UserProfileService:
         """Calculate current progress for an achievement type."""
         progress_map = {
             "first_chat": stats.get("total_chats", 0),
-            "document_upload": stats.get("documents_uploaded", 0),
-            "research_streak": stats.get("streak_days", 0),
-            "domain_explorer": len(stats.get("domains_explored", [])),
-            "citation_master": stats.get("citations_received", 0),
-            "early_adopter": stats.get("is_early_adopter", 0),
+            "upload_document": stats.get("documents_uploaded", 0),
+            "create_class": stats.get("classes_created", 0),
+            "ten_chats": stats.get("total_chats", 0),
+            "five_documents": stats.get("documents_uploaded", 0),
+            "hundred_questions": stats.get("total_chats", 0),
+            "three_classes": stats.get("classes_created", 0),
+            "early_bird": stats.get("early_bird_unlocked", 0),
+            "night_owl": stats.get("night_owl_unlocked", 0),
+            "week_streak": stats.get("streak_days", 0),
             "knowledge_seeker": stats.get("total_chats", 0),
-            "power_user": stats.get("total_points", 0)  # Based on total points
+            "citation_master": stats.get("citations_received", 0),
+            "domain_explorer": len(stats.get("domains_explored", [])),
+            "research_streak": stats.get("streak_days", 0),
+            "power_user": stats.get("total_points", 0),
+            "early_adopter": stats.get("is_early_adopter", 0)
         }
         return progress_map.get(ach_type or "", 0)
 
@@ -383,6 +399,44 @@ class UserProfileService:
             return False
         except Exception as e:
             logger.error("Failed to track daily activity", user_id=user_id, error=str(e))
+            return False
+
+    async def track_time_based_achievements(self, user_id: str) -> bool:
+        """Track early bird and night owl achievements based on time of day."""
+        try:
+            from datetime import datetime
+
+            current_hour = datetime.utcnow().hour
+
+            stats_ref = self.db.collection(f"users/{user_id}/stats").document("main")
+            doc = stats_ref.get()
+
+            if doc.exists:
+                stats = doc.to_dict() or {}
+                updated = False
+
+                # Early Bird: before 6 AM (UTC)
+                if current_hour < 6 and not stats.get("early_bird_unlocked"):
+                    stats["early_bird_unlocked"] = 1
+                    updated = True
+                    logger.info("Early bird achievement unlocked!", user_id=user_id)
+
+                # Night Owl: after 11 PM (UTC - 23:00 or later)
+                if current_hour >= 23 and not stats.get("night_owl_unlocked"):
+                    stats["night_owl_unlocked"] = 1
+                    updated = True
+                    logger.info("Night owl achievement unlocked!", user_id=user_id)
+
+                if updated:
+                    stats["updated_at"] = datetime.utcnow()
+                    stats_ref.set(stats)
+                    # Check achievements
+                    await self._check_achievements(user_id, stats)
+
+                return True
+            return False
+        except Exception as e:
+            logger.error("Failed to track time-based achievements", user_id=user_id, error=str(e))
             return False
 
     async def add_points(self, user_id: str, points: int) -> bool:

@@ -22,7 +22,7 @@ struct HomeView: View {
     @State private var showSettings = false
     @State private var searchText = ""
     @State private var isSearchActive = false
-    @State private var showManageClasses = false
+    @State private var showRewardsPopup = false
 
     var body: some View {
         ScrollView {
@@ -61,7 +61,7 @@ struct HomeView: View {
                     LearningProgressCard(stats: stats)
                         .padding(.horizontal)
                         .onTapGesture {
-                            navigationManager.selectedTab = .rewards
+                            showRewardsPopup = true
                             HapticManager.shared.impact(.light)
                         }
                 }
@@ -208,7 +208,7 @@ struct HomeView: View {
                         Divider()
 
                         Button(action: {
-                            showManageClasses = true
+                            navigationManager.selectedTab = .classes
                         }) {
                             Label("Manage Classes", systemImage: "folder.badge.gearshape")
                         }
@@ -251,8 +251,8 @@ struct HomeView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }
-        .sheet(isPresented: $showManageClasses) {
-            ManageClassesView()
+        .sheet(isPresented: $showRewardsPopup) {
+            RewardsPopupView()
         }
         .onAppear {
             Task {
@@ -326,18 +326,24 @@ struct LearningProgressCard: View {
                 Text("Learning Progress")
                     .font(.system(size: 17, weight: .semibold, design: .default))
                     .foregroundColor(colorScheme == .dark ? .white : .black)
-                
+
                 Spacer()
-                
-                HStack(spacing: 4) {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.yellow)
-                        .shadow(color: .yellow.opacity(0.6), radius: 4, x: 0, y: 0) // Yellow glow
-                    
-                    Text("\(stats.totalPoints) pts")
-                        .font(.system(size: 15, weight: .semibold, design: .default))
-                        .foregroundColor(colorScheme == .dark ? .white : .black)
+
+                HStack(spacing: 6) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.yellow)
+                            .shadow(color: .yellow.opacity(0.6), radius: 4, x: 0, y: 0) // Yellow glow
+
+                        Text("\(stats.totalPoints) pts")
+                            .font(.system(size: 15, weight: .semibold, design: .default))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                    }
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.5) : .black.opacity(0.4))
                 }
             }
             

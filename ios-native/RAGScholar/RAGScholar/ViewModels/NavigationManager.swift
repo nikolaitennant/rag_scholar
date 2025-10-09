@@ -23,14 +23,14 @@ class NavigationManager: ObservableObject {
         case home = "Home"
         case chat = "Chat"
         case docs = "Docs"
-        case rewards = "Rewards"
+        case classes = "Classes"
 
         var icon: String {
             switch self {
             case .home: return "house.fill"
             case .chat: return "message.fill"
             case .docs: return "doc.fill"
-            case .rewards: return "star.fill"
+            case .classes: return "folder.fill"
             }
         }
     }

@@ -149,6 +149,7 @@ struct CreateClassView: View {
                                 
                                 Button {
                                     withAnimation(.easeInOut(duration: 0.3)) {
+                                        dismiss()
                                         onDismiss?()
                                     }
                                 } label: {
@@ -298,6 +299,7 @@ struct CreateClassView: View {
             await classManager.createClass(name: className, domainType: domainType, description: nil)
             await MainActor.run {
                 withAnimation(.easeInOut(duration: 0.3)) {
+                    dismiss()
                     onDismiss?()
                 }
             }

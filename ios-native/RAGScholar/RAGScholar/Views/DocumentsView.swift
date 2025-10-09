@@ -213,45 +213,58 @@ struct DocumentsView: View {
                     }
                 }
 
-                // Trailing items
-                if !isEditMode {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            withAnimation {
-                                isSearchActive = true
+                    // Trailing items
+                    if !isEditMode {
+                        // First capsule: Search + Add
+                        ToolbarItem(id: "search") {
+                            Button {
+                                withAnimation { isSearchActive = true }
+                            } label: {
+                                Image(systemName: "magnifyingglass")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
                             }
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 16))
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
                         }
-                    }
 
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            showingDocumentPicker = true
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 16))
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                        ToolbarItem(id: "add") {
+                            Button {
+                                showingDocumentPicker = true
+                            } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                            }
+                        }
+
+                        // Break grouping between icon capsule and Edit capsule
+                        ToolbarSpacer(.fixed)
+
+                        // Second capsule: Edit
+                        ToolbarItem(id: "edit") {
+                            Button("Edit") {
+                                withAnimation {
+                                    isEditMode = true
+                                    selectedDocuments.removeAll()
+                                }
+                            }
+                            .font(.system(size: 15))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                        }
+
+                    } else {
+                        // When editing: single "Done" capsule
+                        ToolbarItem(id: "done") {
+                            Button("Done") {
+                                withAnimation {
+                                    isEditMode = false
+                                    selectedDocuments.removeAll()
+                                }
+                            }
+                            .font(.system(size: 15))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
                         }
                     }
                 }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(isEditMode ? "Done" : "Select") {
-                        withAnimation {
-                            isEditMode.toggle()
-                            if !isEditMode {
-                                selectedDocuments.removeAll()
-                            }
-                        }
-                    }
-                    .font(.system(size: 15))
-                    .foregroundColor(colorScheme == .dark ? .white : .black)
-                }
-            }
-
             // Bottom toolbar items
             if isEditMode && !selectedDocuments.isEmpty {
                 ToolbarItem(placement: .bottomBar) {

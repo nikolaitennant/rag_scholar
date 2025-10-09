@@ -62,12 +62,15 @@ struct MainTabView: View {
             }
             .tag(NavigationManager.Tab.docs)
 
-            RewardsView()
-                .tabItem {
-                    Image(systemName: NavigationManager.Tab.rewards.icon)
-                    Text(NavigationManager.Tab.rewards.rawValue)
-                }
-                .tag(NavigationManager.Tab.rewards)
+            NavigationStack {
+                ManageClassesView()
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+            .tabItem {
+                Image(systemName: NavigationManager.Tab.classes.icon)
+                Text(NavigationManager.Tab.classes.rawValue)
+            }
+            .tag(NavigationManager.Tab.classes)
         }
         .tint(Color(red: 0.61, green: 0.42, blue: 1.0))
         .background(backgroundGradient)

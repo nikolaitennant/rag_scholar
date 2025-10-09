@@ -17,7 +17,6 @@ struct ChatView: View {
     @State private var inputText: String = ""
     @State private var scrollProxy: ScrollViewProxy?
     @FocusState private var isInputFocused: Bool
-    @State private var showManageClasses = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -112,15 +111,7 @@ struct ChatView: View {
         }
         .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
         .toolbar(isInputFocused ? .hidden : .visible, for: .tabBar)
-        .sheet(isPresented: $showManageClasses) {
-            ManageClassesView()
-        }
         .onAppear {
-            // Auto-focus input when view appears
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                isInputFocused = true
-            }
-
             // Fetch initial data if needed
             if chatManager.sessions.isEmpty {
                 Task {
@@ -151,7 +142,7 @@ struct ChatView: View {
                     Divider()
 
                     Button(action: {
-                        showManageClasses = true
+                        navigationManager.selectedTab = .classes
                     }) {
                         Label("Manage Classes", systemImage: "folder.badge.gearshape")
                     }

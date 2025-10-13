@@ -23,7 +23,7 @@ import { Message, DomainType, Document, UserClass } from './types';
 import { DOMAIN_TYPE_INFO } from './constants/domains';
 import { SwipeableList, SwipeableListItem, SwipeAction, TrailingActions } from 'react-swipeable-list';
 import 'react-swipeable-list/dist/styles.css';
-import { Keyboard, KeyboardResize, KeyboardStyle } from '@capacitor/keyboard';
+import { Capacitor } from '@capacitor/core';
 
 
 const AppContent: React.FC = () => {
@@ -297,11 +297,16 @@ const AppContent: React.FC = () => {
     configureStatusBar();
   }, []);
 
-  // Configure Capacitor Keyboard
+  // Configure Capacitor Keyboard (only on native platforms)
   useEffect(() => {
     const configureKeyboard = async () => {
+      // Only run on native platforms (iOS/Android)
+      if (!Capacitor.isNativePlatform()) {
+        return;
+      }
+
       try {
-        const { Keyboard } = await import('@capacitor/keyboard');
+        const { Keyboard, KeyboardResize, KeyboardStyle } = await import('@capacitor/keyboard');
 
         // 1. Stop WKWebView from resizing abruptly
         await Keyboard.setResizeMode({ mode: KeyboardResize.None });
@@ -341,8 +346,8 @@ const AppContent: React.FC = () => {
           Keyboard.removeAllListeners();
         };
       } catch (error) {
-        // Keyboard plugin not available (likely in web environment)
-        // Silently handle - this is expected in web mode
+        // Keyboard plugin error on native platform
+        console.error('Failed to configure keyboard:', error);
       }
     };
 

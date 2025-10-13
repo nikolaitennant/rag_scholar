@@ -7,7 +7,7 @@ import { getCommandSuggestions } from '../utils/commandParser';
 import { DOMAIN_TYPE_INFO } from '../constants/domains';
 import { MobileCitationRenderer } from './citations/MobileCitationRenderer';
 import ReactMarkdown from 'react-markdown';
-import { Keyboard, KeyboardResize, KeyboardStyle } from '@capacitor/keyboard';
+import { Capacitor } from '@capacitor/core';
 
 
 interface MobileChatInterfaceProps {
@@ -36,31 +36,46 @@ export const MobileChatInterface: React.FC<MobileChatInterfaceProps> = ({
   const { theme } = useTheme();
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
-  // Handle keyboard height and disable resizing
+  // Handle keyboard height and disable resizing (only on native platforms)
   useEffect(() => {
-    Keyboard.setResizeMode({ mode: KeyboardResize.None });
-    Keyboard.setAccessoryBarVisible({ isVisible: false });
-    
-    // Set keyboard style based on theme
-    Keyboard.setStyle({ 
-      style: theme === 'dark' ? KeyboardStyle.Dark : KeyboardStyle.Light 
-    });
+    // Only run on native platforms (iOS/Android)
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
 
-    const showSub = Keyboard.addListener('keyboardWillShow', (info) => {
-      document.body.style.setProperty('--keyboard-height', `${info.keyboardHeight}px`);
-      setIsKeyboardVisible(true);
-    });
+    const configureKeyboard = async () => {
+      try {
+        const { Keyboard, KeyboardResize, KeyboardStyle } = await import('@capacitor/keyboard');
 
-    const hideSub = Keyboard.addListener('keyboardWillHide', () => {
-      document.body.style.setProperty('--keyboard-height', '0px');
-      setIsKeyboardVisible(false);
-    });
+        await Keyboard.setResizeMode({ mode: KeyboardResize.None });
+        await Keyboard.setAccessoryBarVisible({ isVisible: false });
 
-    return () => {
-      showSub.then(sub => sub.remove());
-      hideSub.then(sub => sub.remove());
+        // Set keyboard style based on theme
+        await Keyboard.setStyle({
+          style: theme === 'dark' ? KeyboardStyle.Dark : KeyboardStyle.Light
+        });
+
+        const showSub = await Keyboard.addListener('keyboardWillShow', (info) => {
+          document.body.style.setProperty('--keyboard-height', `${info.keyboardHeight}px`);
+          setIsKeyboardVisible(true);
+        });
+
+        const hideSub = await Keyboard.addListener('keyboardWillHide', () => {
+          document.body.style.setProperty('--keyboard-height', '0px');
+          setIsKeyboardVisible(false);
+        });
+
+        return () => {
+          showSub.remove();
+          hideSub.remove();
+        };
+      } catch (error) {
+        console.error('Failed to configure keyboard:', error);
+      }
     };
-  }, []);
+
+    configureKeyboard();
+  }, [theme]);
 
   // Prevent iOS auto-scroll jump
   useEffect(() => {

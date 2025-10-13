@@ -2211,7 +2211,7 @@ const AppContent: React.FC = () => {
                                 {doc.filename}
                               </h4>
                               <div className="flex items-center flex-wrap gap-2 mt-2">
-                                {doc.assigned_classes && doc.assigned_classes.length > 0 && (
+                                {doc.assigned_classes && doc.assigned_classes.length > 0 &&
                                   doc.assigned_classes.map(classId => {
                                     const userClass = userClasses.find(cls => cls.id === classId);
                                     return userClass ? (
@@ -2220,7 +2220,7 @@ const AppContent: React.FC = () => {
                                       </span>
                                     ) : null;
                                   })
-                                )}
+                                }
                               </div>
                             </div>
                             <div className="flex space-x-2">

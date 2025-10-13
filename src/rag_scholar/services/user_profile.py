@@ -6,6 +6,7 @@ from google.cloud import firestore
 from typing import Dict, List, Optional
 
 from ..schemas.user import UserStats, UserProfile, Achievement, create_default_achievements
+from ..utils.encryption import APIKeyEncryption
 
 logger = structlog.get_logger()
 
@@ -16,6 +17,7 @@ class UserProfileService:
     def __init__(self, settings):
         self.settings = settings
         self.db = firestore.Client(project=settings.google_cloud_project)
+        self.encryptor = APIKeyEncryption()  # Initialize encryption
 
     async def get_user_profile(self, user_id: str) -> Dict:
         """Get user profile with stats and achievements from optimal structure."""
@@ -432,7 +434,7 @@ class UserProfileService:
         return await self._add_points_to_stats(user_id, points)
 
     async def get_user_api_settings(self, user_id: str) -> Dict:
-        """Get user's API settings from profile."""
+        """Get user's API settings from profile with decryption."""
         try:
             # Get API settings from profile document
             profile_ref = self.db.collection(f"users/{user_id}/profile").document("main")
@@ -440,7 +442,16 @@ class UserProfileService:
 
             if profile_doc.exists:
                 profile_data = profile_doc.to_dict() or {}
-                return profile_data.get("api_settings", {})
+                api_settings = profile_data.get("api_settings", {})
+
+                # Decrypt API key if present
+                if api_settings.get("api_key"):
+                    decrypted_settings = api_settings.copy()
+                    decrypted_settings["api_key"] = self.encryptor.decrypt(api_settings["api_key"])
+                    logger.info("Decrypted API key from storage", user_id=user_id)
+                    return decrypted_settings
+
+                return api_settings
             else:
                 # Return empty dict if no profile exists
                 return {}
@@ -450,7 +461,7 @@ class UserProfileService:
             return {}
 
     async def update_user_api_settings(self, user_id: str, api_settings: Dict) -> bool:
-        """Update user's API settings in profile."""
+        """Update user's API settings in profile with encryption."""
         try:
             # Update API settings in profile document
             profile_ref = self.db.collection(f"users/{user_id}/profile").document("main")
@@ -464,14 +475,20 @@ class UserProfileService:
                     "created_at": datetime.utcnow().isoformat(),
                 }
 
+            # Encrypt API key before storing
+            encrypted_settings = api_settings.copy()
+            if api_settings.get("api_key"):
+                encrypted_settings["api_key"] = self.encryptor.encrypt(api_settings["api_key"])
+                logger.info("Encrypted API key for storage", user_id=user_id)
+
             # Update API settings
-            profile_data["api_settings"] = api_settings
+            profile_data["api_settings"] = encrypted_settings
             profile_data["updated_at"] = datetime.utcnow().isoformat()
 
             # Save to Firestore
             profile_ref.set(profile_data)
 
-            logger.info("Updated user API settings", user_id=user_id)
+            logger.info("Updated user API settings (encrypted)", user_id=user_id)
             return True
 
         except Exception as e:

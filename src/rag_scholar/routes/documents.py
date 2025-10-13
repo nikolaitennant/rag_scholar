@@ -1,11 +1,13 @@
 """Document management endpoints using LangChain."""
 
 import structlog
-from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
+from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException
 from pydantic import BaseModel
+from typing import Optional
 
 from rag_scholar.services.langchain_ingestion import LangChainIngestionPipeline
 from rag_scholar.services.user_profile import UserProfileService
+from rag_scholar.services.storage import DocumentStorageService
 from rag_scholar.config.settings import get_settings
 
 from .auth import get_current_user
@@ -27,11 +29,10 @@ class UploadResponse(BaseModel):
 @router.post("/upload", response_model=UploadResponse)
 async def upload_document(
     file: UploadFile = File(...),
-    collection: str = "database",
-    api_key: str = None,  # User's API key
+    collection: str = Form("database"),
     current_user: dict = Depends(get_current_user),
 ):
-    """Upload and process document using LangChain ingestion."""
+    """Upload and process document using LangChain ingestion - API key fetched securely from user profile."""
 
     # Validate file type
     allowed_types = {".pdf", ".txt", ".md", ".docx"}
@@ -44,16 +45,23 @@ async def upload_document(
         )
 
     try:
-        # Initialize ingestion pipeline with user's API key
+        # Initialize services
         settings = get_settings()
+        user_service = UserProfileService(settings)
 
-        # Use user's API key if provided, otherwise fall back to environment
-        user_api_key = api_key or settings.openai_api_key
+        # Fetch user's API key securely from Firestore
+        api_settings = await user_service.get_user_api_settings(current_user["id"])
+        user_api_key = api_settings.get("api_key")
+
         if not user_api_key:
             raise HTTPException(
                 status_code=400,
                 detail="API key required. Please configure your API key in Advanced Settings."
             )
+
+        logger.info("Upload request received - using secure API key from Firestore",
+                    user_id=current_user["id"],
+                    api_key_suffix=user_api_key[-4:] if len(user_api_key) > 4 else "none")
 
         # Create custom settings with user's API key
         user_settings = settings.model_copy()
@@ -63,6 +71,13 @@ async def upload_document(
 
         # Read file content
         file_content = await file.read()
+        file_size = len(file_content)  # Get file size in bytes
+
+        logger.info("Processing document upload",
+                    user_id=current_user["id"],
+                    filename=file.filename,
+                    file_size_bytes=file_size,
+                    file_size_mb=round(file_size / (1024 * 1024), 2))
 
         # Process with LangChain ingestion
         result = await ingestion_pipeline.ingest_document(
@@ -72,8 +87,62 @@ async def upload_document(
             metadata={
                 "uploaded_by": current_user["id"],
                 "user_email": current_user.get("email", ""),
+                "file_size_bytes": file_size,
             }
         )
+
+        # Upload to Firebase Storage for iOS preview
+        document_id = result.get("document_id", "")
+        storage_service = DocumentStorageService(settings)
+
+        try:
+            # Determine content type
+            content_type = "application/pdf" if file_extension == ".pdf" else "application/octet-stream"
+
+            # Upload original document
+            storage_url, download_url = await storage_service.upload_document(
+                file_content=file_content,
+                filename=file.filename,
+                user_id=current_user["id"],
+                document_id=document_id,
+                content_type=content_type
+            )
+
+            # Generate and upload preview for PDFs
+            preview_url = ""
+            preview_download_url = ""
+            if file_extension == ".pdf":
+                preview_content = await storage_service.generate_pdf_preview(file_content)
+                if preview_content:
+                    preview_url, preview_download_url = await storage_service.upload_preview(
+                        preview_content=preview_content,
+                        user_id=current_user["id"],
+                        document_id=document_id,
+                        content_type="application/pdf"
+                    )
+
+            # Update document metadata in Firestore with storage URLs
+            from google.cloud import firestore
+            db = firestore.Client(project=settings.google_cloud_project)
+            doc_ref = db.collection(f"users/{current_user['id']}/documents").document(document_id)
+            doc_ref.update({
+                "storage_url": storage_url,
+                "download_url": download_url,
+                "preview_url": preview_url,
+                "preview_download_url": preview_download_url,
+            })
+
+            logger.info("Uploaded document to storage",
+                       user_id=current_user["id"],
+                       document_id=document_id,
+                       has_preview=bool(preview_url))
+
+        except Exception as e:
+            # Don't fail the entire upload if storage fails
+            logger.warning("Failed to upload to Firebase Storage",
+                          user_id=current_user["id"],
+                          document_id=document_id,
+                          error=str(e))
 
         # Update user achievements for document upload
         try:
@@ -254,6 +323,11 @@ async def get_documents(
                     "chunks": data.get("chunks_count", 0),
                     "upload_date": data.get("upload_date"),
                     "file_type": data.get("file_type", ""),
+                    "file_size_bytes": data.get("file_size_bytes", 0),
+                    "storage_url": data.get("storage_url", ""),
+                    "download_url": data.get("download_url", ""),
+                    "preview_url": data.get("preview_url", ""),
+                    "preview_download_url": data.get("preview_download_url", ""),
                     "assigned_classes": assigned_classes
                 })
 

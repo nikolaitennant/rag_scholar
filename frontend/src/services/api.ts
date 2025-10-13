@@ -83,16 +83,13 @@ export const apiService = {
   uploadDocument: async (file: File, collection: string = 'database'): Promise<any> => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('collection', collection);
 
-    // Add API key from localStorage if available
-    const apiKey = localStorage.getItem('api_key');
-    const queryParams = new URLSearchParams({ collection });
-    if (apiKey) {
-      queryParams.append('api_key', apiKey);
-    }
+    // Security: API key is fetched securely server-side from encrypted Firestore storage
+    // Never send API keys from client-side localStorage
 
     const response = await api.post(
-      `/documents/upload?${queryParams.toString()}`,
+      `/documents/upload`,
       formData,
       {
         headers: {

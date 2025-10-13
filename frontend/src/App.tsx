@@ -286,7 +286,7 @@ const AppContent: React.FC = () => {
         console.log('StatusBar configured for fullscreen appearance');
       } catch (error) {
         // StatusBar plugin not available (likely in web environment)
-        console.log('StatusBar plugin not available, using web fallback');
+        // Silently handle - this is expected in web mode
 
         // Fallback for web - update meta tag
         const statusBarMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
@@ -342,7 +342,7 @@ const AppContent: React.FC = () => {
         };
       } catch (error) {
         // Keyboard plugin not available (likely in web environment)
-        console.log('Keyboard plugin not available:', error);
+        // Silently handle - this is expected in web mode
       }
     };
 

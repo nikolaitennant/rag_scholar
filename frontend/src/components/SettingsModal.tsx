@@ -114,6 +114,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         max_tokens: apiSettings.maxTokens,
         timezone: timezone
       });
+
+      // CRITICAL: Update localStorage immediately after successful save
+      localStorage.setItem('api_key', apiSettings.apiKey);
+      localStorage.setItem('preferred_model', apiSettings.model);
+      localStorage.setItem('temperature', apiSettings.temperature.toString());
+      localStorage.setItem('max_tokens', apiSettings.maxTokens.toString());
+
       // Update initial state to match current state after successful save
       setInitialApiSettings({ ...apiSettings });
       setSaveMessage('API settings saved successfully');
@@ -606,7 +613,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
   const renderApiView = () => (
     <div className="p-4 space-y-6" style={{ paddingTop: '40px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
-      <div className="space-y-4">
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
         <div>
           <label className="block ios-caption text-white/70 mb-2 ml-1">
             API Key
@@ -649,7 +656,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             </div>
           </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 

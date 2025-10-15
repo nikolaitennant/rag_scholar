@@ -348,7 +348,7 @@ struct ClassRow: View {
 
                 Image(systemName: userClass.domainType.icon)
                     .font(.system(size: 20))
-                    .foregroundColor(.black)
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
             }
 
             VStack(alignment: .leading, spacing: 4) {

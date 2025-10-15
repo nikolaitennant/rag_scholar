@@ -282,11 +282,26 @@ class APIService {
         )
     }
 
-    func downloadDocument(id: String, apiKey: String?) async throws -> Data {
-        // Note: Backend currently doesn't store original document files
-        // Documents are processed into embeddings/chunks only
-        // This will need backend support to store files in Cloud Storage
-        throw APIError.notImplemented
+    func getDocumentDownloadURL(id: String) async throws -> DocumentDownloadResponse {
+        try await request(endpoint: "/documents/\(id)/download", responseType: DocumentDownloadResponse.self)
+    }
+
+    func getDocumentSummary(id: String) async throws -> DocumentSummaryResponse {
+        try await request(endpoint: "/documents/\(id)/summary", responseType: DocumentSummaryResponse.self)
+    }
+
+    func downloadDocument(from url: URL) async throws -> Data {
+        let (data, response) = try await session.data(from: url)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw APIError.httpError(statusCode: httpResponse.statusCode)
+        }
+
+        return data
     }
 
     // MARK: - User Profile Endpoints
@@ -427,6 +442,40 @@ struct APISettings: Codable {
 
 struct HealthResponse: Codable {
     let status: String
+}
+
+struct DocumentDownloadResponse: Codable {
+    let documentId: String
+    let downloadUrl: String
+    let filename: String
+    let fileType: String
+    let expiresInDays: Int
+
+    enum CodingKeys: String, CodingKey {
+        case documentId = "document_id"
+        case downloadUrl = "download_url"
+        case filename
+        case fileType = "file_type"
+        case expiresInDays = "expires_in_days"
+    }
+}
+
+struct DocumentSummaryResponse: Codable {
+    let documentId: String
+    let filename: String
+    let summary: String
+    let chunksAnalyzed: Int
+    let fileType: String
+    let uploadDate: String?
+
+    enum CodingKeys: String, CodingKey {
+        case documentId = "document_id"
+        case filename
+        case summary
+        case chunksAnalyzed = "chunks_analyzed"
+        case fileType = "file_type"
+        case uploadDate = "upload_date"
+    }
 }
 
 // MARK: - API Errors

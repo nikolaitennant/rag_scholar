@@ -215,7 +215,7 @@ struct ClassesView: View {
                 // Trailing items (Liquid Glass style for ClassesView)
                 if !isEditMode {
                     // First capsule: Search + Add Class
-                    ToolbarItem(id: "search", placement: .topBarTrailing) {
+                    ToolbarItem(id: "search") {
                         Button {
                             withAnimation { isSearchActive = true }
                         } label: {
@@ -223,7 +223,7 @@ struct ClassesView: View {
                         }
                     }
 
-                    ToolbarItem(id: "add", placement: .topBarTrailing) {
+                    ToolbarItem(id: "add") {
                         Button {
                             showingCreateClass = true
                         } label: {

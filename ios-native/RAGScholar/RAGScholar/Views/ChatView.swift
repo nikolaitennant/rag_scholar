@@ -19,9 +19,10 @@ struct ChatView: View {
     @FocusState private var isInputFocused: Bool
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Messages ScrollView
-            ScrollViewReader { proxy in
+        ZStack(alignment: .topLeading) {
+            VStack(spacing: 0) {
+                // Messages ScrollView
+                ScrollViewReader { proxy in
                 GeometryReader { geometry in
                     ZStack {
                         ScrollView {
@@ -108,9 +109,25 @@ struct ChatView: View {
                         .ignoresSafeArea(edges: .bottom)
                 )
             }
+            }
+            .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
+            .toolbar(isInputFocused ? .hidden : .visible, for: .tabBar)
+
+            // Class name badge in corner
+            if let className = classManager.activeClass?.name {
+                Text(className)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.9))
+                    )
+                    .padding(.leading, 16)
+                    .padding(.top, 8)
+            }
         }
-        .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
-        .toolbar(isInputFocused ? .hidden : .visible, for: .tabBar)
         .onAppear {
             // Fetch initial data if needed
             if chatManager.sessions.isEmpty {
@@ -120,38 +137,6 @@ struct ChatView: View {
             }
         }
         .toolbar {
-            // Leading - Class dropdown
-            ToolbarItem(placement: .topBarLeading) {
-                Menu {
-                    ForEach(classManager.classes) { userClass in
-                        Button(action: {
-                            classManager.selectClass(userClass)
-                        }) {
-                            HStack {
-                                Text(userClass.name)
-                                if classManager.activeClass?.id == userClass.id {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
-                    }
-
-                    Divider()
-
-                    Button(action: {
-                        navigationManager.selectedTab = .classes
-                    }) {
-                        Label("Manage Classes", systemImage: "folder.badge.gearshape")
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(classManager.activeClass?.name ?? "Select Class")
-                            .lineLimit(1)
-                        Image(systemName: "chevron.down")
-                    }
-                }
-            }
-
             // Trailing - New Chat button
             ToolbarItem(placement: .topBarTrailing) {
                 Button {

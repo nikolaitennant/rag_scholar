@@ -8,6 +8,18 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum DocumentFilter: String, CaseIterable {
+    case all = "All Documents"
+    case currentClass = "Current Class"
+    case unassigned = "Unassigned"
+}
+
+enum DocumentSort: String, CaseIterable {
+    case uploadDate = "Upload Date"
+    case name = "Name"
+    case size = "Size"
+}
+
 struct DocumentsView: View {
     @EnvironmentObject var documentManager: DocumentManager
     @EnvironmentObject var classManager: ClassManager
@@ -19,7 +31,8 @@ struct DocumentsView: View {
     @State private var searchText = ""
     @State private var selectedDocument: Document?
     @State private var showingDeleteConfirmation = false
-    @State private var selectedTab = 0 // 0 = Current Class, 1 = All Docs
+    @State private var filterOption: DocumentFilter = .currentClass
+    @State private var sortOption: DocumentSort = .uploadDate
     @State private var isEditMode = false
     @State private var selectedDocuments: Set<String> = []
     @State private var isSearchActive = false
@@ -29,40 +42,34 @@ struct DocumentsView: View {
     @State private var documentToPreview: Document?
     @State private var showingClassesSheet = false
     @State private var expandedClassesDocId: String?
+    @State private var pendingFileURL: URL?
+    @State private var showingClassAssignmentAlert = false
+    @State private var documentForSummary: Document?
+
+    private var titleText: String {
+        switch filterOption {
+        case .all:
+            return "All Documents"
+        case .currentClass:
+            return classManager.activeClass?.name ?? "No Class Selected"
+        case .unassigned:
+            return "Unassigned"
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             // Title Header
             HStack {
-                Text("Documents")
+                Text(titleText)
                     .font(.system(size: 34, weight: .bold))
                     .foregroundColor(colorScheme == .dark ? .white : .black)
                 Spacer()
             }
-            .padding(.horizontal, 105)
+            .padding(.horizontal, 20)
             .padding(.top, 8)
             .padding(.bottom, 12)
             .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : .white)
-
-            // Segmented Control
-            VStack(spacing: 0) {
-                Picker("View", selection: $selectedTab) {
-                    Text("Current Class").tag(0)
-                    Text("All Docs").tag(1)
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding(.horizontal, 80)
-                .padding(.top, 12)
-                .padding(.bottom, 12)
-                .colorScheme(colorScheme)
-                .onChange(of: selectedTab) { _, newValue in
-                    documentManager.showAllDocuments = (newValue == 1)
-                    isEditMode = false
-                    selectedDocuments.removeAll()
-                }
-            }
-            .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : .white)
-
 
             // Documents List
             ScrollView {
@@ -79,7 +86,6 @@ struct DocumentsView: View {
                                 DocumentCard(
                                     document: document,
                                     isInCurrentClass: isDocumentInCurrentClass(document),
-                                    showingAllDocs: selectedTab == 1,
                                     isEditMode: isEditMode,
                                     isSelected: selectedDocuments.contains(document.id),
                                     expandedClassesDocId: $expandedClassesDocId,
@@ -91,7 +97,7 @@ struct DocumentsView: View {
                                         }
                                     },
                                     onTap: {
-                                        documentToPreview = document
+                                        documentForSummary = document
                                     },
                                     onDelete: {
                                         selectedDocument = document
@@ -120,11 +126,52 @@ struct DocumentsView: View {
         }
         .sheet(isPresented: $showingDocumentPicker) {
             DocumentPicker { url in
-                Task {
-                    await documentManager.uploadDocument(fileURL: url, filename: url.lastPathComponent)
-                    await rewardsManager.trackDocumentUploaded()
+                // Store the file URL and show class assignment alert
+                pendingFileURL = url
+                if classManager.activeClass != nil {
+                    showingClassAssignmentAlert = true
+                } else {
+                    // Upload without class assignment
+                    Task {
+                        await documentManager.uploadDocument(fileURL: url, filename: url.lastPathComponent)
+                        await rewardsManager.trackDocumentUploaded()
+                    }
                 }
             }
+        }
+        .alert("Add to Current Class?", isPresented: $showingClassAssignmentAlert) {
+            Button("Add to \(classManager.activeClass?.name ?? "Class")") {
+                if let url = pendingFileURL, let classId = classManager.activeClass?.id {
+                    Task {
+                        await documentManager.uploadDocument(fileURL: url, filename: url.lastPathComponent, classId: classId)
+                        await rewardsManager.trackDocumentUploaded()
+                        pendingFileURL = nil
+                    }
+                }
+            }
+            Button("Don't Add") {
+                if let url = pendingFileURL {
+                    Task {
+                        await documentManager.uploadDocument(fileURL: url, filename: url.lastPathComponent)
+                        await rewardsManager.trackDocumentUploaded()
+                        pendingFileURL = nil
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                pendingFileURL = nil
+            }
+        } message: {
+            Text("Would you like to add this document to your current class '\(classManager.activeClass?.name ?? "")'?")
+        }
+        .sheet(item: $documentForSummary) { document in
+            DocumentSummaryView(
+                document: document,
+                onViewFullDocument: {
+                    documentForSummary = nil
+                    documentToPreview = document
+                }
+            )
         }
         .sheet(item: $documentToPreview) { document in
             DocumentPreviewView(document: document)
@@ -218,35 +265,44 @@ struct DocumentsView: View {
                     }
                 }
             } else {
-                // Leading items - Class dropdown
+                // Leading items - Filter and Sort
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
-                        ForEach(classManager.classes) { userClass in
+                        ForEach(DocumentFilter.allCases, id: \.self) { filter in
                             Button(action: {
-                                classManager.selectClass(userClass)
+                                filterOption = filter
+                                isEditMode = false
+                                selectedDocuments.removeAll()
                             }) {
                                 HStack {
-                                    Text(userClass.name)
-                                    if classManager.activeClass?.id == userClass.id {
+                                    Text(filter.rawValue)
+                                    if filterOption == filter {
                                         Image(systemName: "checkmark")
                                     }
                                 }
                             }
                         }
+                    } label: {
+                        Label("Filter", systemImage: "line.3.horizontal.decrease")
+                    }
+                }
 
-                        Divider()
-
-                        Button(action: {
-                            navigationManager.selectedTab = .classes
-                        }) {
-                            Label("Manage Classes", systemImage: "folder.badge.gearshape")
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        ForEach(DocumentSort.allCases, id: \.self) { sort in
+                            Button(action: {
+                                sortOption = sort
+                            }) {
+                                HStack {
+                                    Text(sort.rawValue)
+                                    if sortOption == sort {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
                         }
                     } label: {
-                        HStack(spacing: 4) {
-                            Text(classManager.activeClass?.name ?? "Select Class")
-                                .lineLimit(1)
-                            Image(systemName: "chevron.down")
-                        }
+                        Label("Sort", systemImage: "arrow.up.arrow.down")
                     }
                 }
 
@@ -345,26 +401,40 @@ struct DocumentsView: View {
     }
 
     private var filteredDocuments: [Document] {
-        let baseDocuments: [Document]
+        var baseDocuments = documentManager.documents
 
-        if documentManager.showAllDocuments {
+        // Apply filter
+        switch filterOption {
+        case .all:
             baseDocuments = documentManager.documents
-        } else {
+        case .currentClass:
             if let classId = classManager.activeClass?.id {
                 baseDocuments = documentManager.getDocuments(for: classId)
-            } else {
-                baseDocuments = documentManager.documents
+            }
+        case .unassigned:
+            baseDocuments = documentManager.documents.filter { doc in
+                doc.assignedClasses?.isEmpty ?? true
             }
         }
 
         // Apply search filter
-        if searchText.isEmpty {
-            return baseDocuments
-        } else {
-            return baseDocuments.filter { document in
+        if !searchText.isEmpty {
+            baseDocuments = baseDocuments.filter { document in
                 document.filename.localizedCaseInsensitiveContains(searchText)
             }
         }
+
+        // Apply sort
+        switch sortOption {
+        case .uploadDate:
+            baseDocuments.sort { ($0.uploadDate ?? "") > ($1.uploadDate ?? "") }
+        case .name:
+            baseDocuments.sort { $0.filename.localizedCaseInsensitiveCompare($1.filename) == .orderedAscending }
+        case .size:
+            baseDocuments.sort { ($0.fileSize ?? 0) > ($1.fileSize ?? 0) }
+        }
+
+        return baseDocuments
     }
 
     private func isDocumentInCurrentClass(_ document: Document) -> Bool {
@@ -388,7 +458,6 @@ struct DocumentsView: View {
 struct DocumentCard: View {
     let document: Document
     let isInCurrentClass: Bool
-    let showingAllDocs: Bool
     let isEditMode: Bool
     let isSelected: Bool
     @Binding var expandedClassesDocId: String?
@@ -419,7 +488,7 @@ struct DocumentCard: View {
             // File Type Icon
             Image(systemName: documentManager.fileTypeIcon(for: document.fileType ?? ""))
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(.black)
+                .foregroundColor(colorScheme == .dark ? .white : .black)
                 .frame(width: 50, height: 50)
                 .background(
                     Circle()
@@ -820,39 +889,19 @@ struct UploadProgressView: View {
     @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text("Uploading...")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(colorScheme == .dark ? .white : .black)
+        HStack(spacing: 16) {
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0.61, green: 0.42, blue: 1.0)))
+                .scaleEffect(1.2)
 
-                Spacer()
+            Text("Uploading document...")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(colorScheme == .dark ? .white : .black)
 
-                Text("\(Int(progress * 100))%")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.7))
-            }
-
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white.opacity(0.2))
-                        .frame(height: 6)
-
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(red: 0.43, green: 0.37, blue: 0.99), Color(red: 0.62, green: 0.47, blue: 1)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: geometry.size.width * progress, height: 6)
-                        .animation(.easeInOut, value: progress)
-                }
-            }
-            .frame(height: 6)
+            Spacer()
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
     }
 }
 
@@ -922,6 +971,161 @@ struct DocumentPicker: UIViewControllerRepresentable {
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
             guard let url = urls.first else { return }
             parent.onDocumentPicked(url)
+        }
+    }
+}
+
+// MARK: - Document Summary View
+
+struct DocumentSummaryView: View {
+    let document: Document
+    let onViewFullDocument: () -> Void
+
+    @EnvironmentObject var classManager: ClassManager
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @State private var summary: String?
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+
+    private let apiService = APIService.shared
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    if isLoading {
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                            Text("Generating summary...")
+                                .font(.system(size: 15))
+                                .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 60)
+                    } else if let errorMessage = errorMessage {
+                        VStack(spacing: 16) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 48))
+                                .foregroundColor(colorScheme == .dark ? .white.opacity(0.3) : .black.opacity(0.3))
+                            Text(errorMessage)
+                                .font(.system(size: 15))
+                                .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.5))
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 60)
+                    } else if let summary = summary {
+                        VStack(alignment: .leading, spacing: 24) {
+                            // Summary Section
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Summary")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.6))
+                                    .textCase(.uppercase)
+
+                                Text(summary)
+                                    .font(.system(size: 16, weight: .regular))
+                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .lineSpacing(6)
+                            }
+                            .padding(.horizontal, 20)
+
+                            // Document Info
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Document Info")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.6))
+                                    .textCase(.uppercase)
+
+                                VStack(spacing: 12) {
+                                    if let fileType = document.fileType {
+                                        InfoRow(label: "File Type", value: fileType.uppercased())
+                                    }
+
+                                    if let chunks = document.chunks {
+                                        InfoRow(label: "Chunks", value: "\(chunks)")
+                                    }
+
+                                    if let uploadDate = document.uploadDate {
+                                        InfoRow(label: "Upload Date", value: uploadDate)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 20)
+
+                            // View Full Document Button
+                            Button(action: onViewFullDocument) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "doc.text.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("View Full Document")
+                                        .font(.system(size: 16, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    Capsule()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color(red: 0.61, green: 0.42, blue: 1.0),
+                                                    Color(red: 0.64, green: 0.47, blue: 1.0)
+                                                ],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .shadow(color: Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.4), radius: 8, x: 0, y: 0)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                        }
+                    }
+                }
+                .padding(.vertical, 20)
+            }
+            .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
+            .navigationTitle(document.filename)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                    }
+                }
+            }
+            .onAppear {
+                loadSummary()
+            }
+        }
+    }
+
+    private func loadSummary() {
+        isLoading = true
+        errorMessage = nil
+
+        Task {
+            do {
+                let response = try await apiService.getDocumentSummary(id: document.id)
+                await MainActor.run {
+                    self.summary = response.summary
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.isLoading = false
+                    self.errorMessage = "Failed to generate summary: \(error.localizedDescription)"
+                }
+            }
         }
     }
 }

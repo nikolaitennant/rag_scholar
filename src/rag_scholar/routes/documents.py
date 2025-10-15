@@ -269,6 +269,158 @@ async def assign_document_to_class(
         raise HTTPException(status_code=500, detail=f"Class assignment failed: {str(e)}")
 
 
+@router.get("/{document_id}/download")
+async def get_document_download_url(
+    document_id: str,
+    current_user: dict = Depends(get_current_user),
+):
+    """Get fresh download URL for a document."""
+    user_id = current_user["id"]
+    logger.info("Getting download URL", user_id=user_id, document_id=document_id)
+
+    try:
+        settings = get_settings()
+        from google.cloud import firestore
+
+        db = firestore.Client(project=settings.google_cloud_project)
+
+        # Get document metadata
+        doc_ref = db.collection(f"users/{user_id}/documents").document(document_id)
+        doc = doc_ref.get()
+
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        data = doc.to_dict()
+        storage_url = data.get("storage_url")
+
+        if not storage_url:
+            raise HTTPException(
+                status_code=404,
+                detail="Document not available for download. Original file not stored."
+            )
+
+        # Generate fresh signed URL
+        storage_service = DocumentStorageService(settings)
+        download_url = storage_service.get_download_url(storage_url, expiration_days=7)
+
+        if not download_url:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to generate download URL"
+            )
+
+        logger.info("Generated download URL", user_id=user_id, document_id=document_id)
+
+        return {
+            "document_id": document_id,
+            "download_url": download_url,
+            "filename": data.get("filename", ""),
+            "file_type": data.get("file_type", ""),
+            "expires_in_days": 7
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get download URL", user_id=user_id, document_id=document_id, error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to get download URL: {str(e)}")
+
+
+@router.get("/{document_id}/summary")
+async def get_document_summary(
+    document_id: str,
+    current_user: dict = Depends(get_current_user),
+):
+    """Generate AI summary of document."""
+    user_id = current_user["id"]
+    logger.info("Generating document summary", user_id=user_id, document_id=document_id)
+
+    try:
+        settings = get_settings()
+        from google.cloud import firestore
+
+        db = firestore.Client(project=settings.google_cloud_project)
+
+        # Get document metadata
+        doc_ref = db.collection(f"users/{user_id}/documents").document(document_id)
+        doc = doc_ref.get()
+
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        data = doc.to_dict()
+        filename = data.get("filename", "unknown")
+
+        # Get first 3-5 chunks for summary
+        chunks_ref = db.collection(f"users/{user_id}/chunks")
+        chunks_query = chunks_ref.where("metadata.source", "==", filename).limit(5)
+        chunks = chunks_query.get()
+
+        if not chunks:
+            raise HTTPException(status_code=404, detail="No content found for document")
+
+        # Combine chunk content
+        content = "\n\n".join([chunk.to_dict().get("content", "") for chunk in chunks])
+
+        # Get user's API key
+        from rag_scholar.services.user_profile import UserProfileService
+        user_service = UserProfileService(settings)
+        api_settings = await user_service.get_user_api_settings(user_id)
+        user_api_key = api_settings.get("api_key")
+
+        if not user_api_key:
+            raise HTTPException(
+                status_code=400,
+                detail="API key required. Please configure your API key in Advanced Settings."
+            )
+
+        # Generate summary using OpenAI
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=user_api_key)
+
+        response = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that creates concise, informative summaries of documents. Focus on the main topics, key points, and important details. Keep summaries between 2-4 paragraphs."
+                },
+                {
+                    "role": "user",
+                    "content": f"Please summarize this document:\n\n{content[:4000]}"  # Limit to 4000 chars
+                }
+            ],
+            temperature=0.5,
+            max_tokens=300
+        )
+
+        summary = response.choices[0].message.content
+
+        logger.info("Generated document summary",
+                   user_id=user_id,
+                   document_id=document_id,
+                   summary_length=len(summary))
+
+        return {
+            "document_id": document_id,
+            "filename": filename,
+            "summary": summary,
+            "chunks_analyzed": len(chunks),
+            "file_type": data.get("file_type", ""),
+            "upload_date": data.get("upload_date")
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to generate summary",
+                    user_id=user_id,
+                    document_id=document_id,
+                    error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to generate summary: {str(e)}")
+
+
 @router.get("/")
 async def get_documents(
     collection: str = "database",
@@ -323,6 +475,7 @@ async def get_documents(
                     "chunks": data.get("chunks_count", 0),
                     "upload_date": data.get("upload_date"),
                     "file_type": data.get("file_type", ""),
+                    "file_size": data.get("file_size"),  # File size in bytes
                     "assigned_classes": assigned_classes
                 })
 

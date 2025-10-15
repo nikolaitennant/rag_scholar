@@ -498,12 +498,19 @@ class LangChainIngestionPipeline:
                 if not documents:
                     raise ValueError("No content extracted from document")
 
-                # Add metadata
-                document_id = f"{metadata.get('uploaded_by') if metadata else 'unknown'}_{filename}_{len(documents)}"
+                # Add metadata - sanitize filename for document_id
+                import re
+                import uuid
+
+                # Create safe filename by removing spaces and special chars, keep extension
+                safe_filename = re.sub(r'[^\w\-.]', '_', filename)
+                # Add unique suffix to avoid collisions
+                unique_suffix = str(uuid.uuid4())[:8]
+                document_id = f"{metadata.get('uploaded_by') if metadata else 'unknown'}_{safe_filename}_{unique_suffix}"
 
                 for doc in documents:
                     doc.metadata.update({
-                        "source": filename,
+                        "source": filename,  # Keep original filename for display
                         "document_id": document_id,
                         "file_type": file_extension,
                         "assigned_classes": [],  # Empty by default, can be updated later
@@ -528,8 +535,8 @@ class LangChainIngestionPipeline:
                 # Add to vector store
                 await vector_store.aadd_documents(split_docs)
 
-                # Generate document ID from first chunk
-                document_id = f"{user_id}_{filename}_{len(split_docs)}"
+                # Use the already sanitized document_id from above
+                # (already created on line 509)
 
                 # Store document metadata in user's documents subcollection
                 try:

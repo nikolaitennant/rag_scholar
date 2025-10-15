@@ -77,19 +77,25 @@ class DocumentManager: ObservableObject {
                 apiKey: apiKey
             )
 
+            uploadProgress = 1.0
+
             // Assign to class if classId is provided
             if let classId = classId {
                 try await apiService.assignDocumentToClass(
                     documentId: document.id,
-                    documentSource: document.collection ?? "database",
+                    documentSource: document.filename,
                     classId: classId,
                     operation: "add",
                     apiKey: apiKey
                 )
-            }
 
-            uploadProgress = 1.0
-            documents.insert(document, at: 0)
+                // Update local document with assigned class
+                var updatedDocument = document
+                updatedDocument.assignedClasses = [classId]
+                documents.insert(updatedDocument, at: 0)
+            } else {
+                documents.insert(document, at: 0)
+            }
 
             // Cache the uploaded document locally (fire-and-forget)
             _ = try? await cacheDocument(data: data, for: document)
@@ -336,13 +342,30 @@ class DocumentManager: ObservableObject {
             return cachedURL
         }
 
-        // Backend doesn't currently store original files, only embeddings
-        // Documents are only available if they were uploaded in this session
-        throw NSError(
-            domain: "DocumentManager",
-            code: -2,
-            userInfo: [NSLocalizedDescriptionKey: "Document not available for preview. Original file is not stored on the server."]
-        )
+        // Get download URL from backend
+        let downloadResponse = try await apiService.getDocumentDownloadURL(id: documentId)
+
+        guard let url = URL(string: downloadResponse.downloadUrl) else {
+            throw NSError(
+                domain: "DocumentManager",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid download URL"]
+            )
+        }
+
+        // Download the document
+        let data = try await apiService.downloadDocument(from: url)
+
+        // Cache it
+        guard let document = documents.first(where: { $0.id == documentId }) else {
+            throw NSError(
+                domain: "DocumentManager",
+                code: -2,
+                userInfo: [NSLocalizedDescriptionKey: "Document not found in local state"]
+            )
+        }
+
+        return try await cacheDocument(data: data, for: document)
     }
 
     private func cleanCacheIfNeeded() async {

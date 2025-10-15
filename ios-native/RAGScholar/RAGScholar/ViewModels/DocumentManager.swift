@@ -23,8 +23,17 @@ class DocumentManager: ObservableObject {
     @Published var showAllDocuments: Bool = false
 
     private let apiService = APIService.shared
+    private let fileManager = FileManager.default
+    private let maxCacheSize: Int64 = 100 * 1024 * 1024 // 100 MB cache limit
 
-    private init() {}
+    private var documentsDirectory: URL {
+        fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("CachedDocuments", isDirectory: true)
+    }
+
+    private init() {
+        createCacheDirectoryIfNeeded()
+    }
 
     // MARK: - Document Fetching
 
@@ -81,6 +90,9 @@ class DocumentManager: ObservableObject {
 
             uploadProgress = 1.0
             documents.insert(document, at: 0)
+
+            // Cache the uploaded document locally (fire-and-forget)
+            _ = try? await cacheDocument(data: data, for: document)
 
             HapticManager.shared.success()
         } catch {
@@ -142,6 +154,12 @@ class DocumentManager: ObservableObject {
         do {
             let apiKey = UserDefaults.standard.string(forKey: "api_key")
             try await apiService.deleteDocument(id: documentId, apiKey: apiKey)
+
+            // Remove from local cache
+            if let document = documents.first(where: { $0.id == documentId }),
+               let cachedURL = getCachedDocumentURL(for: document) {
+                try? fileManager.removeItem(at: cachedURL)
+            }
 
             // Remove from local state
             documents.removeAll(where: { $0.id == documentId })
@@ -281,5 +299,104 @@ class DocumentManager: ObservableObject {
         }
 
         return allowedExtensions.contains(url.pathExtension.lowercased())
+    }
+
+    // MARK: - Document Caching
+
+    private func createCacheDirectoryIfNeeded() {
+        if !fileManager.fileExists(atPath: documentsDirectory.path) {
+            try? fileManager.createDirectory(at: documentsDirectory, withIntermediateDirectories: true)
+        }
+    }
+
+    func getCachedDocumentURL(for document: Document) -> URL? {
+        let cachedURL = documentsDirectory.appendingPathComponent("\(document.id).\(document.fileType ?? "pdf")")
+        return fileManager.fileExists(atPath: cachedURL.path) ? cachedURL : nil
+    }
+
+    func cacheDocument(data: Data, for document: Document) async throws -> URL {
+        // Check cache size before adding
+        await cleanCacheIfNeeded()
+
+        let cachedURL = documentsDirectory.appendingPathComponent("\(document.id).\(document.fileType ?? "pdf")")
+        try data.write(to: cachedURL)
+
+        // Update file attributes for cache management
+        try fileManager.setAttributes([.modificationDate: Date()], ofItemAtPath: cachedURL.path)
+
+        return cachedURL
+    }
+
+    func downloadAndCacheDocument(documentId: String) async throws -> URL {
+        // First check if already cached
+        if let document = documents.first(where: { $0.id == documentId }),
+           let cachedURL = getCachedDocumentURL(for: document) {
+            // Update access time
+            try? fileManager.setAttributes([.modificationDate: Date()], ofItemAtPath: cachedURL.path)
+            return cachedURL
+        }
+
+        // Backend doesn't currently store original files, only embeddings
+        // Documents are only available if they were uploaded in this session
+        throw NSError(
+            domain: "DocumentManager",
+            code: -2,
+            userInfo: [NSLocalizedDescriptionKey: "Document not available for preview. Original file is not stored on the server."]
+        )
+    }
+
+    private func cleanCacheIfNeeded() async {
+        do {
+            let cacheSize = try getCacheSize()
+
+            if cacheSize > maxCacheSize {
+                // Get all cached files sorted by last access time
+                let contents = try fileManager.contentsOfDirectory(at: documentsDirectory, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles])
+
+                let sortedFiles = try contents.sorted { file1, file2 in
+                    let date1 = try file1.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate ?? Date.distantPast
+                    let date2 = try file2.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate ?? Date.distantPast
+                    return date1 < date2
+                }
+
+                // Remove oldest files until under limit
+                var currentSize = cacheSize
+                for file in sortedFiles {
+                    if currentSize <= maxCacheSize / 2 { break } // Clean to 50% of max
+
+                    let attributes = try fileManager.attributesOfItem(atPath: file.path)
+                    let fileSize = attributes[.size] as? Int64 ?? 0
+
+                    try fileManager.removeItem(at: file)
+                    currentSize -= fileSize
+                }
+            }
+        } catch {
+            print("Cache cleanup error: \(error.localizedDescription)")
+        }
+    }
+
+    private func getCacheSize() throws -> Int64 {
+        let contents = try fileManager.contentsOfDirectory(at: documentsDirectory, includingPropertiesForKeys: [.fileSizeKey], options: [.skipsHiddenFiles])
+
+        return try contents.reduce(0) { total, url in
+            let attributes = try fileManager.attributesOfItem(atPath: url.path)
+            let size = attributes[.size] as? Int64 ?? 0
+            return total + size
+        }
+    }
+
+    func clearCache() async {
+        try? fileManager.removeItem(at: documentsDirectory)
+        createCacheDirectoryIfNeeded()
+    }
+
+    func getCacheSizeFormatted() -> String {
+        do {
+            let size = try getCacheSize()
+            return ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+        } catch {
+            return "Unknown"
+        }
     }
 }

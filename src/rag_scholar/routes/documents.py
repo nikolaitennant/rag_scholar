@@ -323,11 +323,6 @@ async def get_documents(
                     "chunks": data.get("chunks_count", 0),
                     "upload_date": data.get("upload_date"),
                     "file_type": data.get("file_type", ""),
-                    "file_size_bytes": data.get("file_size_bytes", 0),
-                    "storage_url": data.get("storage_url", ""),
-                    "download_url": data.get("download_url", ""),
-                    "preview_url": data.get("preview_url", ""),
-                    "preview_download_url": data.get("preview_download_url", ""),
                     "assigned_classes": assigned_classes
                 })
 

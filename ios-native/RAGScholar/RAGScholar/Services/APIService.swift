@@ -282,6 +282,13 @@ class APIService {
         )
     }
 
+    func downloadDocument(id: String, apiKey: String?) async throws -> Data {
+        // Note: Backend currently doesn't store original document files
+        // Documents are processed into embeddings/chunks only
+        // This will need backend support to store files in Cloud Storage
+        throw APIError.notImplemented
+    }
+
     // MARK: - User Profile Endpoints
 
     func getCurrentUser() async throws -> UserProfile {

@@ -27,10 +27,23 @@ struct ClassesView: View {
     @State private var filterDomains: Set<DomainType> = []
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Existing Classes
-                if !filteredClasses.isEmpty {
+        VStack(spacing: 0) {
+            // Title Header
+            HStack {
+                Text("Classes")
+                    .font(.system(size: 34, weight: .bold))
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
+            .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : .white)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Existing Classes
+                    if !filteredClasses.isEmpty {
                     GlassEffectContainer(spacing: 12) {
                         VStack(spacing: 12) {
                             ForEach(filteredClasses) { userClass in
@@ -70,8 +83,9 @@ struct ClassesView: View {
                     // Empty state when no classes exist
                     EmptyClassesState()
                 }
+                }
+                .padding(.bottom, 80)
             }
-            .padding(.bottom, 80)
         }
         .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
         .navigationBarTitleDisplayMode(.inline)
@@ -201,7 +215,7 @@ struct ClassesView: View {
                 // Trailing items (Liquid Glass style for ClassesView)
                 if !isEditMode {
                     // First capsule: Search + Add Class
-                    ToolbarItem(id: "search") {
+                    ToolbarItem(id: "search", placement: .topBarTrailing) {
                         Button {
                             withAnimation { isSearchActive = true }
                         } label: {
@@ -209,7 +223,7 @@ struct ClassesView: View {
                         }
                     }
 
-                    ToolbarItem(id: "add") {
+                    ToolbarItem(id: "add", placement: .topBarTrailing) {
                         Button {
                             showingCreateClass = true
                         } label: {
@@ -223,22 +237,25 @@ struct ClassesView: View {
                     // Second capsule: Edit (prominent style)
                     ToolbarItem(id: "edit", placement: .topBarTrailing) {
                         Button("Edit") {
-                            withAnimation {
+                            withAnimation(.easeInOut(duration: 0.25)) {
                                 isEditMode = true
                                 selectedClasses.removeAll()
                             }
                         }
+                        .transition(.opacity)
                     }
 
                 } else {
-                    // Edit mode: single "Done" capsule (prominent style)
-                    ToolbarItem(id: "done", placement: .primaryAction) {
+                    // Edit mode: single "Done" button
+                    ToolbarItem(id: "done", placement: .topBarTrailing) {
                         Button("Done") {
-                            withAnimation {
+                            withAnimation(.easeInOut(duration: 0.25)) {
                                 isEditMode = false
                                 selectedClasses.removeAll()
                             }
                         }
+                        .fontWeight(.semibold)
+                        .transition(.opacity)
                     }
                 }
             }

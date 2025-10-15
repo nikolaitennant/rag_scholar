@@ -15,6 +15,7 @@ struct Document: Codable, Identifiable, Hashable {
     let uploadDate: String?
     var assignedClasses: [String]?
     let collection: String?
+    let fileSize: Int?  // File size in bytes (when backend adds support)
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -24,5 +25,6 @@ struct Document: Codable, Identifiable, Hashable {
         case uploadDate = "upload_date"
         case assignedClasses = "assigned_classes"
         case collection
+        case fileSize = "file_size"
     }
 }

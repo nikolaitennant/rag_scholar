@@ -544,6 +544,7 @@ class LangChainIngestionPipeline:
                         "document_id": document_id,
                         "upload_date": datetime.datetime.now(),
                         "file_type": file_extension,
+                        "file_size": len(file_content),  # Store original file size in bytes
                         "chunks_count": len(split_docs),
                         "assigned_classes": [],  # Empty by default
                         "metadata": metadata or {}

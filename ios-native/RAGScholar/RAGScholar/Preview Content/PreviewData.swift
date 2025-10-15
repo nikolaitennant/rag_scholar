@@ -66,7 +66,8 @@ extension Document {
             chunks: 45,
             uploadDate: "2 days ago",
             assignedClasses: ["1"],
-            collection: "database"
+            collection: "database",
+            fileSize: nil  // Will use estimated size from chunks
         ),
         Document(
             id: "doc2",
@@ -75,7 +76,8 @@ extension Document {
             chunks: 32,
             uploadDate: "1 week ago",
             assignedClasses: ["1"],
-            collection: "database"
+            collection: "database",
+            fileSize: nil
         ),
         Document(
             id: "doc3",
@@ -84,7 +86,8 @@ extension Document {
             chunks: 78,
             uploadDate: "3 days ago",
             assignedClasses: ["2"],
-            collection: "database"
+            collection: "database",
+            fileSize: nil
         ),
         Document(
             id: "doc4",
@@ -93,7 +96,8 @@ extension Document {
             chunks: 23,
             uploadDate: "5 days ago",
             assignedClasses: ["3"],
-            collection: "database"
+            collection: "database",
+            fileSize: nil
         ),
         Document(
             id: "doc5",
@@ -102,7 +106,8 @@ extension Document {
             chunks: 56,
             uploadDate: "1 week ago",
             assignedClasses: ["3"],
-            collection: "database"
+            collection: "database",
+            fileSize: nil
         ),
         Document(
             id: "doc6",
@@ -111,7 +116,8 @@ extension Document {
             chunks: 18,
             uploadDate: "4 days ago",
             assignedClasses: ["5"],
-            collection: "database"
+            collection: "database",
+            fileSize: nil
         ),
         Document(
             id: "doc7",
@@ -120,7 +126,8 @@ extension Document {
             chunks: 92,
             uploadDate: "2 weeks ago",
             assignedClasses: nil,
-            collection: "database"
+            collection: "database",
+            fileSize: nil
         ),
         Document(
             id: "doc8",
@@ -129,7 +136,8 @@ extension Document {
             chunks: 234,
             uploadDate: "3 weeks ago",
             assignedClasses: nil,
-            collection: "database"
+            collection: "database",
+            fileSize: nil
         )
     ]
 }

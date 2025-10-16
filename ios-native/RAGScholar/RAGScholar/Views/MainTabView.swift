@@ -16,17 +16,62 @@ struct MainTabView: View {
     @State private var showManageDocuments = false
     @State private var classToEdit: UserClass?
 
-
-
     var body: some View {
-        mainContent
-            .overlay(modalBackground)
-            .overlay(createClassOverlay)
-            .overlay(editClassOverlay)
-            .overlay(manageDocumentsOverlay)
+        ZStack {
+            // Main tabs with tab bar (Home, Docs, Classes)
+            mainTabsContent
+                .overlay(modalBackground)
+                .overlay(createClassOverlay)
+                .overlay(editClassOverlay)
+                .overlay(manageDocumentsOverlay)
+                .gesture(swipeLeftToChat)
+
+            // Chat overlay (full screen, no tab bar)
+            if navigationManager.showChat {
+                chatOverlay
+                    .transition(.move(edge: .trailing))
+                    .zIndex(100)
+            }
+        }
     }
 
-    private var mainContent: some View {
+    private var swipeLeftToChat: some Gesture {
+        DragGesture(minimumDistance: 30)
+            .onEnded { value in
+                let translation = value.translation.width
+
+                // Swipe left to open chat
+                if translation < -100 && !navigationManager.showChat {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        navigationManager.openChat()
+                    }
+                }
+            }
+    }
+
+    private var chatOverlay: some View {
+        NavigationStack {
+            ChatView()
+                .navigationBarTitleDisplayMode(.inline)
+        }
+        .tint(colorScheme == .dark ? .white : .black)
+        .background(backgroundGradient)
+        .gesture(
+            DragGesture(minimumDistance: 30)
+                .onEnded { value in
+                    let translation = value.translation.width
+
+                    // Swipe right to close chat
+                    if translation > 100 {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            navigationManager.closeChat()
+                        }
+                    }
+                }
+        )
+    }
+
+    private var mainTabsContent: some View {
         TabView(selection: $navigationManager.selectedTab) {
             NavigationStack {
                 HomeView()
@@ -38,20 +83,6 @@ struct MainTabView: View {
                 Text(NavigationManager.Tab.home.rawValue)
             }
             .tag(NavigationManager.Tab.home)
-
-            NavigationStack {
-                ChatView()
-                    .navigationBarTitleDisplayMode(.inline)
-            }
-            .tint(colorScheme == .dark ? .white : .black)
-            .tabItem {
-                Image(systemName: NavigationManager.Tab.chat.icon)
-                Text(NavigationManager.Tab.chat.rawValue)
-            }
-            .tag(NavigationManager.Tab.chat)
-            .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { }
-            }
 
             NavigationStack {
                 DocumentsView()
@@ -74,6 +105,14 @@ struct MainTabView: View {
                 Text(NavigationManager.Tab.classes.rawValue)
             }
             .tag(NavigationManager.Tab.classes)
+
+            // Chat tab - will trigger overlay
+            Color.clear
+                .tabItem {
+                    Image(systemName: NavigationManager.Tab.chat.icon)
+                    Text(NavigationManager.Tab.chat.rawValue)
+                }
+                .tag(NavigationManager.Tab.chat)
         }
         .background(backgroundGradient)
         .tint(Color(red: 0.61, green: 0.42, blue: 1.0))
@@ -83,6 +122,12 @@ struct MainTabView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             keyboardVisible = false
+        }
+        .onChange(of: navigationManager.selectedTab) { oldValue, newValue in
+            // When chat tab is selected, show overlay
+            if newValue == .chat {
+                navigationManager.openChat()
+            }
         }
     }
 
@@ -178,4 +223,5 @@ struct MainTabView: View {
         .environmentObject(RewardsManager.shared)
         .environmentObject(ChatManager.shared)
         .environmentObject(DocumentManager.shared)
+        .environmentObject(ThemeManager.shared)
 }

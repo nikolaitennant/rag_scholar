@@ -82,6 +82,7 @@ struct ChatView: View {
                     HStack(alignment: .center, spacing: 0) {
                         TextField("Ask a question...", text: $inputText, axis: .vertical)
                             .foregroundColor(colorScheme == .dark ? .white : .black)
+                            .tint(Color(red: 0.61, green: 0.42, blue: 1.0))
                             .font(.system(size: 16))
                             .focused($isInputFocused)
                             .lineLimit(1...5)
@@ -112,21 +113,6 @@ struct ChatView: View {
             }
             .background(colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.11) : Color.white)
             .toolbar(isInputFocused ? .hidden : .visible, for: .tabBar)
-
-            // Class name badge in corner
-            if let className = classManager.activeClass?.name {
-                Text(className)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(Color(red: 0.61, green: 0.42, blue: 1.0).opacity(0.9))
-                    )
-                    .padding(.leading, 16)
-                    .padding(.top, 8)
-            }
         }
         .onAppear {
             // Fetch initial data if needed
@@ -137,6 +123,30 @@ struct ChatView: View {
             }
         }
         .toolbar {
+            // Leading - Back button
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    navigationManager.closeChat()
+                    HapticManager.shared.impact(.light)
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 17, weight: .semibold))
+                }
+            }
+
+            // Principal - Active class name
+            ToolbarItem(placement: .principal) {
+                if let className = classManager.activeClass?.name {
+                    Text(className)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(colorScheme == .dark ? .white : .black)
+                } else {
+                    Text("Chat")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(colorScheme == .dark ? .white : .black)
+                }
+            }
+
             // Trailing - New Chat button
             ToolbarItem(placement: .topBarTrailing) {
                 Button {

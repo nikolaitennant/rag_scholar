@@ -78,7 +78,7 @@ struct HomeView: View {
                         GlassEffectContainer {
                             Button(action: {
                                 chatManager.startNewChat()
-                                navigationManager.selectedTab = .chat
+                                navigationManager.openChat()
                                 HapticManager.shared.impact(.light)
                             }) {
                                 Image(systemName: "square.and.pencil")
@@ -106,7 +106,7 @@ struct HomeView: View {
                                 onTap: {
                                     Task {
                                         await chatManager.loadSession(session.id)
-                                        navigationManager.selectedTab = .chat
+                                        navigationManager.openChat()
                                     }
                                 },
                                 onEdit: {
@@ -205,7 +205,7 @@ struct HomeView: View {
                         Divider()
 
                         Button(action: {
-                            navigationManager.selectedTab = .classes
+                            navigationManager.selectTab(.classes)
                         }) {
                             Label("Manage Classes", systemImage: "folder.badge.gearshape")
                         }
